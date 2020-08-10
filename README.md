@@ -14,7 +14,7 @@ non-profit, government, education, commercial, etc) -
 please send me email if this software is useful to your
 organization.
 
-flyingrhino <at> orcon <dot> net <dot> nz
+flyingrhino AT orcon DOT net DOT nz
 
 This software can be used by anyone at no cost, however
 if you can support - please donate money to a
@@ -41,26 +41,30 @@ the ssh connections yml file in one of the supported
 directories.
 
 You may need to manually install the PyYAML module:
-  pip3 install --user PyYAML
+  `pip3 install --user PyYAML`
 
 You may even need to install the python pip3 program if
 your distro doesn't have it.
 
 You can do the following:
+```
   copy the nccm.py script to: /usr/local/bin/
   cd /usr/local/bin/
   chmod 755 nccm.py
   chown root:root nccm.py
+```
 
 The script can then be run by simply typing 'nccm.py'
 from anywhere.
 
 The ssh connections (servers) file is loaded from the
 following paths, whichever is found first:
+```
   ~/.config/nccm/nccm.yml
   ~/.nccm.yml
   ~/nccm.yml
   /etc/nccm.yml
+```
 
 This program comes with an example yml file. Edit it
 so suit your needs.
@@ -69,6 +73,7 @@ so suit your needs.
 Controls
 --------
 
+```
 Up/Down arrows      Scroll the list up/down
 Home/End            Jump to list first/last entry
 PgUp/PgDn           Page up/down in the list
@@ -80,7 +85,7 @@ Ctrl-h              Display this help menu
 Ctrl-q              Quit the program
 Ctrl-c              Quit the program
 F1-F4 or !@#$       Sort by respective column (1-4)
-
+```
 
 Usage
 -----
