@@ -1,7 +1,6 @@
 # nccm
 NCurses ssh Connection Manager
 
-Screenshot:
 ![](images/program_screenshot.png)
 
 Copyright (C) 2020 Kenneth Aaron.
