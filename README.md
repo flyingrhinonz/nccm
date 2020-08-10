@@ -1,5 +1,5 @@
 # nccm
-ncurses ssh connection manager
+NCurses ssh Connection Manager
 
 
 Copyright (C) 2020 Kenneth Aaron.
@@ -54,7 +54,7 @@ You can do the following:
   chown root:root nccm.py
 ```
 
-The script can then be run by simply typing 'nccm.py'
+The script can then be run by simply typing `nccm.py`
 from anywhere.
 
 The ssh connections (servers) file is loaded from the
@@ -82,8 +82,7 @@ Shift Left/Right    Move the marker to display top/bottom
 Enter               Connect to the selected entry
 
 Ctrl-h              Display this help menu
-Ctrl-q              Quit the program
-Ctrl-c              Quit the program
+Ctrl-q or Ctrl-c    Quit the program
 F1-F4 or !@#$       Sort by respective column (1-4)
 ```
 
