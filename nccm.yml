@@ -1,0 +1,24 @@
+# Servers configuration file in YAML format.
+# Use the following format:
+#   FRIENDLY_NAME:
+#     address: SERVER_ADDRESS
+#     comment: FREETEXT_COMMENT
+#     user: USER_NAME
+#
+#   Details:
+#       FRIENDLY_NAME - Can be any freetext descriptive name (recommended field)
+#       SERVER_ADDRESS - Hostname or IP address (mandatory field)
+#       FREETEXT_COMMENT - Any freetext you like to store as a comment on this connection (optional field)
+#       USER_NAME - Your login name (mandatory field)
+
+Another server:
+  address: 10.2.2.2
+  comment: this is another comment
+  user: foo
+border router:
+  address: 192.168.1.1
+  comment: My border router
+  user: admin
+test server:
+  address: test.example.com
+  user: root
