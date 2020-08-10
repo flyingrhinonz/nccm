@@ -16,7 +16,7 @@ non-profit, government, education, commercial, etc) -
 please send me email if this software is useful to your
 organization.
 
-flyingrhino <at> orcon <dot> net <dot> nz
+flyingrhino AT orcon DOT net DOT nz
 
 This software can be used by anyone at no cost, however
 if you can support - please donate money to a
@@ -79,8 +79,7 @@ Shift Left/Right    Move the marker to display top/bottom
 Enter               Connect to the selected entry
 
 Ctrl-h              Display this help menu
-Ctrl-q              Quit the program
-Ctrl-c              Quit the program
+Ctrl-q or Ctrl-c    Quit the program
 F1-F4 or !@#$       Sort by respective column (1-4)
 
 
