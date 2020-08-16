@@ -147,12 +147,8 @@ public key on the server in .ssh/authorized_keys - tip:
 look up ssh-copy-id) or store your password in a
 password manager and paste it when prompted.
 
-Does not like window resizing and display will do
-strange things. Upsizing the window usually messes
-up the screen, while downsizing the window throws
-an exception.
-If things go wrong, and you're still stuck in the window,
-exit with ctrl-q or ctrl-c and run it again.
+Does not like window resizing and exits gracefully
+displaying an error message.
 It's safe to resize the window once connection
 establishment is in progress or after connected to
 your server.
