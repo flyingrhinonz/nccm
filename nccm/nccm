@@ -13,14 +13,14 @@ Free for personal use (as in "at home").
 
 Free for all non-personal use (organizational,
 non-profit, government, education, commercial, etc) -
-please send me email if this software is useful to your
-organization.
+please send me an email if this software is useful to
+your organization.
 
-flyingrhino AT orcon DOT net DOT nz
+flyingrhino@orcon.net.nz
 
 This software can be used by anyone at no cost, however
-if you can support - please donate money to a
-children's hospital of your choice.
+if you like using my software and can support - please
+donate money to a children's hospital of your choice.
 
 This program is free software: you can redistribute it
 and/or modify it under the terms of the GNU General Public
@@ -49,12 +49,12 @@ You may even need to install the python pip3 program if
 your distro doesn't have it.
 
 You can do the following:
-  copy the nccm.py script to: /usr/local/bin/
+  copy the nccm script to: /usr/local/bin/
   cd /usr/local/bin/
-  chmod 755 nccm.py
-  chown root:root nccm.py
+  chmod 755 nccm
+  chown root:root nccm
 
-The script can then be run by simply typing 'nccm.py'
+The script can then be run by simply typing 'nccm'
 from anywhere.
 
 The ssh connections (servers) file is loaded from the
@@ -183,6 +183,8 @@ make life easier for modders and forkers.
 import collections
 import curses
 import itertools
+import logging
+import logging.handlers
 import operator
 import os.path
 import pathlib
@@ -190,9 +192,23 @@ import pydoc
 import shlex
 import string
 import subprocess
+import sys
 
 # Pay attention to these imports:
 import yaml         # Requires: 'pip3 install --user PyYAML'
+
+
+# Uncomment this block to enable logging:
+#LogWrite = logging.getLogger('MyLogger')
+#LogWrite.setLevel(logging.DEBUG)
+#LogWrite.propagate = False
+#    # ^ Prevents duplicate logging by ancestor loggers (if any)
+#LogHandler = logging.handlers.SysLogHandler(address = '/dev/log')
+#LogWrite.addHandler(LogHandler)
+#LogWriteFormatter = logging.Formatter('{}: %(message)s'.format('nccm'))
+#    # ^ Appends 'nccm' to log lines for easy identification
+#LogHandler.setFormatter(LogWriteFormatter)
+##LogWrite.debug('This is a test line to syslog')
 
 
 QuitAfterSsh = True     # Quit this program after ssh connection is completed
@@ -275,9 +291,10 @@ class Connections:
         '''
 
     def __init__(self, LinesCount=None, ColsCount=None, BeginY=None,
-        BeginX=None, ColorPair=0, TextFilters=None):
+        BeginX=None, ColorPair=0, TextFilters=None, stdscr=None):
 
         # Window parameters:
+        self.stdscr = stdscr
         self.ColorPair = ColorPair
         self.TextFilters = TextFilters
         self.MaxTextLines = LinesCount-1
@@ -378,6 +395,17 @@ class Connections:
 
 
     def Display(self):
+
+        # Check if the window was resized since it was started:
+        NewScreenHeight, NewScreenWidth = self.stdscr.getmaxyx()
+        #LogWrite.debug('NewScreenHeight = {} , NewScreenWidth = {} '
+        #    .format(NewScreenHeight, NewScreenWidth))
+
+        if NewScreenHeight != ScreenHeight or NewScreenWidth != ScreenWidth:
+            RestoreTerminal(self.stdscr)
+            print('Resizing the window during menu display is not permitted.')
+            print('You may resize the window during or after connection initiation.')
+            sys.exit(1)
 
         FilterTextList = set()          # Unique text strings for filtering
         self.ResultsList = []           # Result of the filtering
@@ -538,6 +566,7 @@ def SetupCurses(stdscr):
         return False
 
     ScreenHeight, ScreenWidth = stdscr.getmaxyx()
+    #LogWrite.debug('ScreenHeight = {} , ScreenWidth = {}'.format(ScreenHeight, ScreenWidth))
 
     if ScreenWidth < 60 or ScreenHeight < 15:
         RestoreTerminal(stdscr)
@@ -545,7 +574,7 @@ def SetupCurses(stdscr):
         return False
 
 
-def SetupWindows():
+def SetupWindows(stdscr):
     ''' Create the various windows '''
 
     global ScreenHeight, ScreenWidth
@@ -584,7 +613,7 @@ def SetupWindows():
     # Connections list text display window:
     ConnectionsList = Connections(LinesCount=ScreenHeight-3,
         ColsCount=ScreenWidth, BeginY=0, BeginX=0, ColorPair=0,
-        TextFilters=[FilterBox, ConnBox])
+        TextFilters=[FilterBox, ConnBox] , stdscr=stdscr)
     #ConnectionsList.SaveExample()
         # ^ Uncomment this line to create a clean example connections file
         #   which will be saved to the current directory.
@@ -605,7 +634,7 @@ def MainCursesFunction(stdscr):
     if SetupCurses(stdscr) == False:       # Something failed in setup or tests
         return
 
-    ConnectionsList, ConnBox, FilterBox, CyclicTextboxObjects = SetupWindows()
+    ConnectionsList, ConnBox, FilterBox, CyclicTextboxObjects = SetupWindows(stdscr)
     UpdateDisplay()
     ActiveWindow = FilterBox    # The first window to read user input from
     FilterBox.ZeroCursor()
@@ -621,12 +650,15 @@ def MainCursesFunction(stdscr):
 
     while True:
         UserKey = ActiveWindow.ReadKey()
+        #LogWrite.debug('UserKey = {}'.format(UserKey))
 
-        if UserKey == -1:       # Happens when window is resized
-            # ^ If I don't capture this, window resize causes a curses exception
-            pass
+# This block is not required any more since I handle it better in Connections.Display() method:
+#        if UserKey == -1:       # Happens when window is resized
+#            # ^ If I don't capture this, window resize causes a curses exception
+#            #LogWrite.debug('Detected window resize')
+#            pass
 
-        elif UserKey == 9:    # Tab key
+        if UserKey == 9:    # Tab key
             ActiveWindow = next(CyclicTextboxObjects)
                 # ^ See the 'for Looper in CyclicTextboxObjects:' comment above
             ActiveWindow.ActivateWindow()
