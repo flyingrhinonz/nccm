@@ -15,7 +15,7 @@ non-profit, government, education, commercial, etc) -
 please send me an email if this software is useful to
 your organization.
 
-flyingrhino AT orcon DOT net DOT nz
+flyingrhino@orcon.net.nz
 
 This software can be used by anyone at no cost, however
 if you like using my software and can support - please
@@ -42,30 +42,26 @@ the ssh connections yml file in one of the supported
 directories.
 
 You may need to manually install the PyYAML module:
-  `pip3 install --user PyYAML`
+  pip3 install --user PyYAML
 
 You may even need to install the python pip3 program if
 your distro doesn't have it.
 
 You can do the following:
-```
-  copy the nccm.py script to: /usr/local/bin/
+  copy the nccm script to: /usr/local/bin/
   cd /usr/local/bin/
-  chmod 755 nccm.py
-  chown root:root nccm.py
-```
+  chmod 755 nccm
+  chown root:root nccm
 
-The script can then be run by simply typing `nccm.py`
+The script can then be run by simply typing 'nccm'
 from anywhere.
 
 The ssh connections (servers) file is loaded from the
 following paths, whichever is found first:
-```
   ~/.config/nccm/nccm.yml
   ~/.nccm.yml
   ~/nccm.yml
   /etc/nccm.yml
-```
 
 This program comes with an example yml file. Edit it
 so suit your needs.
@@ -74,7 +70,6 @@ so suit your needs.
 Controls
 --------
 
-```
 Up/Down arrows      Scroll the list up/down
 Home/End            Jump to list first/last entry
 PgUp/PgDn           Page up/down in the list
@@ -85,7 +80,7 @@ Enter               Connect to the selected entry
 Ctrl-h              Display this help menu
 Ctrl-q or Ctrl-c    Quit the program
 F1-F4 or !@#$       Sort by respective column (1-4)
-```
+
 
 Usage
 -----
@@ -151,12 +146,8 @@ public key on the server in .ssh/authorized_keys - tip:
 look up ssh-copy-id) or store your password in a
 password manager and paste it when prompted.
 
-Does not like window resizing and display will do
-strange things. Upsizing the window usually messes
-up the screen, while downsizing the window throws
-an exception.
-If things go wrong, and you're still stuck in the window,
-exit with ctrl-q or ctrl-c and run it again.
+Does not like window resizing and exits gracefully
+displaying an error message.
 It's safe to resize the window once connection
 establishment is in progress or after connected to
 your server.
@@ -180,3 +171,4 @@ on focus.
 
 The code is heavily commented, with the hope that it will
 make life easier for modders and forkers.
+
