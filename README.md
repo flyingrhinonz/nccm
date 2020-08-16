@@ -12,14 +12,14 @@ Free for personal use (as in "at home").
 
 Free for all non-personal use (organizational,
 non-profit, government, education, commercial, etc) -
-please send me email if this software is useful to your
-organization.
+please send me an email if this software is useful to
+your organization.
 
 flyingrhino AT orcon DOT net DOT nz
 
 This software can be used by anyone at no cost, however
-if you can support - please donate money to a
-children's hospital of your choice.
+if you like using my software and can support - please
+donate money to a children's hospital of your choice.
 
 This program is free software: you can redistribute it
 and/or modify it under the terms of the GNU General Public
