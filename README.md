@@ -42,26 +42,30 @@ the ssh connections yml file in one of the supported
 directories.
 
 You may need to manually install the PyYAML module:
-  pip3 install --user PyYAML
+  `pip3 install --user PyYAML`
 
 You may even need to install the python pip3 program if
 your distro doesn't have it.
 
 You can do the following:
+```
   copy the nccm script to: /usr/local/bin/
   cd /usr/local/bin/
   chmod 755 nccm
   chown root:root nccm
+```
 
-The script can then be run by simply typing 'nccm'
+The script can then be run by simply typing `nccm`
 from anywhere.
 
 The ssh connections (servers) file is loaded from the
 following paths, whichever is found first:
+```
   ~/.config/nccm/nccm.yml
   ~/.nccm.yml
   ~/nccm.yml
   /etc/nccm.yml
+```
 
 This program comes with an example yml file. Edit it
 so suit your needs.
@@ -70,6 +74,7 @@ so suit your needs.
 Controls
 --------
 
+```
 Up/Down arrows      Scroll the list up/down
 Home/End            Jump to list first/last entry
 PgUp/PgDn           Page up/down in the list
@@ -80,6 +85,7 @@ Enter               Connect to the selected entry
 Ctrl-h              Display this help menu
 Ctrl-q or Ctrl-c    Quit the program
 F1-F4 or !@#$       Sort by respective column (1-4)
+```
 
 
 Usage
