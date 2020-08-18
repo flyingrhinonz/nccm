@@ -378,16 +378,12 @@ class Connections:
         print('Clean example connections file saved to: {}'.format(ConfigFile))
 
 
-    def Connect(self, Counter):
-        ''' Make ssh connection '''
+    def GetConnect(self, Counter):
+        ''' Get link to connet to '''
 
         Counter = int(Counter)
-
         SshCommand = 'ssh ' + [ i[2] for i in self.FullServersList if i[0] == Counter ][0]
-        print('About to ssh to: {} ...'.format(SshCommand))
-        ExtCommand = shlex.split(SshCommand)    # Split the command line into arguments
-        subprocess.run(ExtCommand)              # Connect to the ssh server
-        print('Completed ssh to: {} ...'.format(SshCommand))
+        return SshCommand
 
 
     def Display(self):
@@ -627,6 +623,8 @@ def SetupWindows(stdscr):
 
 def MainCursesFunction(stdscr):
 
+    ConnectString = False
+
     if SetupCurses(stdscr) == False:       # Something failed in setup or tests
         return
 
@@ -766,20 +764,14 @@ def MainCursesFunction(stdscr):
                 if (int(ConnBox.Text) >= 0
                     and int(ConnBox.Text) <= (len(ConnectionsList.FullServersList) -1)):
                         curses.endwin()
-                        ConnectionsList.Connect(ConnBox.Text)
-                        if QuitAfterSsh:        # Exit this program after ssh connection completed
-                            break
-                        else:
-                            input('Press enter to return to nccm ...')
+                        ConnectString = ConnectionsList.GetConnect(ConnBox.Text)
+                        break
 
         elif ((UserKey == curses.KEY_ENTER or UserKey in [10, 13])
             and ConnectionsList.SelectedEntry):  # Enter key
                 curses.endwin()
-                ConnectionsList.Connect(ConnectionsList.SelectedEntryVal)
-                if QuitAfterSsh:        # Exit this program after ssh connection completed
-                    break
-                else:
-                    input('Press enter to return to nccm ...')
+                ConnectString = ConnectionsList.GetConnect(ConnectionsList.SelectedEntryVal)
+                break
 
         elif UserKey == 8:      # Ctrl-h key
             curses.endwin()     # De-initialize and return terminal to normal status
@@ -794,10 +786,17 @@ def MainCursesFunction(stdscr):
         ActiveWindow.ActivateWindow()
 
     RestoreTerminal(stdscr)
+    return ConnectString
 
 
 def main(*args):
-    curses.wrapper(MainCursesFunction)
+    ConnectString = curses.wrapper(MainCursesFunction)
+
+    if ConnectString:
+        print('About to ssh to: {} ...'.format(ConnectString))
+        ExtCommand = shlex.split(ConnectString)    # Split the command line into arguments
+        subprocess.run(ExtCommand)              # Connect to the ssh server
+        print('Completed ssh to: {} ...'.format(ConnectString))
 
 
 if __name__ == '__main__':
