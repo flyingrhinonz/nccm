@@ -763,13 +763,11 @@ def MainCursesFunction(stdscr):
             and ConnBox.Text):
                 if (int(ConnBox.Text) >= 0
                     and int(ConnBox.Text) <= (len(ConnectionsList.FullServersList) -1)):
-                        curses.endwin()
                         ConnectString = ConnectionsList.GetConnect(ConnBox.Text)
                         break
 
         elif ((UserKey == curses.KEY_ENTER or UserKey in [10, 13])
             and ConnectionsList.SelectedEntry):  # Enter key
-                curses.endwin()
                 ConnectString = ConnectionsList.GetConnect(ConnectionsList.SelectedEntryVal)
                 break
 
