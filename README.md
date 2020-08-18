@@ -8,15 +8,6 @@ Copyright (C) 2020 Kenneth Aaron.
 Freedom makes a better world: released under GNU GPLv3.
 https://www.gnu.org/licenses/gpl-3.0.en.html
 
-Free for personal use (as in "at home").
-
-Free for all non-personal use (organizational,
-non-profit, government, education, commercial, etc) -
-please send me an email if this software is useful to
-your organization.
-
-flyingrhino@orcon.net.nz
-
 This software can be used by anyone at no cost, however
 if you like using my software and can support - please
 donate money to a children's hospital of your choice.
