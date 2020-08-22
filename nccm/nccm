@@ -198,21 +198,17 @@ import yaml         # Requires: 'pip3 install --user PyYAML'
 
 
 # Uncomment this block to enable logging:
-LogWrite = logging.getLogger('MyLogger')
-LogWrite.setLevel(logging.DEBUG)
-LogWrite.propagate = False
-    # ^ Prevents duplicate logging by ancestor loggers (if any)
-LogHandler = logging.handlers.SysLogHandler(address = '/dev/log')
-LogWrite.addHandler(LogHandler)
-LogWriteFormatter = logging.Formatter('{}: %(message)s'.format('nccm'))
-    # ^ Appends 'nccm' to log lines for easy identification
-LogHandler.setFormatter(LogWriteFormatter)
+#LogWrite = logging.getLogger('MyLogger')
+#LogWrite.setLevel(logging.DEBUG)
+#LogWrite.propagate = False
+#    # ^ Prevents duplicate logging by ancestor loggers (if any)
+#LogHandler = logging.handlers.SysLogHandler(address = '/dev/log')
+#LogWrite.addHandler(LogHandler)
+#LogWriteFormatter = logging.Formatter('{}: %(message)s'.format('nccm'))
+#    # ^ Appends 'nccm' to log lines for easy identification
+#LogHandler.setFormatter(LogWriteFormatter)
 #LogWrite.debug('This is a test line to syslog')
 
-
-QuitAfterSsh = True     # Quit this program after ssh connection is completed
-ControlMode = 'std'     # Controls how arrow keys move the display & the marker
-                        #   Options are std, focus
 
 # Setup the supported directories/pathnames for the connections file:
 ConfigFile = 'nccm.yml'
@@ -345,22 +341,22 @@ class Connections:
     def Load(self):
         ''' Loads the connections file '''
 
-        global ControlMode
-
         for FileLooper in ConfigFilePath:
             if os.path.exists(FileLooper):
                 break
+        #LogWrite.debug('Found config file: FileLooper = {}'.format(FileLooper))
 
         with open (FileLooper, 'r') as ConfigFileToRead:
             self.LoadedServersDict = yaml.safe_load(ConfigFileToRead)    # yaml.load is not safe
+        #LogWrite.debug('self.LoadedServersDict = {}'.format(self.LoadedServersDict))
+
+        # Extract config items first to prevent them from being read as conns:
+        self.ControlMode = self.LoadedServersDict.pop('nccm_config_controlmode', 'std')['config']
+            # ^ Controls how arrow keys move the display & the marker. Options are std, focus
+        #LogWrite.debug('Loaded config self.ControlMode = {}'.format(self.ControlMode))
 
         # Populate the FullServersList (list of config items as lists, even unconfigured items):
         for Counter, Item in enumerate(sorted(self.LoadedServersDict.keys(), key=str.lower)):
-
-            if Item == 'nccm_config_controlmode':
-                ControlMode = self.LoadedServersDict[Item].get('config', 'std')
-                LogWrite.debug('Loaded config ControlMode = {}'.format(ControlMode))
-                continue
 
             UserName = self.LoadedServersDict[Item].get('user', '')
             Address = self.LoadedServersDict[Item].get('address', '')
@@ -412,7 +408,7 @@ class Connections:
 
         Counter = int(Counter)
         SshCommand = 'ssh ' + [ i[2] for i in self.FullServersList if i[0] == Counter ][0]
-        LogWrite.debug('Counter (line #) = {} , SshCommand = {}'.format(Counter, SshCommand))
+        #LogWrite.debug('Counter (line #) = {} , SshCommand = {}'.format(Counter, SshCommand))
         return SshCommand
 
 
@@ -420,8 +416,8 @@ class Connections:
 
         # Check if the window was resized since it was started:
         NewScreenHeight, NewScreenWidth = self.stdscr.getmaxyx()
-        LogWrite.debug('NewScreenHeight = {} , NewScreenWidth = {} '
-            .format(NewScreenHeight, NewScreenWidth))
+        #LogWrite.debug('NewScreenHeight = {} , NewScreenWidth = {} '
+        #    .format(NewScreenHeight, NewScreenWidth))
 
         if NewScreenHeight != ScreenHeight or NewScreenWidth != ScreenWidth:
             RestoreTerminal(self.stdscr)
@@ -588,7 +584,7 @@ def SetupCurses(stdscr):
         return False
 
     ScreenHeight, ScreenWidth = stdscr.getmaxyx()
-    LogWrite.debug('ScreenHeight = {} , ScreenWidth = {}'.format(ScreenHeight, ScreenWidth))
+    #LogWrite.debug('ScreenHeight = {} , ScreenWidth = {}'.format(ScreenHeight, ScreenWidth))
 
     if ScreenWidth < 60 or ScreenHeight < 15:
         RestoreTerminal(stdscr)
@@ -674,7 +670,7 @@ def MainCursesFunction(stdscr):
 
     while True:
         UserKey = ActiveWindow.ReadKey()
-        LogWrite.debug('UserKey = {}'.format(UserKey))
+        #LogWrite.debug('UserKey = {}'.format(UserKey))
 
 # This block is not required any more since I handle it better in Connections.Display() method:
 #        if UserKey == -1:       # Happens when window is resized
@@ -730,28 +726,28 @@ def MainCursesFunction(stdscr):
                 ConnectionsList.Sort(3)
 
         elif UserKey == 337:                # Shift up arrow
-            if ControlMode == 'focus':
+            if ConnectionsList.ControlMode == 'focus':
                 if ConnectionsList.MarkerLine > 0:
                     ConnectionsList.MarkerLine -= 1
 
         elif UserKey == 336:                # Shift down arrow
-            if ControlMode == 'focus':
+            if ConnectionsList.ControlMode == 'focus':
                 if ConnectionsList.MarkerLine < (ConnectionsList.DisplayResultsCount-1):
                     ConnectionsList.MarkerLine += 1
 
         elif UserKey == 393:                # Shift left arrow
-            if ControlMode == 'focus':
+            if ConnectionsList.ControlMode == 'focus':
                 ConnectionsList.MarkerLine = 0
 
         elif UserKey == 402:                # Shift right arrow
-            if ControlMode == 'focus':
+            if ConnectionsList.ControlMode == 'focus':
                 ConnectionsList.MarkerLine = (ConnectionsList.DisplayResultsCount-1)
 
         elif UserKey == curses.KEY_UP:      # Up arrow
-            if ControlMode == 'focus':
+            if ConnectionsList.ControlMode == 'focus':
                 if ConnectionsList.YOffset > 0:
                     ConnectionsList.YOffset -= 1
-            elif ControlMode == 'std':
+            elif ConnectionsList.ControlMode == 'std':
                 if ConnectionsList.MarkerLine > 0:
                     ConnectionsList.MarkerLine -= 1
                 elif len(ConnectionsList.ResultsList) - ConnectionsList.YOffset > 0:
@@ -761,27 +757,27 @@ def MainCursesFunction(stdscr):
                         ConnectionsList.YOffset = 0
 
         elif UserKey == curses.KEY_DOWN:    # Down arrow
-            if ControlMode == 'focus':
+            if ConnectionsList.ControlMode == 'focus':
                 if len(ConnectionsList.ResultsList) - ConnectionsList.YOffset > ConnectionsList.MaxTextLines:
                     ConnectionsList.YOffset += 1
-            elif ControlMode == 'std':
+            elif ConnectionsList.ControlMode == 'std':
                 if ConnectionsList.MarkerLine < (ConnectionsList.DisplayResultsCount-1):
                     ConnectionsList.MarkerLine += 1
                 elif len(ConnectionsList.ResultsList) - ConnectionsList.YOffset > ConnectionsList.MaxTextLines:
                     ConnectionsList.YOffset += 1
 
         elif UserKey == curses.KEY_HOME:    # Home key
-            if ControlMode == 'focus':
+            if ConnectionsList.ControlMode == 'focus':
                 ConnectionsList.YOffset = 0
-            elif ControlMode == 'std':
+            elif ConnectionsList.ControlMode == 'std':
                 ConnectionsList.YOffset = 0
                 ConnectionsList.MarkerLine = 0
 
         elif UserKey == curses.KEY_END:     # End key
-            if ControlMode == 'focus':
+            if ConnectionsList.ControlMode == 'focus':
                 if len(ConnectionsList.ResultsList) > ConnectionsList.MaxTextLines:
                     ConnectionsList.YOffset = len(ConnectionsList.ResultsList) - ConnectionsList.MaxTextLines
-            elif ControlMode == 'std':
+            elif ConnectionsList.ControlMode == 'std':
                 if len(ConnectionsList.ResultsList) > ConnectionsList.MaxTextLines:
                     ConnectionsList.YOffset = len(ConnectionsList.ResultsList) - ConnectionsList.MaxTextLines
                 ConnectionsList.MarkerLine = (ConnectionsList.DisplayResultsCount-1)
