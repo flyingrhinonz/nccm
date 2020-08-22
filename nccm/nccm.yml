@@ -21,8 +21,8 @@
 
 # nccm internal configs:
 
-nccm_config_controlmode:
-  config: std               # Supported values: std, focus
+#nccm_config_controlmode:
+#  config: std               # Supported values: std, focus
 
 
 # connections configs:
