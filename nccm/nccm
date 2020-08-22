@@ -186,19 +186,21 @@ import yaml         # Requires: 'pip3 install --user PyYAML'
 
 
 # Uncomment this block to enable logging:
-#LogWrite = logging.getLogger('MyLogger')
-#LogWrite.setLevel(logging.DEBUG)
-#LogWrite.propagate = False
-#    # ^ Prevents duplicate logging by ancestor loggers (if any)
-#LogHandler = logging.handlers.SysLogHandler(address = '/dev/log')
-#LogWrite.addHandler(LogHandler)
-#LogWriteFormatter = logging.Formatter('{}: %(message)s'.format('nccm'))
-#    # ^ Appends 'nccm' to log lines for easy identification
-#LogHandler.setFormatter(LogWriteFormatter)
-##LogWrite.debug('This is a test line to syslog')
+LogWrite = logging.getLogger('MyLogger')
+LogWrite.setLevel(logging.DEBUG)
+LogWrite.propagate = False
+    # ^ Prevents duplicate logging by ancestor loggers (if any)
+LogHandler = logging.handlers.SysLogHandler(address = '/dev/log')
+LogWrite.addHandler(LogHandler)
+LogWriteFormatter = logging.Formatter('{}: %(message)s'.format('nccm'))
+    # ^ Appends 'nccm' to log lines for easy identification
+LogHandler.setFormatter(LogWriteFormatter)
+#LogWrite.debug('This is a test line to syslog')
 
 
 QuitAfterSsh = True     # Quit this program after ssh connection is completed
+ControlMode = 'std'     # Controls how arrow keys move the display & the marker
+                        #   Options are std, focus
 
 # Setup the supported directories/pathnames for the connections file:
 ConfigFile = 'nccm.yml'
@@ -374,6 +376,7 @@ class Connections:
 
         Counter = int(Counter)
         SshCommand = 'ssh ' + [ i[2] for i in self.FullServersList if i[0] == Counter ][0]
+        LogWrite.debug('Counter (line #) = {} , SshCommand = {}'.format(Counter, SshCommand))
         return SshCommand
 
 
@@ -381,8 +384,8 @@ class Connections:
 
         # Check if the window was resized since it was started:
         NewScreenHeight, NewScreenWidth = self.stdscr.getmaxyx()
-        #LogWrite.debug('NewScreenHeight = {} , NewScreenWidth = {} '
-        #    .format(NewScreenHeight, NewScreenWidth))
+        LogWrite.debug('NewScreenHeight = {} , NewScreenWidth = {} '
+            .format(NewScreenHeight, NewScreenWidth))
 
         if NewScreenHeight != ScreenHeight or NewScreenWidth != ScreenWidth:
             RestoreTerminal(self.stdscr)
@@ -549,7 +552,7 @@ def SetupCurses(stdscr):
         return False
 
     ScreenHeight, ScreenWidth = stdscr.getmaxyx()
-    #LogWrite.debug('ScreenHeight = {} , ScreenWidth = {}'.format(ScreenHeight, ScreenWidth))
+    LogWrite.debug('ScreenHeight = {} , ScreenWidth = {}'.format(ScreenHeight, ScreenWidth))
 
     if ScreenWidth < 60 or ScreenHeight < 15:
         RestoreTerminal(stdscr)
@@ -635,7 +638,7 @@ def MainCursesFunction(stdscr):
 
     while True:
         UserKey = ActiveWindow.ReadKey()
-        #LogWrite.debug('UserKey = {}'.format(UserKey))
+        LogWrite.debug('UserKey = {}'.format(UserKey))
 
 # This block is not required any more since I handle it better in Connections.Display() method:
 #        if UserKey == -1:       # Happens when window is resized
@@ -650,6 +653,7 @@ def MainCursesFunction(stdscr):
                 # ^ Get the next item in the iterable and run it's ActivateWindow method.
                 #   This is effectively the next textbox window object
 
+        # Handle text entry in FilterBox:
         elif ( (chr(UserKey) in string.digits
             or chr(UserKey) in string.ascii_letters
             or chr(UserKey) in string.punctuation
@@ -665,6 +669,7 @@ def MainCursesFunction(stdscr):
                     # ^ Keypress received so reset the display to the beginning of the list
                 ActiveWindow.ProcessKey(UserKey)
 
+        # Handle text entry in ConnBox:
         elif ( (chr(UserKey) in string.digits
             or UserKey == curses.KEY_BACKSPACE
             or UserKey == 263)              # Backspace key
@@ -672,50 +677,78 @@ def MainCursesFunction(stdscr):
             # ^ Filterbox accepts any digit or backspace
                 ActiveWindow.ProcessKey(UserKey)
 
-        elif ( UserKey == 33                # ! key
+        elif ( UserKey == 33                # ! key (sort by column #1)
             and ActiveWindow == ConnBox ):
                 ConnectionsList.Sort(0)
 
-        elif ( UserKey == 64                # @ key
+        elif ( UserKey == 64                # @ key (sort by column #2)
             and ActiveWindow == ConnBox ):
                 ConnectionsList.Sort(1)
 
-        elif ( UserKey == 35                # # key
+        elif ( UserKey == 35                # # key (sort by column #3)
             and ActiveWindow == ConnBox ):
                 ConnectionsList.Sort(2)
 
-        elif ( UserKey == 36                # $ key
+        elif ( UserKey == 36                # $ key (sort by column #4)
             and ActiveWindow == ConnBox ):
                 ConnectionsList.Sort(3)
 
         elif UserKey == 337:                # Shift up arrow
-            if ConnectionsList.MarkerLine > 0:
-                ConnectionsList.MarkerLine -= 1
+            if ControlMode == 'focus':
+                if ConnectionsList.MarkerLine > 0:
+                    ConnectionsList.MarkerLine -= 1
 
         elif UserKey == 336:                # Shift down arrow
-            if ConnectionsList.MarkerLine < (ConnectionsList.DisplayResultsCount-1):
-                ConnectionsList.MarkerLine += 1
+            if ControlMode == 'focus':
+                if ConnectionsList.MarkerLine < (ConnectionsList.DisplayResultsCount-1):
+                    ConnectionsList.MarkerLine += 1
 
         elif UserKey == 393:                # Shift left arrow
-            ConnectionsList.MarkerLine = 0
+            if ControlMode == 'focus':
+                ConnectionsList.MarkerLine = 0
 
         elif UserKey == 402:                # Shift right arrow
-            ConnectionsList.MarkerLine = (ConnectionsList.DisplayResultsCount-1)
+            if ControlMode == 'focus':
+                ConnectionsList.MarkerLine = (ConnectionsList.DisplayResultsCount-1)
 
         elif UserKey == curses.KEY_UP:      # Up arrow
-            if ConnectionsList.YOffset > 0:
-                ConnectionsList.YOffset -= 1
+            if ControlMode == 'focus':
+                if ConnectionsList.YOffset > 0:
+                    ConnectionsList.YOffset -= 1
+            elif ControlMode == 'std':
+                if ConnectionsList.MarkerLine > 0:
+                    ConnectionsList.MarkerLine -= 1
+                elif len(ConnectionsList.ResultsList) - ConnectionsList.YOffset > 0:
+                    if ConnectionsList.YOffset >1:
+                        ConnectionsList.YOffset -= 1
+                    else:
+                        ConnectionsList.YOffset = 0
 
         elif UserKey == curses.KEY_DOWN:    # Down arrow
-            if len(ConnectionsList.ResultsList) - ConnectionsList.YOffset > ConnectionsList.MaxTextLines:
-                ConnectionsList.YOffset += 1
+            if ControlMode == 'focus':
+                if len(ConnectionsList.ResultsList) - ConnectionsList.YOffset > ConnectionsList.MaxTextLines:
+                    ConnectionsList.YOffset += 1
+            elif ControlMode == 'std':
+                if ConnectionsList.MarkerLine < (ConnectionsList.DisplayResultsCount-1):
+                    ConnectionsList.MarkerLine += 1
+                elif len(ConnectionsList.ResultsList) - ConnectionsList.YOffset > ConnectionsList.MaxTextLines:
+                    ConnectionsList.YOffset += 1
 
         elif UserKey == curses.KEY_HOME:    # Home key
-            ConnectionsList.YOffset = 0
+            if ControlMode == 'focus':
+                ConnectionsList.YOffset = 0
+            elif ControlMode == 'std':
+                ConnectionsList.YOffset = 0
+                ConnectionsList.MarkerLine = 0
 
         elif UserKey == curses.KEY_END:     # End key
-            if len(ConnectionsList.ResultsList) > ConnectionsList.MaxTextLines:
-                ConnectionsList.YOffset = len(ConnectionsList.ResultsList) - ConnectionsList.MaxTextLines
+            if ControlMode == 'focus':
+                if len(ConnectionsList.ResultsList) > ConnectionsList.MaxTextLines:
+                    ConnectionsList.YOffset = len(ConnectionsList.ResultsList) - ConnectionsList.MaxTextLines
+            elif ControlMode == 'std':
+                if len(ConnectionsList.ResultsList) > ConnectionsList.MaxTextLines:
+                    ConnectionsList.YOffset = len(ConnectionsList.ResultsList) - ConnectionsList.MaxTextLines
+                ConnectionsList.MarkerLine = (ConnectionsList.DisplayResultsCount-1)
 
         elif UserKey == curses.KEY_PPAGE:   # PageUp key
             ConnectionsList.YOffset -= ConnectionsList.MaxTextLines
@@ -727,26 +760,26 @@ def MainCursesFunction(stdscr):
             if ConnectionsList.YOffset > (len(ConnectionsList.ResultsList)-ConnectionsList.MaxTextLines):
                 ConnectionsList.YOffset = len(ConnectionsList.ResultsList) - ConnectionsList.MaxTextLines
 
-        elif UserKey == curses.KEY_LEFT:    # Left arrow
+        elif UserKey == curses.KEY_LEFT:    # Left arrow (scroll left)
             ConnectionsList.XOffset -= (ConnectionsList.MaxTextWidth //3)
             if ConnectionsList.XOffset < 0:
                 ConnectionsList.XOffset = 0
 
-        elif UserKey == curses.KEY_RIGHT:   # Right arrow
+        elif UserKey == curses.KEY_RIGHT:   # Right arrow (scroll right)
             ConnectionsList.XOffset += (ConnectionsList.MaxTextWidth //3)
             if ConnectionsList.XOffset > (ConnectionsList.MaxLineLength - ConnectionsList.MaxTextWidth):
                 ConnectionsList.XOffset = (ConnectionsList.MaxLineLength - ConnectionsList.MaxTextWidth)
 
-        elif UserKey == 265:                # F1 key
+        elif UserKey == 265:                # F1 key (sort by column #1)
             ConnectionsList.Sort(0)
 
-        elif UserKey == 266:                # F2 key
+        elif UserKey == 266:                # F2 key (sort by column #2)
             ConnectionsList.Sort(1)
 
-        elif UserKey == 267:                # F3 key
+        elif UserKey == 267:                # F3 key (sort by column #3)
             ConnectionsList.Sort(2)
 
-        elif UserKey == 268:                # F4 key
+        elif UserKey == 268:                # F4 key (sort by column #4)
             ConnectionsList.Sort(3)
 
         elif ((UserKey == curses.KEY_ENTER or UserKey in [10, 13])  # Enter key
