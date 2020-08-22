@@ -1,4 +1,11 @@
 # Servers configuration file in YAML format.
+
+# This connections (servers) file is loaded from the following paths, whichever is found first:
+#   ~/.config/nccm/nccm.yml
+#   ~/.nccm.yml
+#   ~/nccm.yml
+#   /etc/nccm.yml
+
 # Use the following format:
 #   FRIENDLY_NAME:
 #     address: SERVER_ADDRESS
@@ -10,6 +17,15 @@
 #       SERVER_ADDRESS - Hostname or IP address (mandatory field)
 #       FREETEXT_COMMENT - Any freetext you like to store as a comment on this connection (optional field)
 #       USER_NAME - Your login name (mandatory field)
+
+
+# nccm internal configs:
+
+nccm_config_controlmode:
+  config: std               # Supported values: std, focus
+
+
+# connections configs:
 
 Another server:
   address: 10.2.2.2
