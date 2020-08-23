@@ -212,7 +212,7 @@ import yaml         # Requires: 'pip3 install --user PyYAML'
 
 # Uncomment this block to enable logging to syslog:
 LogWrite = logging.getLogger('MyLogger')
-LogWrite.setLevel(logging.DEBUG)
+LogWrite.setLevel(logging.WARNING)
     # ^ Set this to logging.DEBUG or logging.WARNING
     #   depending upon desired log level
 LogWrite.propagate = False
