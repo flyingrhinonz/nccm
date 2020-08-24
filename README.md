@@ -109,7 +109,7 @@ In both modes:
 Usage
 -----
 
-`Conn #` textbox:
+`Conn` textbox:
 Accepts integer values only (and !@#$ for sorting).
 Pressing Enter here will connect to this connection ID,
 as corresponding to a valid value in the full
@@ -120,7 +120,7 @@ line) - even if they don't match.
 If this textbox is empty, it will connect to the
 connection marked by the highlighted line.
 
-`Filter:` textbox:
+`Filter` textbox:
 Type any filter text here.
 Accepts any printable character and space.
 Text is forced to lowercase, and the resulting filtering
@@ -134,7 +134,7 @@ inline editing not supported.
 
 Displayed connection list is filtered by the combined
 contents of all the fields as you type in real time.
-Spaces delimit filters if typed into `Filter:` textbox
+Spaces delimit filters if typed into `Filter` textbox
 and all filter entries are AND'ed.
 
 nccm_config_controlmode == focus was inspired by vim
@@ -147,7 +147,7 @@ Sorting
 
 F1-F4 keys sort by the respective fields 1-4.
 The Fn keys may be captured by certain GUIs so we have
-an alternative - when focused on `Conn #` window, press
+an alternative - when focused on `Conn` window, press
 shift-1 through 4 (!@#$) to toggle sorting by the
 respective field number. If you type these special
 characters in the `Filter` textbox they become standard
