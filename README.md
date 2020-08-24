@@ -5,9 +5,11 @@ NCurses ssh Connection Manager (nccm)
 ![](images/program_screenshot.png)
 
 Copyright (C) 2020 Kenneth Aaron.
+
 flyingrhino AT orcon DOT net DOT nz
 
 Freedom makes a better world: released under GNU GPLv3.
+
 https://www.gnu.org/licenses/gpl-3.0.en.html
 
 This software can be used by anyone at no cost, however
@@ -55,10 +57,10 @@ from anywhere.
 
 The ssh connections (servers) file is loaded from the
 following paths, whichever is found first:
-  ~/.config/nccm/nccm.yml
-  ~/.nccm.yml
-  ~/nccm.yml
-  /etc/nccm.yml
+- `~/.config/nccm/nccm.yml`
+- `~/.nccm.yml`
+- `~/nccm.yml`
+- `/etc/nccm.yml`
 
 This program comes with an example yml file. Edit it
 to suit your needs.
@@ -72,8 +74,8 @@ also supports program settings as follows:
 
 `nccm_config_controlmode` - controls the cursor
 movement mode. Two modes are supported:
-  std:    Cursor keys move the marker as expected.
-  focus:  Marker and list move independently.
+- std:    Cursor keys move the marker as expected.
+- focus:  Marker and list move independently.
           The list is designed to move while the marker
           remains fixed unless it is moved manually.
 
@@ -83,25 +85,25 @@ Controls
 
 In nccm_config_controlmode == std mode:
 
-Up/Down arrows      Move the marker the traditional way
-Home/End            Jump marker to list first/last entry
-PgUp/PgDn           Page up/down in the list
+- Up/Down arrows      Move the marker the traditional way
+- Home/End            Jump marker to list first/last entry
+- PgUp/PgDn           Page up/down in the list
 
 In nccm_config_controlmode == focus mode:
 
-Up/Down arrows      Scroll the list up/down
-Home/End            Jump to list first/last entry
-PgUp/PgDn           Page up/down in the list
-Shift Up/Down       Move the marker up/down
-Shift Left/Right    Move the marker to display top/bottom
+- Up/Down arrows      Scroll the list up/down
+- Home/End            Jump to list first/last entry
+- PgUp/PgDn           Page up/down in the list
+- Shift Up/Down       Move the marker up/down
+- Shift Left/Right    Move the marker to display top/bottom
 
 In both modes:
 
-Left/Right arrows   Scroll the list horizontally
-Enter               Connect to the selected entry
-Ctrl-h              Display this help menu
-Ctrl-q or Ctrl-c    Quit the program
-F1-F4 or !@#$       Sort by respective column (1-4)
+- Left/Right arrows   Scroll the list horizontally
+- Enter               Connect to the selected entry
+- Ctrl-h              Display this help menu
+- Ctrl-q or Ctrl-c    Quit the program
+- F1-F4 or !@#$       Sort by respective column (1-4)
 
 
 Usage
