@@ -85,26 +85,26 @@ Controls
 
 In nccm_config_controlmode == std mode:
 
-- Up/Down arrows      Move the marker the traditional way
-- Home/End            Jump marker to list first/last entry
-- PgUp/PgDn           Page up/down in the list
+- Up/Down arrows:     Move the marker the traditional way
+- Home/End:           Jump marker to list first/last entry
+- PgUp/PgDn:          Page up/down in the list
 
 In nccm_config_controlmode == focus mode:
 
-- Up/Down arrows      Scroll the list up/down
-- Home/End            Jump to list first/last entry
-- PgUp/PgDn           Page up/down in the list
-- Shift Up/Down       Move the marker up/down
-- Shift Left/Right    Move the marker to display top/bottom
+- Up/Down arrows:     Scroll the list up/down
+- Home/End:           Jump to list first/last entry
+- PgUp/PgDn:          Page up/down in the list
+- Shift Up/Down:      Move the marker up/down
+- Shift Left/Right:   Move the marker to display top/bottom
 
 In both modes:
 
-- Left/Right arrows   Scroll the list horizontally
-- Tab                 Switch between text boxes
-- Enter               Connect to the selected entry
-- Ctrl-h              Display this help menu
-- Ctrl-q or Ctrl-c    Quit the program
-- F1-F4 or !@#$       Sort by respective column (1-4)
+- Left/Right arrows:  Scroll the list horizontally
+- Tab:                Switch between text boxes
+- Enter:              Connect to the selected entry
+- Ctrl-h:             Display this help menu
+- Ctrl-q or Ctrl-c:   Quit the program
+- F1-F4 or !@#$ :     Sort by respective column (1-4)
 
 
 Usage
