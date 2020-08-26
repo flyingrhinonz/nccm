@@ -102,6 +102,7 @@ In nccm_config_controlmode == focus mode:
 In both modes:
 
 - Left/Right arrows   Scroll the list horizontally
+- Tab                 Switch between text boxes
 - Enter               Connect to the selected entry
 - Ctrl-h              Display this help menu
 - Ctrl-q or Ctrl-c    Quit the program
