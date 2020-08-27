@@ -104,14 +104,14 @@ In both modes:
 - Enter:              Connect to the selected entry
 - Ctrl-h:             Display this help menu
 - Ctrl-q or Ctrl-c:   Quit the program
-- F1-F4 or !@#$ :     Sort by respective column (1-4)
+- F1-F5 or !@#$% :    Sort by respective column (1-5)
 
 
 Usage
 -----
 
 `Conn` textbox:
-Accepts integer values only (and !@#$ for sorting).
+Accepts integer values only (and !@#$% for sorting).
 Pressing Enter here will connect to this connection ID,
 as corresponding to a valid value in the full
 unfiltered list (even if that particular connection
@@ -146,14 +146,27 @@ while keeping your current line selected.
 Sorting
 -------
 
-F1-F4 keys sort by the respective fields 1-4.
+F1-F5 keys sort by the respective fields 1-5.
+The display shows 4 columms but we treat username
+and server address as separate columns for sorting
+purposes.
 The Fn keys may be captured by certain GUIs so we have
 an alternative - when focused on `Conn` window, press
-shift-1 through 4 (!@#$) to toggle sorting by the
+Shift-1 through 5 (!@#$%) to toggle sorting by the
 respective field number. If you type these special
 characters in the `Filter` textbox they become standard
 filters just like any printable character.
 Pressing the same key again reverses the sort order.
+
+```
+Column #  Column name       Sort    Alternate sort
+--------  -----------       ----    --------------
+1         List serial #     F1      !
+2         Friendly name     F2      @
+3         User name         F3      #
+4         Server address    F4      $
+5         Description       F5      %
+```
 
 
 Limitations
@@ -184,7 +197,7 @@ This should be enough for most use cases though.
 Misc
 ----
 
-This program aims to do one thing well - let you make SSH
+This program aims to do one thing well - lets you make SSH
 connections from an ncurses based manager with minimum
 distraction. Feature requests that keep nccm on focus will
 be considered.

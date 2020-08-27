@@ -106,14 +106,14 @@ In both modes:
 - Enter:              Connect to the selected entry
 - Ctrl-h:             Display this help menu
 - Ctrl-q or Ctrl-c:   Quit the program
-- F1-F4 or !@#$ :     Sort by respective column (1-4)
+- F1-F5 or !@#$% :    Sort by respective column (1-5)
 
 
 Usage
 -----
 
 `Conn` textbox:
-Accepts integer values only (and !@#$ for sorting).
+Accepts integer values only (and !@#$% for sorting).
 Pressing Enter here will connect to this connection ID,
 as corresponding to a valid value in the full
 unfiltered list (even if that particular connection
@@ -148,14 +148,27 @@ while keeping your current line selected.
 Sorting
 -------
 
-F1-F4 keys sort by the respective fields 1-4.
+F1-F5 keys sort by the respective fields 1-5.
+The display shows 4 columms but we treat username
+and server address as separate columns for sorting
+purposes.
 The Fn keys may be captured by certain GUIs so we have
 an alternative - when focused on `Conn` window, press
-shift-1 through 4 (!@#$) to toggle sorting by the
+Shift-1 through 5 (!@#$%) to toggle sorting by the
 respective field number. If you type these special
 characters in the `Filter` textbox they become standard
 filters just like any printable character.
 Pressing the same key again reverses the sort order.
+
+```
+Column #  Column name       Sort    Alternate sort
+--------  -----------       ----    --------------
+1         List serial #     F1      !
+2         Friendly name     F2      @
+3         User name         F3      #
+4         Server address    F4      $
+5         Description       F5      %
+```
 
 
 Limitations
@@ -186,7 +199,7 @@ This should be enough for most use cases though.
 Misc
 ----
 
-This program aims to do one thing well - let you make SSH
+This program aims to do one thing well - lets you make SSH
 connections from an ncurses based manager with minimum
 distraction. Feature requests that keep nccm on focus will
 be considered.
@@ -385,6 +398,7 @@ class Connections:
                 Counter, Item, '{}@{}'.format(UserName, Address), Comment])
          # ^ Now we have a list of lists:
          #  [[Serial # , FriendlyName , ConnString , Comment] , [...]]
+        #LogWrite.debug('self.FullServersList = {}'.format(self.FullServersList))
 
         # Calculate the max length of each column:
         for Counter, Looper in enumerate([
@@ -393,9 +407,43 @@ class Connections:
 
 
     def Sort(self, Column):
-        ''' Sorts the internal-use FullServersList list per the requested column '''
+        ''' Sorts the internal-use FullServersList list per the requested column
 
-        self.FullServersList.sort(key=operator.itemgetter(Column), reverse=self.SortOrder)
+            Example line / Column numbers:
+                12  My server   root@1.2.3.4    This is a description
+                0   1           2    3          4
+
+            Columns:
+                0   List serial #       (12)
+                1   Friendly name       (My server)
+                2   User name           (root)
+                3   Server address      (1.2.3.4)
+                4   Description         (This is a description)
+        '''
+
+        LogWrite.debug('Sort by Column = {}'.format(Column))
+
+        if Column in [ 0, 1, 2 ]:
+            self.FullServersList.sort(key=operator.itemgetter(Column), reverse=self.SortOrder)
+
+        if Column == 3:
+            #def ReturnAddress(var):    # Alternate sorting code
+            #    return var[2].split(sep='@')[1]
+
+            self.FullServersList.sort(key=lambda x: x[2].split(sep='@')[1], reverse=self.SortOrder)
+                # ^ Sort by the address bit ignoring the user name bit
+
+            #self.FullServersList.sort(key=ReturnAddress, reverse=self.SortOrder)
+                # ^ If the lambda confuses you, uncomment this version instead + def from above
+                #   Does exactly the same thing.
+
+        if Column == 4:
+            self.FullServersList.sort(key=operator.itemgetter(3), reverse=self.SortOrder)
+                # ^ Column == 4 becomes sort by list item 3 because list item 3
+                #   is treated as Columns 2 and 3:
+                #       2 for the entire user@address
+                #       3 for the address bit
+
         self.SortOrder = not(self.SortOrder)
             # ^ Reverse True to False, False to True so that next time this function
             #   is called the sort will be reversed.
@@ -689,7 +737,7 @@ def MainCursesFunction(stdscr):
 
     while True:
         UserKey = ActiveWindow.ReadKey()
-        LogWrite.debug('UserKey = {}'.format(UserKey))
+        LogWrite.debug('Keyboard entry UserKey = {}'.format(UserKey))
 
 # This block is not required any more since I handle it better in Connections.Display() method:
 #        if UserKey == -1:       # Happens when window is resized
@@ -743,6 +791,10 @@ def MainCursesFunction(stdscr):
         elif ( UserKey == 36                # $ key (sort by column #4)
             and ActiveWindow == ConnBox ):
                 ConnectionsList.Sort(3)
+
+        elif ( UserKey == 37                # $ key (sort by column #5)
+            and ActiveWindow == ConnBox ):
+                ConnectionsList.Sort(4)
 
         elif UserKey == 337:                # Shift up arrow
             if ConnectionsList.ControlMode == 'focus':
@@ -832,6 +884,9 @@ def MainCursesFunction(stdscr):
 
         elif UserKey == 268:                # F4 key (sort by column #4)
             ConnectionsList.Sort(3)
+
+        elif UserKey == 269:                # F4 key (sort by column #5)
+            ConnectionsList.Sort(4)
 
         elif ((UserKey == curses.KEY_ENTER or UserKey in [10, 13])  # Enter key
             and ActiveWindow == ConnBox
