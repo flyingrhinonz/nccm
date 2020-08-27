@@ -81,7 +81,8 @@ movement mode. Two modes are supported:
           The list is designed to move while the marker
           remains fixed unless it is moved manually.
 
-`nccm_config_loglevel` - controls log level.
+`nccm_config_loglevel` - controls log level of messages
+sent by nccm to syslog. Use this for debugging.
 Supported levels: debug, info, warning, error, critical
 
 
@@ -203,15 +204,16 @@ Troubleshooting
 ---------------
 
 Look at your syslog file for nccm entries. Depending upon
-the verbosity level set in the script you may not see much
-if at all anything.
+the verbosity level set in the config file you may not see
+much if at all anything.
 By default the production level of the script logs WARNING
 and above which results in syslog silence until something
 bad happens.
-To increase logging verbosity change this line to debug:
-LogWrite.setLevel(logging.DEBUG)
-Also - some debugging logging exists but is commented out
-due to too much logging. Enabe it if required.
+To increase logging verbosity change this line in the
+nccm.yml config file to debug:
+`nccm_config_loglevel: debug`
+Also - more debugging calls exist but are commented out in
+the code due to too much logging. Enable them as required.
 
 
 Hacking nccm

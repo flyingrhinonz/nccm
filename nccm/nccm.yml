@@ -28,8 +28,8 @@
 
 # nccm internal configs:
 
-nccm_config_controlmode:  std     # Supported values: std, focus
-nccm_config_loglevel:     warning # Supported values: debug, info, warning, error, critical
+nccm_config_controlmode: std    # Supported values: std, focus
+nccm_config_loglevel: warning   # Supported values: debug, info, warning, error, critical
 
 
 # connections configs:
@@ -39,7 +39,7 @@ Another server:
   comment: this is another comment
   user: foo
 
-# Here's a comment and an empty lines are ignored
+# Here's a comment and empty lines are ignored
 
 border router:                # Comments are allowed here
   comment: My border router   # And here
