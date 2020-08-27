@@ -196,6 +196,34 @@ which in turn are dictated by the width of your window.
 This should be enough for most use cases though.
 
 
+Troubleshooting
+---------------
+
+Look at your syslog file for nccm entries. Depending upon
+the verbosity level set in the script you may not see much
+if at all anything.
+By default the production level of the script logs WARNING
+and above which results in syslog silence until something
+bad happens.
+To increase logging verbosity change this line to debug:
+LogWrite.setLevel(logging.DEBUG)
+Also - some debugging logging exists but is commented out
+due to too much logging. Enabe it if required.
+
+
+Hacking nccm
+------------
+
+Take something good and make it better!
+The code is heavily commented, with the hope that it will
+make life easier for modders and forkers.
+
+The config file is simple yaml. If you already have a
+collection of logins elsewhere in an accessible format -
+writing a script to convert and append fields to nccm.yml
+is easy.
+
+
 Misc
 ----
 
@@ -203,9 +231,6 @@ This program aims to do one thing well - lets you make SSH
 connections from an ncurses based manager with minimum
 distraction. Feature requests that keep nccm on focus will
 be considered.
-
-The code is heavily commented, with the hope that it will
-make life easier for modders and forkers.
 
 '''
 
@@ -242,7 +267,9 @@ LogWriteFormatter = logging.Formatter('{}: %(message)s'.format('nccm'))
 LogHandler.setFormatter(LogWriteFormatter)
 
 
-# Setup the supported directories/pathnames for the connections file:
+# Setup the supported directories/pathnames for the connections file.
+# If you want to store nccm.yml in a directory that's not already supported
+# or change the filename, do it here:
 ConfigFile = 'nccm.yml'
 ConfigFilePath = []
 ConfigFilePath.append(str(pathlib.Path.home()) + '/.config/nccm/' + ConfigFile)
@@ -271,15 +298,22 @@ ConnectionsFileHeaderText = '''# Servers configuration file in YAML format.
 
 # Use the following format:
 #   FRIENDLY_NAME:
+#     user: USER_NAME
 #     address: SERVER_ADDRESS
 #     comment: FREETEXT_COMMENT
-#     user: USER_NAME
 #
 #   Details:
-#       FRIENDLY_NAME - Can be any freetext descriptive name (recommended field)
-#       SERVER_ADDRESS - Hostname or IP address (mandatory field)
+#       FRIENDLY_NAME - Can be any freetext descriptive name or user@server: (mandatory field)
+#       USER_NAME - Your login name (optional field)
+#       SERVER_ADDRESS - Hostname or IP address (optional field)
 #       FREETEXT_COMMENT - Any freetext you like to store as a comment on this connection (optional field)
-#       USER_NAME - Your login name (mandatory field)
+#
+# You can also supply FRIENDLY_NAME as user@server: if you don't want to supply
+# any of the details fields as follows (don't indent):
+# root@10.10.1.1:
+# user@example2.com:
+#
+# In this case user name and address will be extracted from friendly name automatically.
 
 
 # nccm internal configs:
@@ -380,6 +414,13 @@ class Connections:
 
         with open (FileLooper, 'r') as ConfigFileToRead:
             self.LoadedServersDict = yaml.safe_load(ConfigFileToRead)    # yaml.load is not safe
+
+        # This code is needed because FriendlyName connections without any
+        # config items have a value of None. I need to replace it with {} for
+        # the dict lookups to work later on:
+        for Looper in self.LoadedServersDict:
+            if self.LoadedServersDict[Looper] == None:
+                self.LoadedServersDict[Looper] = {}
         #LogWrite.debug('self.LoadedServersDict = {}'.format(self.LoadedServersDict))
 
         # Extract config items first to prevent them from being read as conns:
@@ -388,17 +429,36 @@ class Connections:
         LogWrite.debug('Loaded config self.ControlMode = {}'.format(self.ControlMode))
 
         # Populate the FullServersList (list of config items as lists, even unconfigured items):
-        for Counter, Item in enumerate(sorted(self.LoadedServersDict.keys(), key=str.lower)):
+        try:
+            for Counter, Item in enumerate(sorted(self.LoadedServersDict.keys(), key=str.lower)):
+                #LogWrite.debug('Processing Item = {} , Counter = {}'.format(Item, Counter))
 
-            UserName = self.LoadedServersDict[Item].get('user', '')
-            Address = self.LoadedServersDict[Item].get('address', '')
-            Comment = self.LoadedServersDict[Item].get('comment', '')
-                # ^ .get because item my be empty
-            self.FullServersList.append([
-                Counter, Item, '{}@{}'.format(UserName, Address), Comment])
-         # ^ Now we have a list of lists:
-         #  [[Serial # , FriendlyName , ConnString , Comment] , [...]]
-        #LogWrite.debug('self.FullServersList = {}'.format(self.FullServersList))
+                # The following supports extracting UserName & Address from FriendlyName
+                # if UserName & Address are not supplied:
+                UserName = self.LoadedServersDict[Item].get('user', False)
+                if not UserName:
+                    UserName = self.LoadedServersDict[Item].get('user', Item.split(sep='@')[0])
+
+                Address = self.LoadedServersDict[Item].get('address', False)
+                if not Address:
+                    Address = self.LoadedServersDict[Item].get('address', Item.split(sep='@')[1])
+
+                Comment = self.LoadedServersDict[Item].get('comment', '')
+                    # ^ .get because item my be empty
+
+                #LogWrite.debug('Counter = {} , Item = {} , UserName = {}'
+                #    'Address = {} , Comment = {}'
+                #        .format(Counter, Item, UserName, Address, Comment))
+                self.FullServersList.append([
+                    Counter, Item, '{}@{}'.format(UserName, Address), Comment])
+            # ^ Now we have a list of lists:
+            #  [[Serial # , FriendlyName , ConnString , Comment] , [...]]
+            #LogWrite.debug('self.FullServersList = {}'.format(self.FullServersList))
+
+        except Exception as Exc:
+            LogWrite.warning('Error loading connection. Counter = {} , Item = {}'
+                .format(Counter, Item))
+            raise Exc
 
         # Calculate the max length of each column:
         for Counter, Looper in enumerate([

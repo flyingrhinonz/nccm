@@ -8,15 +8,22 @@
 
 # Use the following format:
 #   FRIENDLY_NAME:
+#     user: USER_NAME
 #     address: SERVER_ADDRESS
 #     comment: FREETEXT_COMMENT
-#     user: USER_NAME
 #
 #   Details:
-#       FRIENDLY_NAME - Can be any freetext descriptive name (recommended field)
-#       SERVER_ADDRESS - Hostname or IP address (mandatory field)
+#       FRIENDLY_NAME - Can be any freetext descriptive name or user@server: (mandatory field)
+#       USER_NAME - Your login name (optional field)
+#       SERVER_ADDRESS - Hostname or IP address (optional field)
 #       FREETEXT_COMMENT - Any freetext you like to store as a comment on this connection (optional field)
-#       USER_NAME - Your login name (mandatory field)
+#
+# You can also supply FRIENDLY_NAME as user@server: if you don't want to supply
+# any of the details fields as follows (don't indent):
+#   root@10.10.1.1:
+#   user@example2.com:
+#
+# In this case user name and address will be extracted from friendly name automatically.
 
 
 # nccm internal configs:
@@ -31,10 +38,20 @@ Another server:
   address: 10.2.2.2
   comment: this is another comment
   user: foo
-border router:
-  address: 192.168.1.1
-  comment: My border router
-  user: admin
+
+# Here's a comment and an empty lines are ignored
+
+border router:                # Comments are allowed here
+  comment: My border router   # And here
+  address: 192.168.1.1        # And everywhere else
+  user: admin                 # Settings order is not important
 test server:
   address: test.example.com
   user: root
+
+root@10.10.1.1:
+root@10.10.2.2:   # Note how nothing else is supplied...
+
+user@example2.com:
+  comment: Comment supplied, user/server extracted from FriendlyName
+

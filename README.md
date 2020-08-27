@@ -194,6 +194,34 @@ which in turn are dictated by the width of your window.
 This should be enough for most use cases though.
 
 
+Troubleshooting
+---------------
+
+Look at your syslog file for nccm entries. Depending upon
+the verbosity level set in the script you may not see much
+if at all anything.
+By default the production level of the script logs WARNING
+and above which results in syslog silence until something
+bad happens.
+To increase logging verbosity change this line to debug:
+LogWrite.setLevel(logging.DEBUG)
+Also - some debugging logging exists but is commented out
+due to too much logging. Enabe it if required.
+
+
+Hacking nccm
+------------
+
+Take something good and make it better!
+The code is heavily commented, with the hope that it will
+make life easier for modders and forkers.
+
+The config file is simple yaml. If you already have a
+collection of logins elsewhere in an accessible format -
+writing a script to convert and append fields to nccm.yml
+is easy.
+
+
 Misc
 ----
 
@@ -201,7 +229,4 @@ This program aims to do one thing well - lets you make SSH
 connections from an ncurses based manager with minimum
 distraction. Feature requests that keep nccm on focus will
 be considered.
-
-The code is heavily commented, with the hope that it will
-make life easier for modders and forkers.
 
