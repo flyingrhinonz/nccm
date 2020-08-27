@@ -81,6 +81,9 @@ movement mode. Two modes are supported:
           The list is designed to move while the marker
           remains fixed unless it is moved manually.
 
+`nccm_config_loglevel` - controls log level.
+Supported levels: debug, info, warning, error, critical
+
 
 Controls
 --------
@@ -255,9 +258,10 @@ import yaml         # Requires: 'pip3 install --user PyYAML'
 
 # This block handles logging to syslog:
 LogWrite = logging.getLogger('MyLogger')
-LogWrite.setLevel(logging.DEBUG)
-    # ^ Set this to logging.DEBUG or logging.WARNING
-    #   depending upon your desired log level
+LogWrite.setLevel(logging.WARNING)
+    # ^ Set this to logging.DEBUG or logging.WARNING for your INITIAL desired log level.
+    #   Config file log level takes over from when it is loaded, this value controls
+    #   logging verbosity until then.
 LogWrite.propagate = False
     # ^ Prevents duplicate logging by ancestor loggers (if any)
 LogHandler = logging.handlers.SysLogHandler(address = '/dev/log')
@@ -378,9 +382,14 @@ class Connections:
         LogWrite.debug('self.LoadedServersDict = {}'.format(self.LoadedServersDict))
 
         # Extract config items first to prevent them from being read as conns:
-        self.ControlMode = self.LoadedServersDict.pop('nccm_config_controlmode', 'std')['config']
+        self.ControlMode = self.LoadedServersDict.pop('nccm_config_controlmode', 'std').lower()
             # ^ Controls how arrow keys move the display & the marker. Options are std, focus
         LogWrite.debug('Loaded config self.ControlMode = {}'.format(self.ControlMode))
+
+        LogWrite.setLevel(getattr(logging, self.LoadedServersDict.pop
+            ('nccm_config_loglevel', 'WARNING').upper()))
+        LogWrite.debug('Log level now = {}'.format(LogWrite.getEffectiveLevel()))
+            # ^ Values documented here: https://docs.python.org/3/library/logging.html#levels
 
         # Populate the FullServersList (list of config items as lists, even unconfigured items):
         try:

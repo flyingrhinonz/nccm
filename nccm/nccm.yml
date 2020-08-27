@@ -28,8 +28,8 @@
 
 # nccm internal configs:
 
-nccm_config_controlmode:
-  config: std               # Supported values: std, focus
+nccm_config_controlmode:  std     # Supported values: std, focus
+nccm_config_loglevel:     warning # Supported values: debug, info, warning, error, critical
 
 
 # connections configs:
