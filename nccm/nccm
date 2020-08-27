@@ -255,7 +255,7 @@ import yaml         # Requires: 'pip3 install --user PyYAML'
 
 # This block handles logging to syslog:
 LogWrite = logging.getLogger('MyLogger')
-LogWrite.setLevel(logging.WARNING)
+LogWrite.setLevel(logging.DEBUG)
     # ^ Set this to logging.DEBUG or logging.WARNING
     #   depending upon your desired log level
 LogWrite.propagate = False
@@ -287,52 +287,6 @@ HelpMenuItems = collections.OrderedDict((
     ( 'ctrl-h', 'Help' ),
     ( 'ctrl-q', 'Quit' ),
 ))
-
-ConnectionsFileHeaderText = '''# Servers configuration file in YAML format.
-
-# This connections (servers) file is loaded from the following paths, whichever is found first:
-#   ~/.config/nccm/nccm.yml
-#   ~/.nccm.yml
-#   ~/nccm.yml
-#   /etc/nccm.yml
-
-# Use the following format:
-#   FRIENDLY_NAME:
-#     user: USER_NAME
-#     address: SERVER_ADDRESS
-#     comment: FREETEXT_COMMENT
-#
-#   Details:
-#       FRIENDLY_NAME - Can be any freetext descriptive name or user@server: (mandatory field)
-#       USER_NAME - Your login name (optional field)
-#       SERVER_ADDRESS - Hostname or IP address (optional field)
-#       FREETEXT_COMMENT - Any freetext you like to store as a comment on this connection (optional field)
-#
-# You can also supply FRIENDLY_NAME as user@server: if you don't want to supply
-# any of the details fields as follows (don't indent):
-# root@10.10.1.1:
-# user@example2.com:
-#
-# In this case user name and address will be extracted from friendly name automatically.
-
-
-# nccm internal configs:
-
-nccm_config_controlmode:
-  config: focus             # Supported values: std, focus
-
-
-# connections configs:
-'''
-
-ExampleServers = {
-    'border router':
-        { 'user': 'admin', 'address': '192.168.1.1', 'comment': 'My border router', },
-    'test server':
-        { 'user': 'root', 'address': 'test.example.com', },
-    'Another server':
-        { 'user': 'foo', 'address': '10.2.2.2', 'comment': 'this is another comment', },
-}
 
 
 class HelpTextDisplay:
@@ -421,7 +375,7 @@ class Connections:
         for Looper in self.LoadedServersDict:
             if self.LoadedServersDict[Looper] == None:
                 self.LoadedServersDict[Looper] = {}
-        #LogWrite.debug('self.LoadedServersDict = {}'.format(self.LoadedServersDict))
+        LogWrite.debug('self.LoadedServersDict = {}'.format(self.LoadedServersDict))
 
         # Extract config items first to prevent them from being read as conns:
         self.ControlMode = self.LoadedServersDict.pop('nccm_config_controlmode', 'std')['config']
@@ -512,22 +466,6 @@ class Connections:
     def Save(self):
         ''' Saves the connections file '''
         # Nothing here. Might add save feature if I allow user to add connection details
-
-
-    def SaveExample(self):
-        ''' Saves an example of the connections file to the current directory.
-            You can move it later to one of the directory options listed in the
-            main docstring.
-            Use this if you want to create a clean connections file that you can later edit.
-            It is saved in yaml format.
-        '''
-
-        with open (ConfigFile, 'w') as ConfigFileToWrite:
-                # ^ First time "w" so we overwrite the file
-            print(ConnectionsFileHeaderText, file=ConfigFileToWrite)
-            yaml.dump(ExampleServers, ConfigFileToWrite)
-
-        print('Clean example connections file saved to: {}'.format(ConfigFile))
 
 
     def GetConnect(self, Counter):
@@ -759,9 +697,6 @@ def SetupWindows(stdscr):
     ConnectionsList = Connections(LinesCount=ScreenHeight-3,
         ColsCount=ScreenWidth, BeginY=0, BeginX=0, ColorPair=0,
         TextFilters=[FilterBox, ConnBox] , stdscr=stdscr)
-    #ConnectionsList.SaveExample()
-        # ^ Uncomment this line to create a clean example connections file
-        #   which will be saved to the current directory.
     ConnectionsList.Load()
         # ^ Load the connections list config file into this object (normal operation)
     DisplayObjects.append(ConnectionsList)
