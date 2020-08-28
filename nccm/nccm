@@ -107,8 +107,9 @@ In both modes:
 
 - Left/Right arrows:  Scroll the list horizontally
 - Tab:                Switch between text boxes
-- Enter:              Connect to the selected entry
+- Enter or Ctrl-m:    Connect to the selected entry
 - Ctrl-h:             Display this help menu
+- Ctrl-k              Toggle cursor mode std <--> focus
 - Ctrl-q or Ctrl-c:   Quit the program
 - F1-F5 or !@#$% :    Sort by respective column (1-5)
 
@@ -751,7 +752,7 @@ def MainCursesFunction(stdscr):
 #            LogWrite.debug('Detected window resize')
 #            pass
 
-        if UserKey == 9:    # Tab key
+        if UserKey == 9:    # Tab key (move between text boxes)
             ActiveWindow = next(CyclicTextboxObjects)
                 # ^ See the 'for Looper in CyclicTextboxObjects:' comment above
             ActiveWindow.ActivateWindow()
@@ -907,13 +908,19 @@ def MainCursesFunction(stdscr):
                 ConnectString = ConnectionsList.GetConnect(ConnectionsList.SelectedEntryVal)
                 break
 
-        elif UserKey == 8:      # Ctrl-h key
+        elif UserKey == 8:      # Ctrl-h key (help)
             curses.endwin()     # De-initialize and return terminal to normal status
             pydoc.pipepager(__doc__, cmd='less -i --dumb --no-init')
                 # ^ Print the text in through the less pager
                 #   so we can get paging, search, etc
 
-        elif UserKey == 17 or UserKey == 3:     # ctrl-q / ctrl-c
+        elif UserKey == 11:     # Ctrl-k key (toggle cursor mode)
+            if ConnectionsList.ControlMode == 'std':
+                ConnectionsList.ControlMode = 'focus'
+            else:
+                ConnectionsList.ControlMode = 'std'
+
+        elif UserKey == 17 or UserKey == 3:     # ctrl-q / ctrl-c (quit)
             break
 
         UpdateDisplay()
