@@ -32,31 +32,35 @@ See the GNU General Public License for more details.
 Manual install instructions
 ---------------------------
 
-Copy the script to a directory of your choice and copy
-the ssh connections yml file to one of the supported
-directories (see below).
+This is one of the ways to install nccm, you can of course
+install and use nccm in any way you wish.
 
-You may need to manually install the `PyYAML` module.
-You'll know this if you get a python exception saying
-it can't find this module. It can be installed as follows:
-  `pip3 install --user PyYAML`
+You may need to manually install the Python3 `PyYAML`
+module. You'll know this when you run nccm and get a
+python exception saying it can't find this module.
+It can be installed as follows:
+`pip3 install --user PyYAML`
 
-You may even need to install the python pip3 program if
-your distro doesn't have it (on debian based distros use
-`sudo apt-get install python3-pip`)
+You may even need to install the Python3 pip3 program
+(which is needed for the command above) if your distro
+doesn't have it. On debian based distros use:
+`sudo apt-get install python3-pip`
 
-After satisfying the dependencies you can do the following:
+After satisfying the dependencies (or following these next
+steps first and running nccm to figure out whether you
+have any unmet dependencies) you can do the following:
 - copy the `nccm` script to: `/usr/local/bin/`
 - `cd /usr/local/bin/`
 - `chmod 755 nccm`
 - `chown root:root nccm`
-- copy the yml config file to: `~/.config/nccm/nccm.yml`
+- copy the nccm.yml config file to one of the supported
+  paths as described below
 
 The script can then be run by simply typing `nccm`
 from anywhere.
 
-The ssh connections (servers) file is loaded from the
-following paths, whichever is found first:
+The ssh connections/config file nccm.yml is loaded from
+one of the following paths, whichever is found first:
 - `~/.config/nccm/nccm.yml`
 - `~/.nccm.yml`
 - `~/nccm.yml`
@@ -72,15 +76,16 @@ nccm.yml settings
 This file is mostly used for ssh connection details, but
 also supports program settings as follows:
 
-`nccm_config_controlmode` - controls the cursor
-movement mode. Two modes are supported:
+`nccm_config_controlmode`:
+Controls the cursor movement mode. Two modes are supported:
 - std:    Cursor keys move the marker as expected.
 - focus:  Marker and list move independently.
           The list is designed to move while the marker
           remains fixed unless it is moved manually.
 
-`nccm_config_loglevel` - controls log level of messages
-sent by nccm to syslog. Use this for debugging.
+`nccm_config_loglevel`:
+Controls log level of messages sent by nccm to syslog.
+Use this for debugging. Default level is warning.
 Supported levels: debug, info, warning, error, critical
 
 
@@ -105,8 +110,9 @@ In both modes:
 
 - Left/Right arrows:  Scroll the list horizontally
 - Tab:                Switch between text boxes
-- Enter:              Connect to the selected entry
+- Enter or Ctrl-m:    Connect to the selected entry
 - Ctrl-h:             Display this help menu
+- Ctrl-k              Toggle cursor mode std <--> focus
 - Ctrl-q or Ctrl-c:   Quit the program
 - F1-F5 or !@#$% :    Sort by respective column (1-5)
 
@@ -151,9 +157,9 @@ Sorting
 -------
 
 F1-F5 keys sort by the respective fields 1-5.
-The display shows 4 columms but we treat username
-and server address as separate columns for sorting
-purposes.
+The display shows 4 visible columms but we treat
+username and server address as separate columns for
+sorting purposes.
 The Fn keys may be captured by certain GUIs so we have
 an alternative - when focused on `Conn` window, press
 Shift-1 through 5 (!@#$%) to toggle sorting by the
