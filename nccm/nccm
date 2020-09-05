@@ -503,8 +503,8 @@ class Connections:
 
         if NewScreenHeight != ScreenHeight or NewScreenWidth != ScreenWidth:
             RestoreTerminal(self.stdscr)
-            print('Resizing the window during menu display is not permitted.')
-            print('You may resize the window during or after connection initiation.')
+            print('\n\nnccm: Resizing the window during menu display is not permitted.\n'
+                'You may resize the window during or after connection initiation.')
             sys.exit(1)
 
         FilterTextList = set()          # Unique text strings for filtering
@@ -662,7 +662,7 @@ def SetupCurses(stdscr):
 
     if not curses.has_colors(): # Color not supported
         RestoreTerminal(stdscr)
-        print('This program requires color support')
+        print('nccm: This program requires color support')
         return False
 
     ScreenHeight, ScreenWidth = stdscr.getmaxyx()
@@ -670,7 +670,7 @@ def SetupCurses(stdscr):
 
     if ScreenWidth < 60 or ScreenHeight < 15:
         RestoreTerminal(stdscr)
-        print('Window must be at least 60x15')
+        print('nccm: Window must be at least 60x15')
         return False
 
 
@@ -939,10 +939,10 @@ def main(*args):
     ConnectString = curses.wrapper(MainCursesFunction)
 
     if ConnectString:
-        print('About to ssh to: {} ...'.format(ConnectString))
+        print('nccm: About to ssh to: {} ...'.format(ConnectString))
         ExtCommand = shlex.split(ConnectString)    # Split the command line into arguments
         subprocess.run(ExtCommand)              # Connect to the ssh server
-        print('Completed ssh to: {} ...'.format(ConnectString))
+        print('nccm: Completed ssh to: {} ...'.format(ConnectString))
 
 
 if __name__ == '__main__':
