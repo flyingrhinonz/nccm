@@ -12,7 +12,7 @@ Freedom makes a better world: released under GNU GPLv3.
 
 https://www.gnu.org/licenses/gpl-3.0.en.html
 
-This software can be used by anyone at no cost, however
+This software can be used by anyone at no cost, however,
 if you like using my software and can support - please
 donate money to a children's hospital of your choice.
 
@@ -32,42 +32,66 @@ See the GNU General Public License for more details.
 Manual install instructions
 ---------------------------
 
-This is one of the ways to install nccm, you can of course
+This is the easiest way to install nccm, you can of course
 install and use nccm in any way you wish.
 
-You may need to manually install the Python3 `PyYAML`
-module. You'll know this when you run nccm and get a
-python exception saying it can't find this module.
-It can be installed as follows:
-`pip3 install --user PyYAML`
+* Clone the project from the git repository:
+  `git clone https://github.com/flyingrhinonz/nccm nccm.git`
+* `cd nccm.git/nccm/`
+* `sudo install -m 755 nccm -t /usr/local/bin/`
 
-You may even need to install the Python3 pip3 program
-(which is needed for the command above) if your distro
-doesn't have it. On debian based distros use:
-`sudo apt-get install python3-pip`
 
-After satisfying the dependencies (or following these next
-steps first and running nccm to figure out whether you
-have any unmet dependencies) you can do the following:
-- copy the `nccm` script to: `/usr/local/bin/`
-- `cd /usr/local/bin/`
-- `chmod 755 nccm`
-- `chown root:root nccm`
-- copy the nccm.yml config file to one of the supported
-  paths as described below
-
-The script can then be run by simply typing `nccm`
-from anywhere.
-
-The ssh connections/config file nccm.yml is loaded from
-one of the following paths, whichever is found first:
+The ssh connections/config file `nccm.yml` should be
+copied to any one of the following locations, and is
+loaded from the first location found:
 - `~/.config/nccm/nccm.yml`
 - `~/.nccm.yml`
 - `~/nccm.yml`
 - `/etc/nccm.yml`
 
-This program comes with an example yml file. Edit it
-to suit your needs.
+
+nccm requires Python3 to be installed on your machine,
+which should already be present on most Linux boxes.
+Most Python library dependencies are already present
+as part of Python3 however the following may not be
+present in which case you need to install them manually.
+
+
+On Debian or similar use apt:
+`sudo apt install python3-pip yamllint`
+
+On Fedora or similar use dnf:
+`sudo dnf install python3-pip yamllint`
+
+Then install PyYAML:
+`pip3 install --user PyYAML`
+
+
+Before starting, edit the `nccm.yml` file and add your
+own ssh connections. Formatting YAML is easy and the file
+you downloaded from the project page is well documented
+and has examples of every supported scenario.
+Follow the structure in the file - provide the connection
+name at the beginning of a line and sub config items
+indented by two spaces. Don't forget the colons - these
+are part of the YAML language.
+
+Don't worry about ordering your SSH session blocks in any
+specific way because nccm gives you "sort by" options
+within the program.
+
+Once you've finished editing, check your work with yamllint:
+`yamllint nccm.yml`
+
+If no errors are returned, then you've formatted your file
+correctly, and it's safe to continue.
+
+If nccm is accessible from your path and is executable,
+typing nccm is all that's required to launch the TUI
+(terminal user interface).
+If you see Python 3 exceptions, check whether you have
+satisfied the dependencies. Any exceptions should mention
+any package that's missing.
 
 
 nccm.yml settings
@@ -207,6 +231,12 @@ This should be enough for most use cases though.
 Troubleshooting
 ---------------
 
+Starting nccm:
+The most common problem is missing Python3 dependencies.
+Run nccm and read the exception message - it will tell
+you what's missing.
+
+Logging:
 Look at your syslog file for nccm entries. Depending upon
 the verbosity level set in the config file you may not see
 much if at all anything.
