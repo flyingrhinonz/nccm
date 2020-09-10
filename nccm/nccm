@@ -245,9 +245,18 @@ much if at all anything.
 By default the production level of the script logs WARNING
 and above which results in syslog silence until something
 bad happens.
+
 To increase logging verbosity change this line in the
-nccm.yml config file to debug:
+`nccm.yml` config file to debug:
 `nccm_config_loglevel: debug`
+This only comes into effect after the config file has
+successfully loaded (does not change the log level for
+code that runs before loading the config file).
+
+And to log stuff that happens before the config file is
+loaded, change this line inside the nccm code:
+`LogWrite.setLevel(logging.DEBUG)`
+
 Also - more debugging calls exist but are commented out in
 the code due to too much logging. Enable them as required.
 
@@ -304,8 +313,10 @@ LogWrite.propagate = False
     # ^ Prevents duplicate logging by ancestor loggers (if any)
 LogHandler = logging.handlers.SysLogHandler(address = '/dev/log')
 LogWrite.addHandler(LogHandler)
-LogWriteFormatter = logging.Formatter('{}: %(message)s'.format('nccm'))
-    # ^ Appends 'nccm' to log lines for easy identification
+LogWriteFormatter = logging.Formatter('{}[%(process)d]: <%(levelname)s> '
+    '(%(funcName)s/L%(lineno)d/%(threadName)s) %(message)s'.format('nccm'))
+    # ^ Select the attributes to include in the log lines
+    #   Documented here: https://docs.python.org/3/library/logging.html (LogRecord attributes)
 LogHandler.setFormatter(LogWriteFormatter)
 
 
@@ -457,7 +468,7 @@ class Connections:
             #LogWrite.debug('self.FullServersList = {}'.format(self.FullServersList))
 
         except Exception as Exc:
-            LogWrite.warning('Error loading connection. Counter = {} , Item = {}'
+            LogWrite.error('Error loading connection. Counter = {} , Item = {}'
                 .format(Counter, Item))
             raise Exc
 
@@ -535,6 +546,7 @@ class Connections:
             RestoreTerminal(self.stdscr)
             print('\n\nnccm: Resizing the window during menu display is not permitted.\n'
                 'You may resize the window during or after connection initiation.')
+            LogWrite.warning('Resizing the window during menu display is not permitted')
             sys.exit(1)
 
         FilterTextList = set()          # Unique text strings for filtering
@@ -693,6 +705,7 @@ def SetupCurses(stdscr):
     if not curses.has_colors(): # Color not supported
         RestoreTerminal(stdscr)
         print('nccm: This program requires color support')
+        LogWrite.warning('This program requires color support')
         return False
 
     ScreenHeight, ScreenWidth = stdscr.getmaxyx()
@@ -701,6 +714,8 @@ def SetupCurses(stdscr):
     if ScreenWidth < 60 or ScreenHeight < 15:
         RestoreTerminal(stdscr)
         print('nccm: Window must be at least 60x15')
+        LogWrite.warning('Window must be at least 60x15. ScreenHeight = {} , ScreenWidth = {}'
+            .format(ScreenHeight, ScreenWidth))
         return False
 
 
