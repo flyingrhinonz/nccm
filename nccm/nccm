@@ -120,6 +120,8 @@ Supported levels: debug, info, warning, error, critical
 Sends a message through the encrypted channel every
 n seconds (0 to disable) to prevent idle sessions from
 being disconnected.
+You can customize this on a per-connection basis by using
+the setting `keepalive: n` (optional).
 
 
 Controls
@@ -267,6 +269,11 @@ loaded, change this line inside the nccm code:
 Also - more debugging calls exist but are commented out in
 the code due to too much logging. Enable them as required.
 
+If you find bugs please update to the latest version of
+nccm first (this may include updating your yaml file in
+case the format changed). If the bug persists please report
+it through the `issues` tab in github.
+
 
 Hacking nccm
 ------------
@@ -305,6 +312,7 @@ import shlex
 import string
 import subprocess
 import sys
+import time
 
 # Pay attention to these imports:
 import yaml         # Requires: 'pip3 install --user PyYAML'
@@ -447,9 +455,9 @@ class Connections:
         LogWrite.debug('Log level now = {}'.format(LogWrite.getEffectiveLevel()))
             # ^ Values documented here: https://docs.python.org/3/library/logging.html#levels
 
-        self.KeepAlive = int(self.LoadedServersDict.pop('nccm_config_keepalive', '0'))
+        self.DefaultKeepAlive = int(self.LoadedServersDict.pop('nccm_config_keepalive', '0'))
             # ^ Controls the keep alive message frequency
-        LogWrite.debug('Loaded config self.KeepAlive = {}'.format(self.KeepAlive))
+        LogWrite.debug('Loaded config self.DefaultKeepAlive = {}'.format(self.DefaultKeepAlive))
 
         # Populate the FullServersList (list of config items as lists, even unconfigured items):
         try:
@@ -469,14 +477,29 @@ class Connections:
                 Comment = self.LoadedServersDict[Item].get('comment', '')
                     # ^ .get because item my be empty
 
+                KeepAlive = self.LoadedServersDict[Item].get('keepalive', self.DefaultKeepAlive)
+                    # If custom keepalive supplied use that, else use the default value
+
                 #LogWrite.debug('Counter = {} , Item = {} , UserName = {}'
-                #    'Address = {} , Comment = {}'
-                #        .format(Counter, Item, UserName, Address, Comment))
+                #    'Address = {} , Comment = {} , KeepAlive = {}'
+                #        .format(Counter, Item, UserName, Address, Comment, KeepAlive))
                 self.FullServersList.append([
-                    Counter, Item, '{}@{}'.format(UserName, Address), Comment])
+                    Counter, Item, '{}@{}'.format(UserName, Address), Comment, KeepAlive])
             # ^ Now we have a list of lists:
             #  [[Serial # , FriendlyName , ConnString , Comment] , [...]]
             #LogWrite.debug('self.FullServersList = {}'.format(self.FullServersList))
+
+            ''' Each item in self.FullServersList is a list of the following fields & types:
+
+                Field #     Type
+                =======     ====
+                0           Serial number
+                1           Friendly name
+                2           Username@Host (only for sorting purposes this is treated as 2 fields)
+                3           Comment
+                4           Keep alive value
+
+            '''
 
         except Exception as Exc:
             LogWrite.error('Error loading connection. Counter = {} , Item = {}'
@@ -502,6 +525,11 @@ class Connections:
                 2   User name           (root)
                 3   Server address      (1.2.3.4)
                 4   Description         (This is a description)
+
+
+            Note - there are more fields in the self.FullServersList list
+            (such as KeepAlive), which get sorted as part of the list items sort,
+            but they don't have their own keyboard sort command.
         '''
 
         LogWrite.debug('Sort by Column = {}'.format(Column))
@@ -538,11 +566,28 @@ class Connections:
 
 
     def GetConnect(self, Counter):
-        ''' Get link to connet to '''
+        ''' Get link to connect to '''
 
         Counter = int(Counter)
-        SshCommand = 'ssh ' + [ i[2] for i in self.FullServersList if i[0] == Counter ][0] + ' -o ServerAliveInterval={}'.format(self.KeepAlive)
-        LogWrite.debug('Counter (line #) = {} , SshCommand = {}'.format(Counter, SshCommand))
+
+        # Get the item line of the connection we want from the full connections list.
+        # (This is the unmodified original list as it was loaded):
+        for SelectedEntry in self.FullServersList:
+            if SelectedEntry[0] == Counter:
+                break
+
+        LogWrite.debug('SelectedEntry = {}'.format(SelectedEntry))
+
+        # Remember that the connection line is a list of items. Pull the correct items out of
+        # the list to build the ssh connection line:
+        SshCommand = (
+            'ssh ' +    # "ssh"
+            SelectedEntry[2] +      # "user@host"
+            ' -o ServerAliveInterval={}'.format(SelectedEntry[4])       #  -o ServerAliveInterval=n
+            )
+
+        LogWrite.debug('Counter (this is the connection list line number) = {} , SshCommand = {}'
+            .format(Counter, SshCommand))
         return SshCommand
 
 
@@ -995,10 +1040,17 @@ def main(*args):
     ConnectString = curses.wrapper(MainCursesFunction)
 
     if ConnectString:
-        print('nccm: About to ssh to: {} ...'.format(ConnectString))
+        print('nccm: About to ssh using: {} ...'.format(ConnectString))
         ExtCommand = shlex.split(ConnectString)    # Split the command line into arguments
+        LogWrite.debug('ExtCommand = {}'.format(ExtCommand))
+        StartTime = time.time()
         subprocess.run(ExtCommand)              # Connect to the ssh server
-        print('nccm: Completed ssh to: {} ...'.format(ConnectString))
+        EndTime = time.time()
+        SessionTime = round(EndTime - StartTime)
+        print('nccm: Completed ssh using: {} . Session time was: {} seconds ...'
+            .format(ConnectString, SessionTime))
+        LogWrite.debug('Completed ssh using: {} . SessionTime was: {}'
+            .format(ConnectString, SessionTime))
 
 
 if __name__ == '__main__':

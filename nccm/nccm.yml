@@ -1,22 +1,25 @@
 # Servers configuration file in YAML format.
-
+#
 # This connections (servers) file is loaded from the following paths, whichever is found first:
 #   ~/.config/nccm/nccm.yml
 #   ~/.nccm.yml
 #   ~/nccm.yml
 #   /etc/nccm.yml
-
+#
 # Use the following format:
 #   FRIENDLY_NAME:
 #     user: USER_NAME
 #     address: SERVER_ADDRESS
 #     comment: FREETEXT_COMMENT
+#     keepalive: KEEPALIVE_TIME
 #
 #   Details:
 #       FRIENDLY_NAME - Can be any freetext descriptive name or user@server: (mandatory field)
 #       USER_NAME - Your login name (optional field)
 #       SERVER_ADDRESS - Hostname or IP address (optional field)
 #       FREETEXT_COMMENT - Any freetext you like to store as a comment on this connection (optional field)
+#       KEEPALIVE_TIME - Override the default nccm_config_keepalive with this value (optional field)
+#         Value is in seconds. Use 0 to disable sending keepalive messages for this connection.
 #
 # You can also supply FRIENDLY_NAME as user@server: if you don't want to supply
 # any of the details fields as follows (don't indent):
@@ -46,6 +49,8 @@ border router:                # Comments are allowed here
   comment: My border router   # And here
   address: 192.168.1.1        # And everywhere else
   user: admin                 # Settings order is not important
+  keepalive: 40               # Override the default nccm_config_keepalive with this
+
 test server:
   address: test.example.com
   user: root

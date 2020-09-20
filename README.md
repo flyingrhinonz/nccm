@@ -118,6 +118,8 @@ Supported levels: debug, info, warning, error, critical
 Sends a message through the encrypted channel every
 n seconds (0 to disable) to prevent idle sessions from
 being disconnected.
+You can customize this on a per-connection basis by using
+the setting `keepalive: n` (optional).
 
 
 Controls
@@ -264,6 +266,11 @@ loaded, change this line inside the nccm code:
 
 Also - more debugging calls exist but are commented out in
 the code due to too much logging. Enable them as required.
+
+If you find bugs please update to the latest version of
+nccm first (this may include updating your yaml file in
+case the format changed). If the bug persists please report
+it through the `issues` tab in github.
 
 
 Hacking nccm
