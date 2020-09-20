@@ -100,7 +100,9 @@ nccm.yml settings
 -----------------
 
 This file is mostly used for ssh connection details, but
-also supports program settings as follows:
+also supports program settings as follows.
+
+These are global settings, affecting all sessions.
 
 `nccm_config_controlmode`:
 Controls the cursor movement mode. Two modes are supported:
@@ -113,6 +115,11 @@ Controls the cursor movement mode. Two modes are supported:
 Controls log level of messages sent by nccm to syslog.
 Use this for debugging. Default level is warning.
 Supported levels: debug, info, warning, error, critical
+
+`nccm_config_keepalive`:
+Sends a message through the encrypted channel every
+n seconds (0 to disable) to prevent idle sessions from
+being disconnected.
 
 
 Controls
@@ -440,6 +447,10 @@ class Connections:
         LogWrite.debug('Log level now = {}'.format(LogWrite.getEffectiveLevel()))
             # ^ Values documented here: https://docs.python.org/3/library/logging.html#levels
 
+        self.KeepAlive = int(self.LoadedServersDict.pop('nccm_config_keepalive', '0'))
+            # ^ Controls the keep alive message frequency
+        LogWrite.debug('Loaded config self.KeepAlive = {}'.format(self.KeepAlive))
+
         # Populate the FullServersList (list of config items as lists, even unconfigured items):
         try:
             for Counter, Item in enumerate(sorted(self.LoadedServersDict.keys(), key=str.lower)):
@@ -530,7 +541,7 @@ class Connections:
         ''' Get link to connet to '''
 
         Counter = int(Counter)
-        SshCommand = 'ssh ' + [ i[2] for i in self.FullServersList if i[0] == Counter ][0]
+        SshCommand = 'ssh ' + [ i[2] for i in self.FullServersList if i[0] == Counter ][0] + ' -o ServerAliveInterval={}'.format(self.KeepAlive)
         LogWrite.debug('Counter (line #) = {} , SshCommand = {}'.format(Counter, SshCommand))
         return SshCommand
 

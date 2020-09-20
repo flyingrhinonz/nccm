@@ -98,7 +98,9 @@ nccm.yml settings
 -----------------
 
 This file is mostly used for ssh connection details, but
-also supports program settings as follows:
+also supports program settings as follows.
+
+These are global settings, affecting all sessions.
 
 `nccm_config_controlmode`:
 Controls the cursor movement mode. Two modes are supported:
@@ -111,6 +113,11 @@ Controls the cursor movement mode. Two modes are supported:
 Controls log level of messages sent by nccm to syslog.
 Use this for debugging. Default level is warning.
 Supported levels: debug, info, warning, error, critical
+
+`nccm_config_keepalive`:
+Sends a message through the encrypted channel every
+n seconds (0 to disable) to prevent idle sessions from
+being disconnected.
 
 
 Controls
@@ -243,9 +250,18 @@ much if at all anything.
 By default the production level of the script logs WARNING
 and above which results in syslog silence until something
 bad happens.
+
 To increase logging verbosity change this line in the
-nccm.yml config file to debug:
+`nccm.yml` config file to debug:
 `nccm_config_loglevel: debug`
+This only comes into effect after the config file has
+successfully loaded (does not change the log level for
+code that runs before loading the config file).
+
+And to log stuff that happens before the config file is
+loaded, change this line inside the nccm code:
+`LogWrite.setLevel(logging.DEBUG)`
+
 Also - more debugging calls exist but are commented out in
 the code due to too much logging. Enable them as required.
 

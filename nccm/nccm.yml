@@ -30,6 +30,7 @@
 
 nccm_config_controlmode: std    # Supported values: std, focus
 nccm_config_loglevel: warning   # Supported values: debug, info, warning, error, critical
+nccm_config_keepalive: 30       # Send keepalive every n seconds (0 to disable) to prevent disconnection
 
 
 # connections configs:
