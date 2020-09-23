@@ -323,8 +323,12 @@ import yaml         # Requires: 'pip3 install --user PyYAML'
 LogWrite = logging.getLogger('MyLogger')
 LogWrite.setLevel(logging.WARNING)
     # ^ Set this to logging.DEBUG or logging.WARNING for your INITIAL desired log level.
-    #   Config file log level takes over from when it is loaded, this value controls
-    #   logging verbosity until then.
+    #   Config file (nccm.yml) log level takes over from when it is loaded,
+    #   this value controls logging verbosity until then.
+    #   If you need to see verbose logging BEFORE the nccm.yml is loaded (which
+    #   overrides this setting), make it DEBUG here. This will also let you
+    #   troubleshoot problems that occur in the initial stages of nccm run - before
+    #   the nccm.yml file is loaded.
 LogWrite.propagate = False
     # ^ Prevents duplicate logging by ancestor loggers (if any)
 LogHandler = logging.handlers.SysLogHandler(address = '/dev/log')
@@ -332,7 +336,8 @@ LogWrite.addHandler(LogHandler)
 LogWriteFormatter = logging.Formatter('{}[%(process)d]: <%(levelname)s> '
     '(%(funcName)s/L%(lineno)d/%(threadName)s) %(message)s'.format('nccm'))
     # ^ Select the attributes to include in the log lines
-    #   Documented here: https://docs.python.org/3/library/logging.html (LogRecord attributes)
+    #   Documented here: https://docs.python.org/3/library/logging.html
+    #     (LogRecord attributes)
 LogHandler.setFormatter(LogWriteFormatter)
 
 
@@ -347,14 +352,15 @@ ConfigFilePath.append(str(pathlib.Path.home()) + '/' + ConfigFile)
 ConfigFilePath.append('/etc/' + ConfigFile)
 
 ScreenHeight = ScreenWidth = 0      # The terminal window dimensions
-DisplayObjects = []     # A list of window objects that display info on the screen (no user input)
+DisplayObjects = []     # A list of window objects that display info on
+                        #   the screen (no user input)
 TextboxObjects = []     # A list of editable textbox windows (user input)
 
 HelpMenuItems = collections.OrderedDict((
-    ( 'Arrows', 'Scroll' ),
-    ( 'Enter', 'Select' ),
-    ( 'ctrl-h', 'Help' ),
-    ( 'ctrl-q', 'Quit' ),
+    ( 'Arrows',     'Scroll' ),
+    ( 'Enter',      'Select' ),
+    ( 'ctrl-h',     'Help' ),
+    ( 'ctrl-q',     'Quit' ),
 ))
 
 
@@ -412,13 +418,15 @@ class Connections:
             #   It is also sorted in place if the user chooses sorting by column.
         self.MaxLenCounter = 0      # Length of the longest serial number field
         self.MaxLenFriendly = 0     # Length of the longest friendly name
-        self.MaxLenCommand = 0      # Length of the longest connection string command (root@server)
+        self.MaxLenCommand = 0      # Length of the longest connection string command
+                                    #  (root@server)
         self.MaxLenComment = 0      # Length of the longest comment column
 
         self.SortOrder = True       # Column sort order (flips between True/False)
         self.YOffset = 0            # Y offset for scrolling vertically
         self.XOffset = 0            # X offset for scrolling horizontally
-        self.MaxLineLength = 0      # Result of formatting the text to fit the max column length
+        self.MaxLineLength = 0      # Result of formatting the text to fit the max
+                                    #   column length
         self.MarkerLine = 0         # Highlighted line for connection selection
         self.SelectedEntry = None   # The connection number matching MarkerLine
         self.SelectedEntryVal = None    # Connection number value of the highlighted line
@@ -436,7 +444,8 @@ class Connections:
         LogWrite.debug('Found config file: FileLooper = {}'.format(FileLooper))
 
         with open (FileLooper, 'r') as ConfigFileToRead:
-            self.LoadedServersDict = yaml.safe_load(ConfigFileToRead)    # yaml.load is not safe
+            self.LoadedServersDict = yaml.safe_load(ConfigFileToRead)
+                # ^ yaml.load is not safe
 
         # This code is needed because FriendlyName connections without any
         # config items have a value of None. I need to replace it with {} for
@@ -447,39 +456,51 @@ class Connections:
         LogWrite.debug('self.LoadedServersDict = {}'.format(self.LoadedServersDict))
 
         # Extract config items first to prevent them from being read as conns:
-        self.ControlMode = self.LoadedServersDict.pop('nccm_config_controlmode', 'std').lower()
-            # ^ Controls how arrow keys move the display & the marker. Options are std, focus
+        self.ControlMode = self.LoadedServersDict.pop(
+            'nccm_config_controlmode', 'std').lower()
+                # ^ Controls how arrow keys move the display & the marker.
+                #   Options are std, focus
         LogWrite.debug('Loaded config self.ControlMode = {}'.format(self.ControlMode))
 
         LogWrite.setLevel(getattr(logging, self.LoadedServersDict.pop
             ('nccm_config_loglevel', 'WARNING').upper()))
         LogWrite.debug('Log level now = {}'.format(LogWrite.getEffectiveLevel()))
-            # ^ Values documented here: https://docs.python.org/3/library/logging.html#levels
+            # ^ Values documented here:
+            #   https://docs.python.org/3/library/logging.html#levels
 
-        self.DefaultKeepAlive = int(self.LoadedServersDict.pop('nccm_config_keepalive', '0'))
-            # ^ Controls the keep alive message frequency
-        LogWrite.debug('Loaded config self.DefaultKeepAlive = {}'.format(self.DefaultKeepAlive))
+        self.DefaultKeepAlive = int(self.LoadedServersDict.pop(
+            'nccm_config_keepalive', '0'))
+                # ^ Controls the keep alive message frequency
+        LogWrite.debug('Loaded config self.DefaultKeepAlive = {}'
+            .format(self.DefaultKeepAlive))
 
-        # Populate the FullServersList (list of config items as lists, even unconfigured items):
+        # Populate the FullServersList (list of config items as lists,
+        # even unconfigured items):
         try:
-            for Counter, Item in enumerate(sorted(self.LoadedServersDict.keys(), key=str.lower)):
-                #LogWrite.debug('Processing Item = {} , Counter = {}'.format(Item, Counter))
+            for Counter, Item in enumerate(sorted(
+                self.LoadedServersDict.keys(), key=str.lower)):
+                #LogWrite.debug('Processing Item = {} , Counter = {}'
+                #    .format(Item, Counter))
 
                 # The following supports extracting UserName & Address from FriendlyName
                 # if UserName & Address are not supplied:
                 UserName = self.LoadedServersDict[Item].get('user', False)
                 if not UserName:
-                    UserName = self.LoadedServersDict[Item].get('user', Item.split(sep='@')[0])
+                    UserName = self.LoadedServersDict[Item].get(
+                        'user', Item.split(sep='@')[0])
 
                 Address = self.LoadedServersDict[Item].get('address', False)
                 if not Address:
-                    Address = self.LoadedServersDict[Item].get('address', Item.split(sep='@')[1])
+                    Address = self.LoadedServersDict[Item].get(
+                        'address', Item.split(sep='@')[1])
 
                 Comment = self.LoadedServersDict[Item].get('comment', '')
                     # ^ .get because item my be empty
 
-                KeepAlive = self.LoadedServersDict[Item].get('keepalive', self.DefaultKeepAlive)
-                    # If custom keepalive supplied use that, else use the default value
+                KeepAlive = self.LoadedServersDict[Item].get(
+                    'keepalive', self.DefaultKeepAlive)
+                        # ^ If custom keepalive supplied use that,
+                        #   else use the default value
 
                 #LogWrite.debug('Counter = {} , Item = {} , UserName = {}'
                 #    'Address = {} , Comment = {} , KeepAlive = {}'
@@ -490,13 +511,15 @@ class Connections:
             #  [[Serial # , FriendlyName , ConnString , Comment] , [...]]
             #LogWrite.debug('self.FullServersList = {}'.format(self.FullServersList))
 
-            ''' Each item in self.FullServersList is a list of the following fields & types:
+            ''' Each item in self.FullServersList is a list of the following
+                fields & types:
 
                 Field #     Type
                 =======     ====
                 0           Serial number
                 1           Friendly name
-                2           Username@Host (only for sorting purposes this is treated as 2 fields)
+                2           Username@Host (only for sorting purposes this is
+                              treated as 2 fields)
                 3           Comment
                 4           Keep alive value
 
@@ -536,21 +559,28 @@ class Connections:
         LogWrite.debug('Sort by Column = {}'.format(Column))
 
         if Column in [ 0, 1, 2 ]:
-            self.FullServersList.sort(key=operator.itemgetter(Column), reverse=self.SortOrder)
+            self.FullServersList.sort(
+                key=operator.itemgetter(Column),
+                reverse=self.SortOrder)
 
         if Column == 3:
             #def ReturnAddress(var):    # Alternate sorting code
             #    return var[2].split(sep='@')[1]
 
-            self.FullServersList.sort(key=lambda x: x[2].split(sep='@')[1], reverse=self.SortOrder)
-                # ^ Sort by the address bit ignoring the user name bit
+            self.FullServersList.sort(
+                key=lambda x: x[2].split(sep='@')[1],
+                reverse=self.SortOrder)
+                    # ^ Sort by the address bit ignoring the user name bit
 
             #self.FullServersList.sort(key=ReturnAddress, reverse=self.SortOrder)
-                # ^ If the lambda confuses you, uncomment this version instead + def from above
+                # ^ If the lambda confuses you, uncomment this version
+                #   instead + def from above
                 #   Does exactly the same thing.
 
         if Column == 4:
-            self.FullServersList.sort(key=operator.itemgetter(3), reverse=self.SortOrder)
+            self.FullServersList.sort(
+                key=operator.itemgetter(3),
+                reverse=self.SortOrder)
                 # ^ Column == 4 becomes sort by list item 3 because list item 3
                 #   is treated as Columns 2 and 3:
                 #       2 for the entire user@address
@@ -579,16 +609,21 @@ class Connections:
 
         LogWrite.debug('SelectedEntry = {}'.format(SelectedEntry))
 
-        # Remember that the connection line is a list of items. Pull the correct items out of
+        # Remember that the connection line is a list of items.
+        # Pull the correct items out of
         # the list to build the ssh connection line:
         SshCommand = (
-            'ssh ' +    # "ssh"
-            SelectedEntry[2] +      # "user@host"
-            ' -o ServerAliveInterval={}'.format(SelectedEntry[4])       #  -o ServerAliveInterval=n
+            'ssh ' +
+                # ^ "ssh"
+            SelectedEntry[2] +
+                # ^ "user@host"
+            ' -o ServerAliveInterval={}'.format(SelectedEntry[4])
+                # ^ -o ServerAliveInterval=n
             )
 
-        LogWrite.debug('Counter (this is the connection list line number) = {} , SshCommand = {}'
-            .format(Counter, SshCommand))
+        LogWrite.debug('Counter (this is the connection list '
+            'line number) = {} , SshCommand = {}'
+                .format(Counter, SshCommand))
         return SshCommand
 
 
@@ -611,7 +646,8 @@ class Connections:
 
         self.Window.erase()
 
-        # Merge the users text input into a set whose uniqueness improves search performance:
+        # Merge the users text input into a set whose uniqueness
+        # improves search performance:
         for Looper in self.TextFilters:
             FilterTextList.update(set(Looper.Text.split(' ')))
 
@@ -672,8 +708,8 @@ class TextBox:
         self.Window = curses.newwin(LinesCount, ColsCount, BeginY, BeginX)
         self.Window.keypad(True)
             # ^ Get special keys support for this window.
-            #   Calling 'stdscr.keypad(True)' is different and doesn't reflect in windows -
-            #   it must be called separately.
+            #   Calling 'stdscr.keypad(True)' is different and doesn't reflect
+            #   in windows - it must be called separately.
             #   Very important - otherwise stuff like getch return stuff like arrow keys
             #   in multiple bytes (one per call) and it's screwed up.
         self.Window.bkgd(' ', curses.color_pair(ColorPair))
@@ -732,14 +768,15 @@ def RestoreTerminal(stdscr):
 
 
 def UpdateDisplay():
-    ''' The window objects were added to DisplayObjects list, so here we need to use the
-        Display method of those objects. '''
+    ''' The window objects were added to DisplayObjects list,
+        so here we need to use the Display method of those objects. '''
 
     global DisplayObjects
 
     for Looper in DisplayObjects:
         Looper.Display()
-    curses.doupdate()   # Speed up display and avoid flickering by using 'window.noutrefresh'
+    curses.doupdate()
+        # ^ Speed up display and avoid flickering by using 'window.noutrefresh'
 
 
 def SetupCurses(stdscr):
@@ -766,13 +803,15 @@ def SetupCurses(stdscr):
         return False
 
     ScreenHeight, ScreenWidth = stdscr.getmaxyx()
-    LogWrite.debug('ScreenHeight = {} , ScreenWidth = {}'.format(ScreenHeight, ScreenWidth))
+    LogWrite.debug('ScreenHeight = {} , ScreenWidth = {}'
+        .format(ScreenHeight, ScreenWidth))
 
     if ScreenWidth < 60 or ScreenHeight < 15:
         RestoreTerminal(stdscr)
         print('nccm: Window must be at least 60x15\n')
-        LogWrite.warning('Window must be at least 60x15. ScreenHeight = {} , ScreenWidth = {}'
-            .format(ScreenHeight, ScreenWidth))
+        LogWrite.warning('Window must be at least 60x15. '
+            'ScreenHeight = {} , ScreenWidth = {}'
+                .format(ScreenHeight, ScreenWidth))
         return False
 
 
@@ -796,10 +835,12 @@ def SetupWindows(stdscr):
     # Connection text input window:
     ConnBox = TextBox(LinesCount=1, ColsCount=8,
         BeginY=ScreenHeight-3, BeginX=10, ColorPair=3)
-    DisplayObjects.append(ConnBox)      # Add this window to the displayable windows
-    TextboxObjects.append(ConnBox)      # Add this window to the windows that store user input
-                                        # ^ We do this because later we filter the ConnectionsList
-                                        #   display output based upon the text here.
+    DisplayObjects.append(ConnBox)
+        # ^ Add this window to the displayable windows
+    TextboxObjects.append(ConnBox)
+        # ^ Add this window to the windows that store user input.
+        #   We do this because later we filter the ConnectionsList
+        #   display output based upon the text here.
 
     # Filter text display window:
     FilterText = BasicTextDisplay(LinesCount=1, ColsCount=10,
@@ -853,7 +894,8 @@ def MainCursesFunction(stdscr):
         UserKey = ActiveWindow.ReadKey()
         LogWrite.debug('Keyboard entry UserKey = {}'.format(UserKey))
 
-# This block is not required any more since I handle it better in Connections.Display() method:
+# This block is not required any more since I handle it better in
+#   Connections.Display() method:
 #        if UserKey == -1:       # Happens when window is resized
 #            # ^ If I don't capture this, window resize causes a curses exception
 #            LogWrite.debug('Detected window resize')
@@ -943,12 +985,14 @@ def MainCursesFunction(stdscr):
 
         elif UserKey == curses.KEY_DOWN:    # Down arrow
             if ConnectionsList.ControlMode == 'focus':
-                if len(ConnectionsList.ResultsList) - ConnectionsList.YOffset > ConnectionsList.MaxTextLines:
+                if len((ConnectionsList.ResultsList) -
+                    ConnectionsList.YOffset > ConnectionsList.MaxTextLines):
                     ConnectionsList.YOffset += 1
             elif ConnectionsList.ControlMode == 'std':
                 if ConnectionsList.MarkerLine < (ConnectionsList.DisplayResultsCount-1):
                     ConnectionsList.MarkerLine += 1
-                elif len(ConnectionsList.ResultsList) - ConnectionsList.YOffset > ConnectionsList.MaxTextLines:
+                elif (len(ConnectionsList.ResultsList) -
+                    ConnectionsList.YOffset > ConnectionsList.MaxTextLines):
                     ConnectionsList.YOffset += 1
 
         elif UserKey == curses.KEY_HOME:    # Home key
@@ -961,10 +1005,12 @@ def MainCursesFunction(stdscr):
         elif UserKey == curses.KEY_END:     # End key
             if ConnectionsList.ControlMode == 'focus':
                 if len(ConnectionsList.ResultsList) > ConnectionsList.MaxTextLines:
-                    ConnectionsList.YOffset = len(ConnectionsList.ResultsList) - ConnectionsList.MaxTextLines
+                    ConnectionsList.YOffset = (len(ConnectionsList.ResultsList) -
+                        ConnectionsList.MaxTextLines)
             elif ConnectionsList.ControlMode == 'std':
                 if len(ConnectionsList.ResultsList) > ConnectionsList.MaxTextLines:
-                    ConnectionsList.YOffset = len(ConnectionsList.ResultsList) - ConnectionsList.MaxTextLines
+                    ConnectionsList.YOffset = (len(ConnectionsList.ResultsList) -
+                        ConnectionsList.MaxTextLines)
                 ConnectionsList.MarkerLine = (ConnectionsList.DisplayResultsCount-1)
 
         elif UserKey == curses.KEY_PPAGE:   # PageUp key
@@ -974,8 +1020,10 @@ def MainCursesFunction(stdscr):
 
         elif UserKey == curses.KEY_NPAGE:   # PageDown key
             ConnectionsList.YOffset += ConnectionsList.MaxTextLines
-            if ConnectionsList.YOffset > (len(ConnectionsList.ResultsList)-ConnectionsList.MaxTextLines):
-                ConnectionsList.YOffset = len(ConnectionsList.ResultsList) - ConnectionsList.MaxTextLines
+            if ConnectionsList.YOffset > ((len(ConnectionsList.ResultsList) -
+                ConnectionsList.MaxTextLines)):
+                ConnectionsList.YOffset = (len(ConnectionsList.ResultsList) -
+                    ConnectionsList.MaxTextLines)
 
         elif UserKey == curses.KEY_LEFT:    # Left arrow (scroll left)
             ConnectionsList.XOffset -= (ConnectionsList.MaxTextWidth //3)
@@ -984,8 +1032,10 @@ def MainCursesFunction(stdscr):
 
         elif UserKey == curses.KEY_RIGHT:   # Right arrow (scroll right)
             ConnectionsList.XOffset += (ConnectionsList.MaxTextWidth //3)
-            if ConnectionsList.XOffset > (ConnectionsList.MaxLineLength - ConnectionsList.MaxTextWidth):
-                ConnectionsList.XOffset = (ConnectionsList.MaxLineLength - ConnectionsList.MaxTextWidth)
+            if (ConnectionsList.XOffset > (ConnectionsList.MaxLineLength -
+                ConnectionsList.MaxTextWidth)):
+                ConnectionsList.XOffset = (ConnectionsList.MaxLineLength -
+                    ConnectionsList.MaxTextWidth)
 
         elif UserKey == 265:                # F1 key (sort by column #1)
             ConnectionsList.Sort(0)
@@ -1012,7 +1062,8 @@ def MainCursesFunction(stdscr):
 
         elif ((UserKey == curses.KEY_ENTER or UserKey in [10, 13])
             and ConnectionsList.SelectedEntry):  # Enter key
-                ConnectString = ConnectionsList.GetConnect(ConnectionsList.SelectedEntryVal)
+                ConnectString = ConnectionsList.GetConnect(
+                    ConnectionsList.SelectedEntryVal)
                 break
 
         elif UserKey == 8:      # Ctrl-h key (help)
@@ -1042,7 +1093,8 @@ def main(*args):
 
     if ConnectString:
         print('nccm: About to ssh using:\n{}\n'.format(ConnectString))
-        ExtCommand = shlex.split(ConnectString)    # Split the command line into arguments
+        ExtCommand = shlex.split(ConnectString)
+            # ^ Split the command line into arguments
         LogWrite.debug('About to subprocess.run ExtCommand = {} ...'
             .format(ExtCommand))
         StartTime = time.time()
