@@ -301,6 +301,7 @@ be considered.
 # Standard library imports:
 import collections
 import curses
+import datetime
 import itertools
 import logging
 import logging.handlers
@@ -600,8 +601,8 @@ class Connections:
 
         if NewScreenHeight != ScreenHeight or NewScreenWidth != ScreenWidth:
             RestoreTerminal(self.stdscr)
-            print('\n\nnccm: Resizing the window during menu display is not permitted.\n'
-                'You may resize the window during or after connection initiation.')
+            print('nccm: Resizing the window during menu display is not permitted.\n'
+                'You may resize the window during or after connection initiation.\n')
             LogWrite.warning('Resizing the window during menu display is not permitted')
             sys.exit(1)
 
@@ -760,7 +761,7 @@ def SetupCurses(stdscr):
 
     if not curses.has_colors(): # Color not supported
         RestoreTerminal(stdscr)
-        print('nccm: This program requires color support')
+        print('nccm: This program requires color support\n')
         LogWrite.warning('This program requires color support')
         return False
 
@@ -769,7 +770,7 @@ def SetupCurses(stdscr):
 
     if ScreenWidth < 60 or ScreenHeight < 15:
         RestoreTerminal(stdscr)
-        print('nccm: Window must be at least 60x15')
+        print('nccm: Window must be at least 60x15\n')
         LogWrite.warning('Window must be at least 60x15. ScreenHeight = {} , ScreenWidth = {}'
             .format(ScreenHeight, ScreenWidth))
         return False
@@ -1040,16 +1041,19 @@ def main(*args):
     ConnectString = curses.wrapper(MainCursesFunction)
 
     if ConnectString:
-        print('nccm: About to ssh using: {} ...'.format(ConnectString))
+        print('nccm: About to ssh using:\n{}\n'.format(ConnectString))
         ExtCommand = shlex.split(ConnectString)    # Split the command line into arguments
-        LogWrite.debug('ExtCommand = {}'.format(ExtCommand))
+        LogWrite.debug('About to subprocess.run ExtCommand = {} ...'
+            .format(ExtCommand))
         StartTime = time.time()
         subprocess.run(ExtCommand)              # Connect to the ssh server
         EndTime = time.time()
         SessionTime = round(EndTime - StartTime)
-        print('nccm: Completed ssh using: {} . Session time was: {} seconds ...'
-            .format(ConnectString, SessionTime))
-        LogWrite.debug('Completed ssh using: {} . SessionTime was: {}'
+        print('nccm: Completed ssh using:\n{}\nSession time was: '
+            '{} ({} seconds)\n'
+                .format(ConnectString, datetime.timedelta(seconds=SessionTime),
+                    SessionTime))
+        LogWrite.debug('Completed ssh using: {} . SessionTime was: {} seconds'
             .format(ConnectString, SessionTime))
 
 
