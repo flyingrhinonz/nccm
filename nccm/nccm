@@ -419,7 +419,7 @@ class Connections:
         self.MaxLenCounter = 0      # Length of the longest serial number field
         self.MaxLenFriendly = 0     # Length of the longest friendly name
         self.MaxLenCommand = 0      # Length of the longest connection string command
-                                    #  (root@server)
+                                    #   (root@server)
         self.MaxLenComment = 0      # Length of the longest comment column
 
         self.SortOrder = True       # Column sort order (flips between True/False)
@@ -985,7 +985,7 @@ def MainCursesFunction(stdscr):
 
         elif UserKey == curses.KEY_DOWN:    # Down arrow
             if ConnectionsList.ControlMode == 'focus':
-                if len((ConnectionsList.ResultsList) -
+                if (len(ConnectionsList.ResultsList) -
                     ConnectionsList.YOffset > ConnectionsList.MaxTextLines):
                     ConnectionsList.YOffset += 1
             elif ConnectionsList.ControlMode == 'std':
@@ -1020,7 +1020,7 @@ def MainCursesFunction(stdscr):
 
         elif UserKey == curses.KEY_NPAGE:   # PageDown key
             ConnectionsList.YOffset += ConnectionsList.MaxTextLines
-            if ConnectionsList.YOffset > ((len(ConnectionsList.ResultsList) -
+            if (ConnectionsList.YOffset > (len(ConnectionsList.ResultsList) -
                 ConnectionsList.MaxTextLines)):
                 ConnectionsList.YOffset = (len(ConnectionsList.ResultsList) -
                     ConnectionsList.MaxTextLines)
