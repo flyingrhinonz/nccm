@@ -71,6 +71,7 @@ border router:                # Comments are allowed here
   comment: My border router   # And here
   address: 192.168.1.1        # And everywhere else
   user: admin                 # Settings order is not important
+  # This comment is indented like the code
   keepalive: 40
   # ^ Override the default nccm_config_keepalive with this
 
@@ -83,3 +84,6 @@ root@10.10.2.2:   # Note how nothing else is supplied...
 
 user@example2.com:
   comment: Comment supplied, user/server extracted from FriendlyName
+
+# The final line of yaml must have content. yamllint will complain if you
+#   leave empty lines at the bottom.
