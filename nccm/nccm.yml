@@ -1,6 +1,9 @@
+---
 # Servers configuration file in YAML format.
 #
-# This connections (servers) file is loaded from the following paths, whichever is found first:
+# This connections (servers) file is loaded from the following paths,
+#   in the following order - whichever is found first:
+#
 #   ~/.config/nccm/nccm.yml
 #   ~/.nccm.yml
 #   ~/nccm.yml
@@ -14,26 +17,45 @@
 #     keepalive: KEEPALIVE_TIME
 #
 #   Details:
-#       FRIENDLY_NAME - Can be any freetext descriptive name or user@server: (mandatory field)
-#       USER_NAME - Your login name (optional field)
-#       SERVER_ADDRESS - Hostname or IP address (optional field)
-#       FREETEXT_COMMENT - Any freetext you like to store as a comment on this connection (optional field)
-#       KEEPALIVE_TIME - Override the default nccm_config_keepalive with this value (optional field)
-#         Value is in seconds. Use 0 to disable sending keepalive messages for this connection.
+#       FRIENDLY_NAME - Can be any freetext descriptive name or user@server:
+#         (mandatory field).
+#       USER_NAME - Your login name (optional field).
+#       SERVER_ADDRESS - Hostname or IP address (optional field).
+#       FREETEXT_COMMENT - Any freetext you like to store as a comment on
+#         this connection (optional field).
+#       KEEPALIVE_TIME - Override the default nccm_config_keepalive with
+#         this value (optional field).
+#         Value is in seconds. Use 0 to disable sending keepalive messages
+#         for this connection.
 #
-# You can also supply FRIENDLY_NAME as user@server: if you don't want to supply
-# any of the details fields as follows (don't indent):
+# You can also supply FRIENDLY_NAME as user@server:   if you don't want to
+#   supply any of the details fields as follows (don't indent):
 #   root@10.10.1.1:
 #   user@example2.com:
 #
-# In this case user name and address will be extracted from friendly name automatically.
+# In this case user name and address will be extracted from friendly name
+#   automatically.
+#
+# Once you're done editing this file, verify it as follows:
+#   yamllint nccm.yaml
+#
+# The "code lines" (those that actually carry the config) must adhere
+#   to the yaml structure (proper indentation, etc).
+#   A mistake here is wrong and will probably cause nccm to give an
+#   error message.
+#   yamllint is also very fussy about line lengths (80 chars max),
+#   comment indents, no blank lines at the end of the file, etc.
+#   These are less important and nccm handles them ok, but best to stick
+#   to the yaml structure and keep yamllint happy...
 
 
 # nccm internal configs:
 
 nccm_config_controlmode: std    # Supported values: std, focus
-nccm_config_loglevel: warning   # Supported values: debug, info, warning, error, critical
-nccm_config_keepalive: 30       # Send keepalive every n seconds (0 to disable) to prevent disconnection
+nccm_config_loglevel: warning
+# ^ Supported values: debug, info, warning, error, critical
+nccm_config_keepalive: 30
+# ^ Send keepalive every n seconds (0 to disable) to prevent disconnection
 
 
 # connections configs:
@@ -49,7 +71,8 @@ border router:                # Comments are allowed here
   comment: My border router   # And here
   address: 192.168.1.1        # And everywhere else
   user: admin                 # Settings order is not important
-  keepalive: 40               # Override the default nccm_config_keepalive with this
+  keepalive: 40
+  # ^ Override the default nccm_config_keepalive with this
 
 test server:
   address: test.example.com
@@ -60,4 +83,3 @@ root@10.10.2.2:   # Note how nothing else is supplied...
 
 user@example2.com:
   comment: Comment supplied, user/server extracted from FriendlyName
-
