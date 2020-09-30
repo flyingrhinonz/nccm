@@ -502,11 +502,13 @@ class Connections:
                         # ^ If custom keepalive supplied use that,
                         #   else use the default value
 
+                CustomArgs = self.LoadedServersDict[Item].get('customargs', '')
+
                 #LogWrite.debug('Counter = {} , Item = {} , UserName = {}'
-                #    'Address = {} , Comment = {} , KeepAlive = {}'
-                #        .format(Counter, Item, UserName, Address, Comment, KeepAlive))
+                #    'Address = {} , Comment = {} , KeepAlive = {} , CustomArgs = {}'
+                #        .format(Counter, Item, UserName, Address, Comment, KeepAlive, CustomArgs))
                 self.FullServersList.append([
-                    Counter, Item, '{}@{}'.format(UserName, Address), Comment, KeepAlive])
+                    Counter, Item, '{}@{}'.format(UserName, Address), Comment, KeepAlive, CustomArgs])
             # ^ Now we have a list of lists:
             #  [[Serial # , FriendlyName , ConnString , Comment] , [...]]
             #LogWrite.debug('self.FullServersList = {}'.format(self.FullServersList))
@@ -522,6 +524,7 @@ class Connections:
                               treated as 2 fields)
                 3           Comment
                 4           Keep alive value
+                5           Custom args value   # Always keep this as the last in the list
 
             '''
 
@@ -613,17 +616,24 @@ class Connections:
         # Pull the correct items out of
         # the list to build the ssh connection line:
         SshCommand = (
-            'ssh ' +
+            'ssh' + ' ' +
                 # ^ "ssh"
             SelectedEntry[2] +
                 # ^ "user@host"
-            ' -o ServerAliveInterval={}'.format(SelectedEntry[4])
-                # ^ -o ServerAliveInterval=n
+            ' -o ServerAliveInterval={}'.format(SelectedEntry[4]) + ' ' +
+                # ^ -o ServerAliveInterval=KeepAlive
+            SelectedEntry[5]
+                # ^ CustomArgs
             )
 
         LogWrite.debug('Counter (this is the connection list '
-            'line number) = {} , SshCommand = {}'
+            'line number) = {} , SshCommand = "{}"'
                 .format(Counter, SshCommand))
+            # ^ This line logs as:
+            #   SshCommand = "ssh stn@192.168.1.10 -o ServerAliveInterval=40 "
+            #   Note the space at the end - this comes from the + ' ' after
+            #   adding ServerAliveInterval=   because we're accommodating for the
+            #   next field after it (all args being space delimited).
         return SshCommand
 
 

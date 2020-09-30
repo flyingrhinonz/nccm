@@ -15,6 +15,7 @@
 #     address: SERVER_ADDRESS
 #     comment: FREETEXT_COMMENT
 #     keepalive: KEEPALIVE_TIME
+#     customargs: CUSTOM_ARGS
 #
 #   Details:
 #       FRIENDLY_NAME - Can be any freetext descriptive name or user@server:
@@ -27,6 +28,9 @@
 #         this value (optional field).
 #         Value is in seconds. Use 0 to disable sending keepalive messages
 #         for this connection.
+#       CUSTOM_ARGS - Any custom arguments you want to send to ssh that
+#         are not currently supported in nccm. These will be appended to
+#         the end of the ssh command at connection time.
 #
 # You can also supply FRIENDLY_NAME as user@server:   if you don't want to
 #   supply any of the details fields as follows (don't indent):
@@ -74,6 +78,7 @@ border router:                # Comments are allowed here
   # This comment is indented like the code
   keepalive: 40
   # ^ Override the default nccm_config_keepalive with this
+  customargs: -v -C           # Your own custom args to ssh
 
 test server:
   address: test.example.com
