@@ -214,6 +214,14 @@ Column #  Column name       Sort    Alternate sort
 ```
 
 
+Help text
+---------
+
+From within nccm: use `Ctrl-h` to display the help text.
+From the command line: use `nccm -h` or `nccm --help`.
+There isn't a man page yet so `man nccm` won't work.
+
+
 Limitations
 -----------
 
@@ -299,6 +307,7 @@ be considered.
 '''
 
 # Standard library imports:
+import argparse
 import collections
 import curses
 import datetime
@@ -879,6 +888,14 @@ def SetupWindows(stdscr):
     return ConnectionsList, ConnBox, FilterBox, CyclicTextboxObjects
 
 
+def DisplayHelp():
+    ''' Display the help text '''
+
+    pydoc.pipepager(__doc__, cmd='less -i --dumb --no-init')
+        # ^ Print the text in through the less pager
+        #   so we can get paging, search, etc
+
+
 def MainCursesFunction(stdscr):
 
     ConnectString = False
@@ -1078,9 +1095,7 @@ def MainCursesFunction(stdscr):
 
         elif UserKey == 8:      # Ctrl-h key (help)
             curses.endwin()     # De-initialize and return terminal to normal status
-            pydoc.pipepager(__doc__, cmd='less -i --dumb --no-init')
-                # ^ Print the text in through the less pager
-                #   so we can get paging, search, etc
+            DisplayHelp()
 
         elif UserKey == 11:     # Ctrl-k key (toggle cursor mode)
             if ConnectionsList.ControlMode == 'std':
@@ -1098,7 +1113,28 @@ def MainCursesFunction(stdscr):
     return ConnectString
 
 
+def ParseArgs():
+    ''' Handle any command line arguments supplied '''
+
+    parser = argparse.ArgumentParser(
+        description = 'NCurses Connection Manager',
+        epilog = 'Thank you for using nccm',
+        add_help = False )
+            # ^ Bypass the built in argparse help generator and release
+            #   the -h and --help args for our own use.
+
+    parser.add_argument('-h', '--help', action = 'store_true')
+    args = parser.parse_args()
+    LogWrite.debug('args object = "{}"'.format(args))
+
+    if args.help:
+        DisplayHelp()
+        sys.exit(0)
+
+
 def main(*args):
+
+    ParseArgs()     # Command line args processing happens here
     ConnectString = curses.wrapper(MainCursesFunction)
 
     if ConnectString:
