@@ -121,6 +121,14 @@ being disconnected.
 You can customize this on a per-connection basis by using
 the setting `keepalive: n` (optional).
 
+`nccm_config_identity`
+For public key authentication, normally ssh will load your
+private key from the default locations. You can force ssh
+to use your own file by putting it's path here. Or set to
+`false` to let ssh do it's own thing.
+You can customize this on a per-connection basis by using
+the setting `identity: path` (optional).
+
 
 Controls
 --------
@@ -210,6 +218,14 @@ Column #  Column name       Sort    Alternate sort
 4         Server address    F4      $
 5         Description       F5      %
 ```
+
+
+Help text
+---------
+
+From within nccm: use `Ctrl-h` to display the help text.
+From the command line: use `nccm -h` or `nccm --help`.
+There isn't a man page yet so `man nccm` won't work.
 
 
 Limitations

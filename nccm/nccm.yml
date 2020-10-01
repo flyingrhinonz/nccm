@@ -15,6 +15,7 @@
 #     address: SERVER_ADDRESS
 #     comment: FREETEXT_COMMENT
 #     keepalive: KEEPALIVE_TIME
+#     identity: IDENTITY_FILE
 #     customargs: CUSTOM_ARGS
 #
 #   Details:
@@ -28,6 +29,8 @@
 #         this value (optional field).
 #         Value is in seconds. Use 0 to disable sending keepalive messages
 #         for this connection.
+#       IDENTITY_FILE - Override the default nccm_config_identity with
+#         this path (optional field).
 #       CUSTOM_ARGS - Any custom arguments you want to send to ssh that
 #         are not currently supported in nccm. These will be appended to
 #         the end of the ssh command at connection time.
@@ -60,6 +63,10 @@ nccm_config_loglevel: warning
 # ^ Supported values: debug, info, warning, error, critical
 nccm_config_keepalive: 30
 # ^ Send keepalive every n seconds (0 to disable) to prevent disconnection
+nccm_config_identity: false
+# ^ For public key authentication, normally ssh will load your private key
+#   from the default locations. You can force ssh to use your own file by
+#   putting it's path here. Or set to false to let ssh do it's own thing.
 
 
 # connections configs:
@@ -78,6 +85,10 @@ border router:                # Comments are allowed here
   # This comment is indented like the code
   keepalive: 40
   # ^ Override the default nccm_config_keepalive with this
+  #   on a per-connection basis.
+  identity: /home/user/mykey
+  # ^ Override the default nccm_config_identity with this
+  #   on a per-connection basis.
   customargs: -v -C           # Your own custom args to ssh
 
 test server:

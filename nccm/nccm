@@ -123,6 +123,14 @@ being disconnected.
 You can customize this on a per-connection basis by using
 the setting `keepalive: n` (optional).
 
+`nccm_config_identity`
+For public key authentication, normally ssh will load your
+private key from the default locations. You can force ssh
+to use your own file by putting it's path here. Or set to
+`false` to let ssh do it's own thing.
+You can customize this on a per-connection basis by using
+the setting `identity: path` (optional).
+
 
 Controls
 --------
@@ -473,15 +481,24 @@ class Connections:
 
         LogWrite.setLevel(getattr(logging, self.LoadedServersDict.pop
             ('nccm_config_loglevel', 'WARNING').upper()))
-        LogWrite.debug('Log level now = {}'.format(LogWrite.getEffectiveLevel()))
+        LogWrite.debug('Loaded config log level. Log level now = {}'
+            .format(LogWrite.getEffectiveLevel()))
             # ^ Values documented here:
             #   https://docs.python.org/3/library/logging.html#levels
 
+        # Handle loading of the default keepalive value from nccm_config_keepalive:
         self.DefaultKeepAlive = int(self.LoadedServersDict.pop(
             'nccm_config_keepalive', '0'))
                 # ^ Controls the keep alive message frequency
         LogWrite.debug('Loaded config self.DefaultKeepAlive = {}'
             .format(self.DefaultKeepAlive))
+
+        # Handle loading of the default identity value from nccm_config_identity:
+        self.Identity = self.LoadedServersDict.pop(
+            'nccm_config_identity', False)
+            # This is the -i arg sent to ssh
+        LogWrite.debug('Loaded config self.Identity = {}'
+            .format(self.Identity))
 
         # Populate the FullServersList (list of config items as lists,
         # even unconfigured items):
@@ -511,13 +528,45 @@ class Connections:
                         # ^ If custom keepalive supplied use that,
                         #   else use the default value
 
+                # Build the KeepAlive ssh argument:
+                if KeepAlive:
+                     KeepAlive = '-o ServerAliveInterval={}'.format(KeepAlive)
+                        # Note that KeepAlive will always be built - either from
+                        # the per-connection setting or from the default value.
+
+                # Individually configured 'identity' values per connection
+                # will be respected and Identity will become '-i <value>' .
+                # Otherwise if the value of nccm_config_identity in nccm.yml
+                # is configured then we assume it's a path to the new
+                # default key and Identity will take it from there (prepending
+                # the '-i ' part to it.
+                # Otherwise it should be set to '' which will have no effect
+                # upon the ssh command line:
+                Identity = self.LoadedServersDict[Item].get('identity', False)
+                    # ^ Note that per-connection "indentity" may not be supplied
+                    #   and also the default nccm_config_identity may be False.
+                    #   The following code handles this situation
+
+                # Build the Identity ssh argument:
+                if Identity:
+                    Identity = '-i {}'.format(Identity)
+                elif self.Identity:
+                    Identity = '-i {}'.format(self.Identity)
+                else:
+                    Identity = ''
+
                 CustomArgs = self.LoadedServersDict[Item].get('customargs', '')
 
-                #LogWrite.debug('Counter = {} , Item = {} , UserName = {}'
-                #    'Address = {} , Comment = {} , KeepAlive = {} , CustomArgs = {}'
-                #        .format(Counter, Item, UserName, Address, Comment, KeepAlive, CustomArgs))
+                LogWrite.debug('Counter = {} , Item = {} , UserName = {}'
+                    'Address = {} , Comment = {} , KeepAlive = {} , '
+                    'Identity = {} , CustomArgs = {}'
+                        .format(Counter, Item, UserName, Address, Comment,
+                            KeepAlive, Identity, CustomArgs))
+
                 self.FullServersList.append([
-                    Counter, Item, '{}@{}'.format(UserName, Address), Comment, KeepAlive, CustomArgs])
+                    Counter, Item,
+                    '{}@{}'.format(UserName, Address),
+                    Comment, KeepAlive, Identity, CustomArgs])
             # ^ Now we have a list of lists:
             #  [[Serial # , FriendlyName , ConnString , Comment] , [...]]
             #LogWrite.debug('self.FullServersList = {}'.format(self.FullServersList))
@@ -533,7 +582,8 @@ class Connections:
                               treated as 2 fields)
                 3           Comment
                 4           Keep alive value
-                5           Custom args value   # Always keep this as the last in the list
+                5           Identity string ('-i path' or '')
+                6           Custom args value   # Always keep this as the last in the list
 
             '''
 
@@ -627,12 +677,14 @@ class Connections:
         SshCommand = (
             'ssh' + ' ' +
                 # ^ "ssh"
-            SelectedEntry[2] +
+            SelectedEntry[2] + ' ' +
                 # ^ "user@host"
-            ' -o ServerAliveInterval={}'.format(SelectedEntry[4]) + ' ' +
+            SelectedEntry[4] + ' ' +
                 # ^ -o ServerAliveInterval=KeepAlive
-            SelectedEntry[5]
-                # ^ CustomArgs
+            SelectedEntry[5] + ' ' +
+                # ^ "-i path"   or ''
+            SelectedEntry[6]
+                # ^ CustomArgs   or ''
             )
 
         LogWrite.debug('Counter (this is the connection list '
