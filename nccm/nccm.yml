@@ -1,7 +1,7 @@
 ---
 # Servers configuration file in YAML format.
 #
-# This connections (servers) file is loaded from the following paths,
+# This connections & config file is loaded from one of the following paths,
 #   in the following order - whichever is found first:
 #
 #   ~/.config/nccm/nccm.yml
@@ -9,7 +9,7 @@
 #   ~/nccm.yml
 #   /etc/nccm.yml
 #
-# Use the following format:
+# For each connection, use the following format:
 #   FRIENDLY_NAME:
 #     user: USER_NAME
 #     address: SERVER_ADDRESS
@@ -33,7 +33,7 @@
 #         this path (optional field).
 #       CUSTOM_ARGS - Any custom arguments you want to send to ssh that
 #         are not currently supported in nccm. These will be appended to
-#         the end of the ssh command at connection time.
+#         the end of the ssh command at connection time (optional field).
 #
 # You can also supply FRIENDLY_NAME as user@server:   if you don't want to
 #   supply any of the details fields as follows (don't indent):
@@ -67,6 +67,7 @@ nccm_config_identity: false
 # ^ For public key authentication, normally ssh will load your private key
 #   from the default locations. You can force ssh to use your own file by
 #   putting it's path here. Or set to false to let ssh do it's own thing.
+#   Use lowercase false - otherwise yamllint will complain.
 
 
 # connections configs:

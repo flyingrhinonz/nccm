@@ -176,6 +176,10 @@ connection marked by the highlighted line.
 
 `Filter` textbox:
 Type any filter text here.
+Filtering occurs by searching text present in all visible
+columns (does not search in any of the non-visble
+settings you made in nccm.yml for example identity or
+customargs).
 Accepts any printable character and space.
 Text is forced to lowercase, and the resulting filtering
 is case insensitive.
@@ -529,10 +533,9 @@ class Connections:
                         #   else use the default value
 
                 # Build the KeepAlive ssh argument:
-                if KeepAlive:
-                     KeepAlive = '-o ServerAliveInterval={}'.format(KeepAlive)
-                        # Note that KeepAlive will always be built - either from
-                        # the per-connection setting or from the default value.
+                KeepAlive = '-o ServerAliveInterval={}'.format(KeepAlive)
+                    # ^ Note that KeepAlive will always be built - either from
+                    #   the per-connection setting or from the default value.
 
                 # Individually configured 'identity' values per connection
                 # will be respected and Identity will become '-i <value>' .
@@ -543,16 +546,18 @@ class Connections:
                 # Otherwise it should be set to '' which will have no effect
                 # upon the ssh command line:
                 Identity = self.LoadedServersDict[Item].get('identity', False)
-                    # ^ Note that per-connection "indentity" may not be supplied
+                    # ^ Note that per-connection "identity" may not be supplied
                     #   and also the default nccm_config_identity may be False.
                     #   The following code handles this situation
 
-                # Build the Identity ssh argument:
-                if Identity:
+                # Build the Identity ssh argument per priority of supplied values:
+                if Identity:            # Prefer the custom identity
                     Identity = '-i {}'.format(Identity)
-                elif self.Identity:
+
+                elif self.Identity:     # Or the configured default
                     Identity = '-i {}'.format(self.Identity)
-                else:
+
+                else:                   # Or keep it blank and ssh uses default key
                     Identity = ''
 
                 CustomArgs = self.LoadedServersDict[Item].get('customargs', '')
