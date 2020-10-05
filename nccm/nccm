@@ -266,6 +266,18 @@ Starting nccm:
 The most common problem is missing Python3 dependencies.
 Run nccm and read the exception message - it will tell
 you what's missing.
+The second most common problem is different nccm and
+nccm.yml versions. This usually happens if you download
+a newer nccm version and use your existing and older
+nccm.yml file although the reverse is true too. The error
+will normally be in the `Load` method and the resulting
+exception will resemble something like this (the line
+number will most probably be different):
+`File "/usr/local/bin/nccm", line 481, in Load`.
+If this happens, best is to backup your nccm.yml then
+download both nccm and nccm.yml, verify that nccm now
+works properly, then update the newly downloaded nccm.yml
+from your backup copy.
 
 Logging:
 Look at your syslog file for nccm entries. Depending upon
