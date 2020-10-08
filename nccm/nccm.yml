@@ -90,7 +90,11 @@ border router:                # Comments are allowed here
   identity: /home/user/mykey
   # ^ Override the default nccm_config_identity with this
   #   on a per-connection basis.
-  customargs: -v -C           # Your own custom args to ssh
+  customargs: -v -C -p 2222
+  # ^ Your own custom args to ssh. Takes any legal argument to
+  #   the ssh command so you can pretty much customize a connection
+  #   in any way you desire. You can even use customargs instead of
+  #   the nccm.yaml keys/values such as keepalive or identity
 
 test server:
   address: test.example.com

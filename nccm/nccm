@@ -52,6 +52,15 @@ loaded from the first location found:
 - `/etc/nccm.yml`
 
 
+Tips on nccm.yml location - if you're a single user then
+placement of nccm.yml doesn't matter and it's probably
+easiest to place it in one of the home dir locations.
+In a multiuser system, placing nccm.yml in each user's
+home dir will allow each user to use their personalized
+settings if nccm.yml is present, and if not present then
+fallback to default settings from /etc/nccm.yml.
+
+
 nccm requires Python3 to be installed on your machine,
 which should already be present on most Linux boxes.
 Most Python library dependencies are already present
@@ -353,7 +362,7 @@ import yaml         # Requires: 'pip3 install --user PyYAML'
 
 
 # This block handles logging to syslog:
-LogWrite = logging.getLogger('MyLogger')
+LogWrite = logging.getLogger('nccm')
 LogWrite.setLevel(logging.WARNING)
     # ^ Set this to logging.DEBUG or logging.WARNING for your INITIAL desired log level.
     #   Config file (nccm.yml) log level takes over from when it is loaded,
@@ -367,7 +376,10 @@ LogWrite.propagate = False
 LogHandler = logging.handlers.SysLogHandler(address = '/dev/log')
 LogWrite.addHandler(LogHandler)
 LogWriteFormatter = logging.Formatter('{}[%(process)d]: <%(levelname)s> '
-    '(%(funcName)s/L%(lineno)d/%(threadName)s) %(message)s'.format('nccm'))
+    '(ProcessName: %(processName)s , Module: %(module)s , '
+    'LoggerName: %(name)s , FuncName: %(funcName)s , '
+    'LineNo: %(lineno)d , ThreadName: %(threadName)s):    '
+    '%(message)s'.format('nccm'))
     # ^ Select the attributes to include in the log lines
     #   Documented here: https://docs.python.org/3/library/logging.html
     #     (LogRecord attributes)
@@ -1226,5 +1238,4 @@ def main(*args):
 
 if __name__ == '__main__':
         main()
-
 
