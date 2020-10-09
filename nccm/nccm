@@ -209,6 +209,11 @@ where you can move your display up/down around your work
 while keeping your current line selected.
 
 
+Command line arguments
+----------------------
+
+
+
 Sorting
 -------
 
@@ -296,15 +301,19 @@ By default the production level of the script logs WARNING
 and above which results in syslog silence until something
 bad happens.
 
-To increase logging verbosity change this line in the
-`nccm.yml` config file to debug:
+Increase logging verbosity level to debug using the
+-d or --debug command line arguments.
+
+To permanently increase logging verbosity change this line
+in the `nccm.yml` config file to debug:
 `nccm_config_loglevel: debug`
 This only comes into effect after the config file has
 successfully loaded (does not change the log level for
 code that runs before loading the config file).
 
 And to log stuff that happens before the config file is
-loaded, change this line inside the nccm code:
+loaded and before the argument parser sets the debug level,
+change this line inside the nccm code:
 `LogWrite.setLevel(logging.DEBUG)`
 
 Also - more debugging calls exist but are commented out in
@@ -384,7 +393,9 @@ LogWriteFormatter = logging.Formatter('{}[%(process)d]: <%(levelname)s> '
     #   Documented here: https://docs.python.org/3/library/logging.html
     #     (LogRecord attributes)
 LogHandler.setFormatter(LogWriteFormatter)
+LogWrite.debug('nccm started with log level = {}'.format(LogWrite.getEffectiveLevel()))
 
+# Global variables go here:
 
 # Setup the supported directories/pathnames for the connections file.
 # If you want to store nccm.yml in a directory that's not already supported
@@ -407,6 +418,8 @@ HelpMenuItems = collections.OrderedDict((
     ( 'ctrl-h',     'Help' ),
     ( 'ctrl-q',     'Quit' ),
 ))
+
+ForceDebugLogging = False
 
 
 class HelpTextDisplay:
@@ -507,12 +520,19 @@ class Connections:
                 #   Options are std, focus
         LogWrite.debug('Loaded config self.ControlMode = {}'.format(self.ControlMode))
 
-        LogWrite.setLevel(getattr(logging, self.LoadedServersDict.pop
-            ('nccm_config_loglevel', 'WARNING').upper()))
-        LogWrite.debug('Loaded config log level. Log level now = {}'
-            .format(LogWrite.getEffectiveLevel()))
-            # ^ Values documented here:
-            #   https://docs.python.org/3/library/logging.html#levels
+        if ForceDebugLogging:
+            LogWrite.debug('Command line arg --debug forced nccm to run in debug mode. '
+            'Ignoring nccm_config_loglevel from nccm.yml ...')
+            self.LoadedServersDict.pop('nccm_config_loglevel', 'WARNING')
+                # ^ Just to remove this setting from the yml config
+
+        else:
+            LogWrite.setLevel(getattr(logging, self.LoadedServersDict.pop
+                ('nccm_config_loglevel', 'WARNING').upper()))
+            LogWrite.debug('Loaded config log level. Log level now = {}'
+                .format(LogWrite.getEffectiveLevel()))
+                # ^ Values documented here:
+                #   https://docs.python.org/3/library/logging.html#levels
 
         # Handle loading of the default keepalive value from nccm_config_keepalive:
         self.DefaultKeepAlive = int(self.LoadedServersDict.pop(
@@ -1197,18 +1217,33 @@ def MainCursesFunction(stdscr):
 def ParseArgs():
     ''' Handle any command line arguments supplied '''
 
+    global ForceDebugLogging
+
     parser = argparse.ArgumentParser(
         description = 'NCurses Connection Manager',
         epilog = 'Thank you for using nccm',
-        add_help = False )
+        #add_help = False )
             # ^ Bypass the built in argparse help generator and release
             #   the -h and --help args for our own use.
+        )
 
-    parser.add_argument('-h', '--help', action = 'store_true')
+    parser.add_argument('-d', '--debug',
+        help='force debug verbosity logging, ignore other logging settings',
+        action='store_true')
+
+    parser.add_argument('-m', '--manpage',
+        help='display nccm man page and exit',
+        action='store_true')
+
     args = parser.parse_args()
-    LogWrite.debug('args object = "{}"'.format(args))
+    LogWrite.debug('args object = {}'.format(args))
 
-    if args.help:
+    if args.debug:
+        LogWrite.setLevel(logging.DEBUG)
+        ForceDebugLogging = True
+        LogWrite.debug('Command line arg --debug forcing nccm to run in debug mode')
+
+    if args.manpage:
         DisplayHelp()
         sys.exit(0)
 
