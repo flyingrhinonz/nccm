@@ -61,15 +61,23 @@
 # nccm internal configs:
 
 nccm_config_controlmode: std    # Supported values: std, focus
+
 nccm_config_loglevel: warning
 # ^ Supported values: debug, info, warning, error, critical
+
 nccm_config_keepalive: 30
 # ^ Send keepalive every n seconds (0 to disable) to prevent disconnection
+
 nccm_config_identity: false
 # ^ For public key authentication, normally ssh will load your private key
 #   from the default locations. You can force ssh to use your own file by
 #   putting it's path here. Or set to false to let ssh do it's own thing.
 #   Use lowercase false - otherwise yamllint will complain.
+
+nccm_config_sshprogram: ssh
+# ^ The name or path to your ssh command. You can use this to explicitly
+#   state the path of your ssh program, or even use a different program that
+#   does the ssh (maybe you have a script or wrapper...).
 
 
 # connections configs:

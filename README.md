@@ -138,6 +138,12 @@ to use your own file by putting it's path here. Or set to
 You can customize this on a per-connection basis by using
 the setting `identity: path` (optional).
 
+`nccm_config_sshprogram`
+By default nccm will use the ssh program as found in your
+path. If you want to explicitly set the path to ssh, or
+you want to use a different program - set it here.
+This is a global setting that affect all your connections.
+
 
 Controls
 --------
