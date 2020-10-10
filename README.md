@@ -210,20 +210,20 @@ while keeping your current line selected.
 Command line arguments
 ----------------------
 
-* -h  or --help
+* Supply initial filtering text. Examples:
+      `nccm abc xyz`
+      `nccm -d ab cd ef`
+    If there is only one match - nccm will connect to it
+    immediately.
+
+* -h  or --help :
     Display the help message.
 
-* -d  or --debug
+* -d  or --debug :
     Force debug verbosity logging, ignoring any other
     logging settings everywhere else.
 
-* -f FILTER or --filter=FILTER
-    Supply initial filtering text. Example:
-      `-f 'abc xyz'`
-      `--filter="abc xyz"`
-    If there is only one match - connect to it immediately.
-
-* -m  or --manpage
+* -m  or --man :
     Display the man page.
 
 
@@ -320,7 +320,7 @@ and above which results in syslog silence until something
 bad happens.
 
 Increase logging verbosity level to debug using the
--d or --debug command line arguments.
+`-d` or `--debug` command line arguments.
 
 To permanently increase logging verbosity change this line
 in the `nccm.yml` config file to debug:

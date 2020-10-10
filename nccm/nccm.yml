@@ -35,10 +35,12 @@
 #         are not currently supported in nccm. These will be appended to
 #         the end of the ssh command at connection time (optional field).
 #
-# You can also supply FRIENDLY_NAME as user@server:   if you don't want to
-#   supply any of the details fields as follows (don't indent):
-#   root@10.10.1.1:
-#   user@example2.com:
+# You can also supply FRIENDLY_NAME as:
+#     user@server:
+#   if you don't want to supply any of the details fields
+#   as in these examples (don't indent):
+#     root@10.10.1.1:
+#     user@example2.com:
 #
 # In this case user name and address will be extracted from friendly name
 #   automatically.

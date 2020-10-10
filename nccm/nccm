@@ -212,6 +212,12 @@ while keeping your current line selected.
 Command line arguments
 ----------------------
 
+* Supply initial filtering text. Examples:
+      `nccm abc xyz`
+      `nccm -d ab cd ef`
+    If there is only one match - nccm will connect to it
+    immediately.
+
 * -h  or --help :
     Display the help message.
 
@@ -219,13 +225,7 @@ Command line arguments
     Force debug verbosity logging, ignoring any other
     logging settings everywhere else.
 
-* -f FILTER or --filter=FILTER :
-    Supply initial filtering text. Example:
-      `-f 'abc xyz'`
-      `--filter="abc xyz"`
-    If there is only one match - connect to it immediately.
-
-* -m  or --manpage :
+* -m  or --man :
     Display the man page.
 
 
@@ -1330,15 +1330,14 @@ def ParseArgs():
         help='force debug verbosity logging, ignore other logging settings',
         action='store_true' )
 
-    parser.add_argument('-f', '--filter',
-        help="supply initial filter text, example: -f 'abc xyz' or "
-            "--filter=\"abc xyz\" . "
-            "If there is only one match - connect to it immediately",
-        action='append' )
-
-    parser.add_argument('-m', '--manpage',
+    parser.add_argument('-m', '--man',
         help='display nccm man page and exit',
         action='store_true' )
+
+    parser.add_argument('filter_text',
+        nargs='*',
+        help="supply initial filter text, example: nccm -d xyz abc . "
+            "If there is only one match - connect to it immediately" )
 
     args = parser.parse_args()
     LogWrite.debug('args object = {}'.format(args))
@@ -1346,19 +1345,20 @@ def ParseArgs():
     if args.debug:
         LogWrite.setLevel(logging.DEBUG)
         ForceDebugLogging = True
-        LogWrite.debug('Command line arg --debug forcing nccm to run in debug mode')
+        LogWrite.debug('Received command line arg --debug forcing nccm '
+            'to run in debug mode')
 
     LogWrite.debug('parser object = {}'.format(parser))
     LogWrite.debug('args object = {}'.format(args))
 
-    if args.filter:
-        FilterTextArg = args.filter
+    if args.filter_text:
+        FilterTextArg = args.filter_text
         LogWrite.debug('FilterTextArg = {}'.format(FilterTextArg))
         FilterTextArg = ' '.join(FilterTextArg)
             # ^ Stored in class TextBox.Text as a space delimited string
         LogWrite.debug('As a string: FilterTextArg = {}'.format(FilterTextArg))
 
-    if args.manpage:
+    if args.man:
         DisplayHelp()
         sys.exit(0)
 
