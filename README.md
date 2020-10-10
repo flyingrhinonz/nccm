@@ -50,6 +50,15 @@ loaded from the first location found:
 - `/etc/nccm.yml`
 
 
+Tips on nccm.yml location - if you're a single user then
+placement of nccm.yml doesn't matter and it's probably
+easiest to place it in one of the home dir locations.
+In a multiuser system, placing nccm.yml in each user's
+home dir will allow each user to use their personalized
+settings if nccm.yml is present, and if not present then
+fallback to default settings from /etc/nccm.yml.
+
+
 nccm requires Python3 to be installed on your machine,
 which should already be present on most Linux boxes.
 Most Python library dependencies are already present
@@ -174,6 +183,10 @@ connection marked by the highlighted line.
 
 `Filter` textbox:
 Type any filter text here.
+Filtering occurs by searching text present in all visible
+columns (does not search in any of the non-visble
+settings you made in nccm.yml for example identity or
+customargs).
 Accepts any printable character and space.
 Text is forced to lowercase, and the resulting filtering
 is case insensitive.
@@ -192,6 +205,26 @@ and all filter entries are AND'ed.
 nccm_config_controlmode == focus was inspired by vim
 where you can move your display up/down around your work
 while keeping your current line selected.
+
+
+Command line arguments
+----------------------
+
+* -h  or --help
+    Display the help message.
+
+* -d  or --debug
+    Force debug verbosity logging, ignoring any other
+    logging settings everywhere else.
+
+* -f FILTER or --filter=FILTER
+    Supply initial filtering text. Example:
+      `-f 'abc xyz'`
+      `--filter="abc xyz"`
+    If there is only one match - connect to it immediately.
+
+* -m  or --manpage
+    Display the man page.
 
 
 Sorting
@@ -260,6 +293,23 @@ Starting nccm:
 The most common problem is missing Python3 dependencies.
 Run nccm and read the exception message - it will tell
 you what's missing.
+The second most common problem is different nccm and
+nccm.yml versions. This usually happens if you download
+a newer nccm version and use your existing and older
+nccm.yml file although the reverse is true too. The error
+will normally be in the `Load` method and the resulting
+exception will resemble something like this (the line
+number will most probably be different):
+`File "/usr/local/bin/nccm", line 481, in Load`.
+If this happens, best is to backup your nccm.yml then
+download both nccm and nccm.yml, verify that nccm now
+works properly, then update the newly downloaded nccm.yml
+from your backup copy.
+Another common problem is user errors in the nccm.yml file:
+try `yamllint nccm.yml`. If yamllint passes and
+nccm still fails: run as `nccm -d` and check syslog for
+errors - you may see a message about the connection item
+line that fails or at least the last line that succeeded.
 
 Logging:
 Look at your syslog file for nccm entries. Depending upon
@@ -269,15 +319,19 @@ By default the production level of the script logs WARNING
 and above which results in syslog silence until something
 bad happens.
 
-To increase logging verbosity change this line in the
-`nccm.yml` config file to debug:
+Increase logging verbosity level to debug using the
+-d or --debug command line arguments.
+
+To permanently increase logging verbosity change this line
+in the `nccm.yml` config file to debug:
 `nccm_config_loglevel: debug`
 This only comes into effect after the config file has
 successfully loaded (does not change the log level for
 code that runs before loading the config file).
 
 And to log stuff that happens before the config file is
-loaded, change this line inside the nccm code:
+loaded and before the argument parser sets the debug level,
+change this line inside the nccm code:
 `LogWrite.setLevel(logging.DEBUG)`
 
 Also - more debugging calls exist but are commented out in

@@ -212,7 +212,21 @@ while keeping your current line selected.
 Command line arguments
 ----------------------
 
-Type `nccm -h` or `nccm --help` to view the help.
+* -h  or --help
+    Display the help message.
+
+* -d  or --debug
+    Force debug verbosity logging, ignoring any other
+    logging settings everywhere else.
+
+* -f FILTER or --filter=FILTER
+    Supply initial filtering text. Example:
+      `-f 'abc xyz'`
+      `--filter="abc xyz"`
+    If there is only one match - connect to it immediately.
+
+* -m  or --manpage
+    Display the man page.
 
 
 Sorting
