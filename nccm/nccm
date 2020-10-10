@@ -419,7 +419,8 @@ HelpMenuItems = collections.OrderedDict((
     ( 'ctrl-q',     'Quit' ),
 ))
 
-ForceDebugLogging = False
+ForceDebugLogging = False   # Force debug logging
+FilterTextArg = ''          # Filter text supplied at the command line
 
 
 class HelpTextDisplay:
@@ -441,11 +442,15 @@ class BasicTextDisplay:
     ''' This manages window objects to display simple text '''
 
     def __init__(self, LinesCount=None, ColsCount=None,
-        BeginY=None, BeginX=None, Text='', ColorPair=0):
+        BeginY=None, BeginX=None, Text='', ColorPair=0, Name=False):
+
+        self.Name = Name
         self.Window = curses.newwin(LinesCount, ColsCount, BeginY, BeginX)
         self.Window.addstr(Text, curses.color_pair(ColorPair))
 
     def Display(self):
+        LogWrite.debug('class BasicTextDisplay: {} method Display completed'
+            .format(self.Name))
         self.Window.noutrefresh()
 
 
@@ -457,9 +462,10 @@ class Connections:
         '''
 
     def __init__(self, LinesCount=None, ColsCount=None, BeginY=None,
-        BeginX=None, ColorPair=0, TextFilters=None, stdscr=None):
+        BeginX=None, ColorPair=0, TextFilters=None, stdscr=None, Name=False):
 
         # Window parameters:
+        self.Name = Name
         self.stdscr = stdscr
         self.ColorPair = ColorPair
         self.TextFilters = TextFilters
@@ -548,6 +554,9 @@ class Connections:
         LogWrite.debug('Loaded config self.Identity = {}'
             .format(self.Identity))
 
+        LogWrite.debug('Completed loading config args, '
+            'next we load the connections details ...')
+
         # Populate the FullServersList (list of config items as lists,
         # even unconfigured items):
         try:
@@ -635,6 +644,8 @@ class Connections:
                 6           Custom args value   # Always keep this as the last in the list
 
             '''
+
+            LogWrite.debug('Completed loading all connections successfully')
 
         except Exception as Exc:
             LogWrite.error('Error loading connection. Counter = {} , Item = {}'
@@ -815,15 +826,23 @@ class Connections:
             self.Window.addstr('\n')
 
         self.Window.noutrefresh()
+        LogWrite.debug('class Connections: {} method Display completed'
+            .format(self.Name))
 
 
 class TextBox:
     ''' This manages objects that handle text input '''
 
     def __init__(self, LinesCount=None, ColsCount=None,
-        BeginY=None, BeginX=None, ColorPair=0):
+        BeginY=None, BeginX=None, ColorPair=0, FilterText='',
+        Name=False):
 
-        self.Text = ''  # This is the text that the user enters
+        self.Name = Name
+        self.Text = FilterText
+            # ^ This is the text that the user enters.
+            #   We pass in FilterText in case we need to load it from
+            #   the command line --filter arg
+        LogWrite.debug('TextBox {} : self.Text = {}'.format(self.Name, self.Text))
         self.MaxText = ColsCount-1
         self.Window = curses.newwin(LinesCount, ColsCount, BeginY, BeginX)
         self.Window.keypad(True)
@@ -833,19 +852,25 @@ class TextBox:
             #   Very important - otherwise stuff like getch return stuff like arrow keys
             #   in multiple bytes (one per call) and it's screwed up.
         self.Window.bkgd(' ', curses.color_pair(ColorPair))
+        self.Window.addstr(0, 0, self.Text)
 
 
     def Display(self):
+        LogWrite.debug('class TextBox: {} method Display completed'
+            .format(self.Name))
         self.Window.noutrefresh()
 
 
     def ZeroCursor(self):
-        ''' Position the cursor at 0, 0 in this window.
+        ''' Position the cursor at 0, x in this window.
             Call with:
                 ConnBox.ZeroCursor()
+            Takes into account the length of self.Text in case it was preloaded
+            from the command line --filter arg.
         '''
 
-        self.Window.move(0, 0)      # Position cursor at 0, 0
+        self.Window.move(0, len(self.Text))
+            # ^ Position cursor at 0, x (axes are: y,x)
 
 
     def ActivateWindow(self):
@@ -894,7 +919,11 @@ def UpdateDisplay():
     global DisplayObjects
 
     for Looper in DisplayObjects:
+        LogWrite.debug('Calling Looper = {} Display method ...'.format(Looper))
         Looper.Display()
+
+    LogWrite.debug('Calling curses update screen (actually draw the changes we wrote '
+        'to the window buffers) ...')
     curses.doupdate()
         # ^ Speed up display and avoid flickering by using 'window.noutrefresh'
 
@@ -942,44 +971,59 @@ def SetupWindows(stdscr):
     global DisplayObjects
     global TextboxObjects
 
+    LogWrite.debug('Function SetupWindows started - create the various windows')
+
     # Help text display window:
     HelpBox = HelpTextDisplay(LinesCount=1, ColsCount=ScreenWidth,
         BeginY=ScreenHeight-1, BeginX=0)
     DisplayObjects.append(HelpBox)      # Add this window to the displayable windows
+    LogWrite.debug('HelpBox window built')
 
     # Connection text display window:
     ConnText = BasicTextDisplay(LinesCount=1, ColsCount=10,
-        BeginY=ScreenHeight-3, BeginX=2, Text='Conn #', ColorPair=1)
+        BeginY=ScreenHeight-3, BeginX=2, Text='Conn #', ColorPair=1,
+        Name='ConnText')
     DisplayObjects.append(ConnText)
+    LogWrite.debug('ConnText window built')
 
     # Connection text input window:
     ConnBox = TextBox(LinesCount=1, ColsCount=8,
-        BeginY=ScreenHeight-3, BeginX=10, ColorPair=3)
+        BeginY=ScreenHeight-3, BeginX=10, ColorPair=3,
+        FilterText='', Name='ConnBox')
     DisplayObjects.append(ConnBox)
         # ^ Add this window to the displayable windows
     TextboxObjects.append(ConnBox)
         # ^ Add this window to the windows that store user input.
         #   We do this because later we filter the ConnectionsList
         #   display output based upon the text here.
+    LogWrite.debug('ConnBox window built')
 
     # Filter text display window:
     FilterText = BasicTextDisplay(LinesCount=1, ColsCount=10,
-        BeginY=ScreenHeight-3, BeginX=20, Text='Filter:', ColorPair=1)
+        BeginY=ScreenHeight-3, BeginX=20, Text='Filter:', ColorPair=1,
+        Name='FilterText')
     DisplayObjects.append(FilterText)
+    LogWrite.debug('FilterText window built')
 
     # Filter text input window:
     FilterBox = TextBox(LinesCount=1, ColsCount=ScreenWidth-31,
-        BeginY=ScreenHeight-3, BeginX=29, ColorPair=3)
+        BeginY=ScreenHeight-3, BeginX=29, ColorPair=3,
+        FilterText=FilterTextArg, Name='FilterBox')
+            # ^ Preload it with whatever was supplied as --filter command line arg
+
     DisplayObjects.append(FilterBox)
     TextboxObjects.append(FilterBox)
+    LogWrite.debug('FilterBox window built')
 
     # Connections list text display window:
     ConnectionsList = Connections(LinesCount=ScreenHeight-3,
         ColsCount=ScreenWidth, BeginY=0, BeginX=0, ColorPair=0,
-        TextFilters=[FilterBox, ConnBox] , stdscr=stdscr)
+        TextFilters=[FilterBox, ConnBox] , stdscr=stdscr,
+        Name='ConnectionsList')
     ConnectionsList.Load()
         # ^ Load the connections list config file into this object (normal operation)
     DisplayObjects.append(ConnectionsList)
+    LogWrite.debug('ConnectionsList window built')
 
     CyclicTextboxObjects = itertools.cycle(TextboxObjects)
         # ^ Call this after adding all the textbox windows
@@ -1002,12 +1046,15 @@ def MainCursesFunction(stdscr):
     ConnectString = False
 
     if SetupCurses(stdscr) == False:       # Something failed in setup or tests
+        LogWrite.error('SetupCurses(stdscr) failed')
         return
 
+    LogWrite.debug('Setting up the ConnectionsList, ConnBox, FilterBox, '
+        'CyclicTextboxObjects windows ...')
     ConnectionsList, ConnBox, FilterBox, CyclicTextboxObjects = SetupWindows(stdscr)
     UpdateDisplay()
     ActiveWindow = FilterBox    # The first window to read user input from
-    FilterBox.ZeroCursor()
+    ActiveWindow.ZeroCursor()
         # ^ We have no input text so activate ConnBox window and zero the cursor.
         #   Failure to do this will position the cursor at the last window drawn.
 
@@ -1030,6 +1077,7 @@ def MainCursesFunction(stdscr):
 #            pass
 
         if UserKey == 9:    # Tab key (move between text boxes)
+            LogWrite.debug('Handle tab key ...')
             ActiveWindow = next(CyclicTextboxObjects)
                 # ^ See the 'for Looper in CyclicTextboxObjects:' comment above
             ActiveWindow.ActivateWindow()
@@ -1047,6 +1095,7 @@ def MainCursesFunction(stdscr):
             # ^ Filterbox accepts any printable character or backspace
             #   Using string.punctuation crashes on ctrl-j input so I explictly
             #   identify the characters accepted.
+                LogWrite.debug('Handle text entry in FilterBox ...')
                 ConnectionsList.YOffset = 0
                 ConnectionsList.XOffset = 0
                     # ^ Keypress received so reset the display to the beginning of the list
@@ -1058,6 +1107,7 @@ def MainCursesFunction(stdscr):
             or UserKey == 263)              # Backspace key
             and ActiveWindow == ConnBox ):
             # ^ Filterbox accepts any digit or backspace
+                LogWrite.debug('Handle text entry in ConnBox ...')
                 ActiveWindow.ProcessKey(UserKey)
 
         elif ( UserKey == 33                # ! key (sort by column #1)
@@ -1218,6 +1268,7 @@ def ParseArgs():
     ''' Handle any command line arguments supplied '''
 
     global ForceDebugLogging
+    global FilterTextArg
 
     parser = argparse.ArgumentParser(
         description = 'NCurses Connection Manager',
@@ -1229,11 +1280,15 @@ def ParseArgs():
 
     parser.add_argument('-d', '--debug',
         help='force debug verbosity logging, ignore other logging settings',
-        action='store_true')
+        action='store_true' )
+
+    parser.add_argument('-f', '--filter',
+        help="supply filter text. example: -f 'abc xyz'",
+        action='append' )
 
     parser.add_argument('-m', '--manpage',
         help='display nccm man page and exit',
-        action='store_true')
+        action='store_true' )
 
     args = parser.parse_args()
     LogWrite.debug('args object = {}'.format(args))
@@ -1242,6 +1297,16 @@ def ParseArgs():
         LogWrite.setLevel(logging.DEBUG)
         ForceDebugLogging = True
         LogWrite.debug('Command line arg --debug forcing nccm to run in debug mode')
+
+    LogWrite.debug('parser object = {}'.format(parser))
+    LogWrite.debug('args object = {}'.format(args))
+
+    if args.filter:
+        FilterTextArg = args.filter
+        LogWrite.debug('FilterTextArg = {}'.format(FilterTextArg))
+        FilterTextArg = ' '.join(FilterTextArg)
+            # ^ Stored in class TextBox.Text as a space delimited string
+        LogWrite.debug('As a string: FilterTextArg = {}'.format(FilterTextArg))
 
     if args.manpage:
         DisplayHelp()
