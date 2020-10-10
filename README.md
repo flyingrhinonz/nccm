@@ -142,7 +142,7 @@ the setting `identity: path` (optional).
 By default nccm will use the ssh program as found in your
 path. If you want to explicitly set the path to ssh, or
 you want to use a different program - set it here.
-This is a global setting that affect all your connections.
+This is a global setting that affects all your connections.
 
 
 Controls
@@ -369,4 +369,11 @@ This program aims to do one thing well - lets you make SSH
 connections from an ncurses based manager with minimum
 distraction. Feature requests that keep nccm on focus will
 be considered.
+
+
+Credits
+-------
+
+Big thanks goes to Andrew P. for suggesting features and
+improvements.
 
