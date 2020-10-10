@@ -833,8 +833,8 @@ class Connections:
 
         self.Window.noutrefresh()
         LogWrite.debug('class Connections: {} method Display completed. '
-            'self.DisplayResultsCount = {}'
-            .format(self.Name, self.DisplayResultsCount))
+            'Number of results = {} , number of displayed results = {}'
+            .format(self.Name, len(self.ResultsList), self.DisplayResultsCount))
 
 
 class TextBox:
