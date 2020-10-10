@@ -212,20 +212,20 @@ while keeping your current line selected.
 Command line arguments
 ----------------------
 
-* -h  or --help
+* -h  or --help :
     Display the help message.
 
-* -d  or --debug
+* -d  or --debug :
     Force debug verbosity logging, ignoring any other
     logging settings everywhere else.
 
-* -f FILTER or --filter=FILTER
+* -f FILTER or --filter=FILTER :
     Supply initial filtering text. Example:
       `-f 'abc xyz'`
       `--filter="abc xyz"`
     If there is only one match - connect to it immediately.
 
-* -m  or --manpage
+* -m  or --manpage :
     Display the man page.
 
 
@@ -322,7 +322,7 @@ and above which results in syslog silence until something
 bad happens.
 
 Increase logging verbosity level to debug using the
--d or --debug command line arguments.
+`-d` or `--debug` command line arguments.
 
 To permanently increase logging verbosity change this line
 in the `nccm.yml` config file to debug:
@@ -955,6 +955,7 @@ def SetupCurses(stdscr):
 
 
     global ScreenHeight, ScreenWidth
+    global FilterTextArg
 
     curses.curs_set(1)          # Enable the blinking cursor
     curses.noecho()             # Disable echo to the terminal
@@ -983,6 +984,16 @@ def SetupCurses(stdscr):
         LogWrite.warning('Window must be at least 60x15. '
             'ScreenHeight = {} , ScreenWidth = {}'
                 .format(ScreenHeight, ScreenWidth))
+        return False
+
+    if len(FilterTextArg) > ScreenWidth-32:
+        RestoreTerminal(stdscr)
+        print('nccm: Filter text too long ({} chars). '
+            'For your window size enter no more than {} chars\n'
+                .format(len(FilterTextArg), ScreenWidth-32))
+        LogWrite.warning('nccm: Filter text too long ({} chars). '
+            'For your window size enter no more than {} chars\n'
+                .format(len(FilterTextArg), ScreenWidth-32))
         return False
 
 
