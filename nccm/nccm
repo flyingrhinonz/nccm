@@ -212,6 +212,7 @@ while keeping your current line selected.
 Command line arguments
 ----------------------
 
+Type `nccm -h` or `nccm --help` to view the help.
 
 
 Sorting
@@ -292,6 +293,11 @@ If this happens, best is to backup your nccm.yml then
 download both nccm and nccm.yml, verify that nccm now
 works properly, then update the newly downloaded nccm.yml
 from your backup copy.
+Another common problem is user errors in the nccm.yml file:
+try `yamllint nccm.yml`. If yamllint passes and
+nccm still fails: run as `nccm -d` and check syslog for
+errors - you may see a message about the connection item
+line that fails or at least the last line that succeeded.
 
 Logging:
 Look at your syslog file for nccm entries. Depending upon
@@ -826,8 +832,9 @@ class Connections:
             self.Window.addstr('\n')
 
         self.Window.noutrefresh()
-        LogWrite.debug('class Connections: {} method Display completed'
-            .format(self.Name))
+        LogWrite.debug('class Connections: {} method Display completed. '
+            'self.DisplayResultsCount = {}'
+            .format(self.Name, self.DisplayResultsCount))
 
 
 class TextBox:
@@ -881,6 +888,7 @@ class TextBox:
 
         self.Window.noutrefresh()
         curses.doupdate()
+        LogWrite.debug('Active window is now: {}'.format(self.Name))
 
 
     def ReadKey(self):
@@ -1065,6 +1073,17 @@ def MainCursesFunction(stdscr):
         if Looper == ActiveWindow:
             break
 
+    if FilterTextArg and ConnectionsList.DisplayResultsCount == 1:
+        # ^ User entered command line filter and there was only one match -
+        #   connect to it immediately.
+        LogWrite.debug('FilterTextArg supplied and '
+            'ConnectionsList.DisplayResultsCount == 1 . '
+            'Automatically connect to this server ...')
+        ConnectString = ConnectionsList.GetConnect(
+            ConnectionsList.SelectedEntryVal)
+        RestoreTerminal(stdscr)
+        return ConnectString
+
     while True:
         UserKey = ActiveWindow.ReadKey()
         LogWrite.debug('Keyboard entry UserKey = {}'.format(UserKey))
@@ -1077,7 +1096,7 @@ def MainCursesFunction(stdscr):
 #            pass
 
         if UserKey == 9:    # Tab key (move between text boxes)
-            LogWrite.debug('Handle tab key ...')
+            LogWrite.debug('Handle Tab key ...')
             ActiveWindow = next(CyclicTextboxObjects)
                 # ^ See the 'for Looper in CyclicTextboxObjects:' comment above
             ActiveWindow.ActivateWindow()
@@ -1233,6 +1252,7 @@ def MainCursesFunction(stdscr):
         elif ((UserKey == curses.KEY_ENTER or UserKey in [10, 13])  # Enter key
             and ActiveWindow == ConnBox
             and ConnBox.Text):
+                LogWrite.debug('Handle Enter key in ConnBox ...')
                 if (int(ConnBox.Text) >= 0
                     and int(ConnBox.Text) <= (len(ConnectionsList.FullServersList) -1)):
                         ConnectString = ConnectionsList.GetConnect(ConnBox.Text)
@@ -1240,6 +1260,9 @@ def MainCursesFunction(stdscr):
 
         elif ((UserKey == curses.KEY_ENTER or UserKey in [10, 13])
             and ConnectionsList.SelectedEntry):  # Enter key
+                LogWrite.debug('Handle Enter key in FilterBox ...')
+                    # ^ Well, it has to be FilterBox because we explicitly checked
+                    #   for ConnBox earlier...
                 ConnectString = ConnectionsList.GetConnect(
                     ConnectionsList.SelectedEntryVal)
                 break
@@ -1283,7 +1306,9 @@ def ParseArgs():
         action='store_true' )
 
     parser.add_argument('-f', '--filter',
-        help="supply filter text. example: -f 'abc xyz'",
+        help="supply initial filter text, example: -f 'abc xyz' or "
+            "--filter=\"abc xyz\" . "
+            "If there is only one match - connect to it immediately",
         action='append' )
 
     parser.add_argument('-m', '--manpage',
