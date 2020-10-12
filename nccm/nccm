@@ -595,7 +595,7 @@ class Connections:
 
         # Handle loading of the default identity value from nccm_config_identity:
         self.Identity = self.LoadedServersDict.pop(
-            'nccm_config_identity', False)
+            'nccm_config_identity', '')
             # This is the -i arg sent to ssh
         LogWrite.debug('Loaded config self.Identity = {}'
             .format(self.Identity))
@@ -645,11 +645,6 @@ class Connections:
                         # ^ If custom keepalive supplied use that,
                         #   else use the default value
 
-                # Build the KeepAlive ssh argument:
-                FSL.KeepAlive = '-o ServerAliveInterval={}'.format(FSL.KeepAlive)
-                    # ^ Note that KeepAlive will always be built - either from
-                    #   the per-connection setting or from the default value.
-
                 # Individually configured 'identity' values per connection
                 # will be respected and Identity will become '-i <value>' .
                 # Otherwise if the value of nccm_config_identity in nccm.yml
@@ -658,20 +653,9 @@ class Connections:
                 # the '-i ' part to it.
                 # Otherwise it should be set to '' which will have no effect
                 # upon the ssh command line:
-                FSL.Identity = self.LoadedServersDict[FriendlyName].get('identity', False)
+                FSL.Identity = self.LoadedServersDict[FriendlyName].get('identity', self.Identity)
                     # ^ Note that per-connection "identity" may not be supplied
                     #   and also the default nccm_config_identity may be False.
-                    #   The following code handles this situation
-
-                # Build the Identity ssh argument per priority of supplied values:
-                if FSL.Identity:            # Prefer the custom identity
-                    FSL.Identity = '-i {}'.format(FSL.Identity)
-
-                elif self.Identity:     # Or the configured default
-                    FSL.Identity = '-i {}'.format(self.Identity)
-
-                else:                   # Or keep it blank and ssh uses default key
-                    FSL.Identity = ''
 
                 FSL.CustomArgs = self.LoadedServersDict[FriendlyName].get('customargs', '')
                 if isinstance(FSL.CustomArgs, str):
@@ -714,7 +698,7 @@ class Connections:
         # Nothing here. Might add save feature if I allow user to add connection details
 
 
-    def GetConnect(self, ServerXSNum):
+    def GetCommandLine(self, ServerXSNum):
         ''' Get link to connect to '''
 
         ServerXSNum = int(ServerXSNum)
@@ -731,28 +715,22 @@ class Connections:
         # Remember that the connection line is a list of items.
         # Pull the correct items out of
         # the list to build the ssh connection line:
-        SshCommand = (
-            self.SshProgram + ' ' +
-                # ^ "ssh" or your alternative command name
-            SelectedEntry.UserAddr + ' ' +
-                # ^ "user@host"
-            SelectedEntry.KeepAlive + ' ' +
-                # ^ -o ServerAliveInterval=KeepAlive
-            SelectedEntry.Identity + ' ' +
-                # ^ "-i path"   or ''
-            ' '.join(SelectedEntry.CustomArgs)
-                # ^ CustomArgs   or ''
-            )
+        CommandLine = []
+        CommandLine += (self.SshProgram, )
+        CommandLine += (SelectedEntry.UserAddr, )
+        if SelectedEntry.KeepAlive:
+            CommandLine += ('-o', 'ServerAliveInterval={}'.format(SelectedEntry.KeepAlive))
+        if SelectedEntry.Identity:
+            CommandLine += ('-i', SelectedEntry.Identity)
+        if SelectedEntry.CustomArgs:
+            CommandLine += SelectedEntry.CustomArgs
 
         LogWrite.debug('ServerXSNum (this is the connection list '
-            'line number) = {} , SshCommand = "{}"'
-                .format(ServerXSNum, SshCommand))
+            'line number) = {} , CommandLine = "{}"'
+                .format(ServerXSNum, ' '.join(CommandLine)))
             # ^ This line logs as:
-            #   SshCommand = "ssh stn@192.168.1.10 -o ServerAliveInterval=40 "
-            #   Note the space at the end - this comes from the + ' ' after
-            #   adding ServerAliveInterval=   because we're accommodating for the
-            #   next field after it (all args being space delimited).
-        return SshCommand
+            #   CommandLine = "ssh stn@192.168.1.10 -o ServerAliveInterval=40"
+        return CommandLine
 
 
     def Display(self):
@@ -1059,7 +1037,7 @@ def DisplayHelp():
 
 def MainCursesFunction(stdscr):
 
-    ConnectString = False
+    CommandLine = []
 
     if SetupCurses(stdscr) == False:       # Something failed in setup or tests
         LogWrite.error('SetupCurses(stdscr) failed')
@@ -1087,10 +1065,10 @@ def MainCursesFunction(stdscr):
         LogWrite.debug('FilterTextArg supplied and '
             'ConnectionsList.DisplayResultsCount == 1 . '
             'Automatically connect to this server ...')
-        ConnectString = ConnectionsList.GetConnect(
+        CommandLine = ConnectionsList.GetCommandLine(
             ConnectionsList.SelectedEntryVal)
         RestoreTerminal(stdscr)
-        return ConnectString
+        return CommandLine
 
     while True:
         UserKey = ActiveWindow.ReadKey()
@@ -1263,7 +1241,7 @@ def MainCursesFunction(stdscr):
                 LogWrite.debug('Handle Enter key in ConnBox ...')
                 if (int(ConnBox.Text) >= 0
                     and int(ConnBox.Text) <= (len(ConnectionsList.FullServersList) -1)):
-                        ConnectString = ConnectionsList.GetConnect(ConnBox.Text)
+                        CommandLine = ConnectionsList.GetCommandLine(ConnBox.Text)
                         break
 
         elif ((UserKey == curses.KEY_ENTER or UserKey in [10, 13])
@@ -1271,7 +1249,7 @@ def MainCursesFunction(stdscr):
                 LogWrite.debug('Handle Enter key in FilterBox ...')
                     # ^ Well, it has to be FilterBox because we explicitly checked
                     #   for ConnBox earlier...
-                ConnectString = ConnectionsList.GetConnect(
+                CommandLine = ConnectionsList.GetCommandLine(
                     ConnectionsList.SelectedEntryVal)
                 break
 
@@ -1292,7 +1270,7 @@ def MainCursesFunction(stdscr):
         ActiveWindow.ActivateWindow()
 
     RestoreTerminal(stdscr)
-    return ConnectString
+    return CommandLine
 
 
 def ParseArgs():
@@ -1349,24 +1327,22 @@ def ParseArgs():
 def main(*args):
 
     ParseArgs()     # Command line args processing happens here
-    ConnectString = curses.wrapper(MainCursesFunction)
+    CommandLine = curses.wrapper(MainCursesFunction)
 
-    if ConnectString:
-        print('nccm: About to ssh using:\n{}\n'.format(ConnectString))
-        ExtCommand = shlex.split(ConnectString)
-            # ^ Split the command line into arguments
+    if CommandLine:
+        print('nccm: About to ssh using:\n{}\n'.format(' '.join(CommandLine)))
         LogWrite.debug('About to subprocess.run ExtCommand = {} ...'
-            .format(ExtCommand))
+            .format(' '.join(CommandLine)))
         StartTime = time.time()
-        subprocess.run(ExtCommand)              # Connect to the ssh server
+        subprocess.run(CommandLine)          # Connect to the ssh server
         EndTime = time.time()
         SessionTime = round(EndTime - StartTime)
         print('nccm: Completed ssh using:\n{}\nSession time was: '
             '{} ({} seconds)\n'
-                .format(ConnectString, datetime.timedelta(seconds=SessionTime),
+                .format(' '.join(CommandLine), datetime.timedelta(seconds=SessionTime),
                     SessionTime))
         LogWrite.debug('Completed ssh using: {} . SessionTime was: {} seconds'
-            .format(ConnectString, SessionTime))
+            .format(' '.join(CommandLine), SessionTime))
 
 
 if __name__ == '__main__':
