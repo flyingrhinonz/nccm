@@ -257,7 +257,7 @@ Column #  Column name       Sort    Alternate sort
 2         Friendly name     F2      @
 3         User name         F3      #
 4         Server address    F4      $
-5         Description       F5      %
+5         Comment           F5      %
 ```
 
 
@@ -486,6 +486,17 @@ class BasicTextDisplay:
             .format(self.Name))
         self.Window.noutrefresh()
 
+class ServerXS:
+    def __init__(self):
+        self.ServerXSNum = 0
+        self.FriendlyName = ""
+        self.UserName = ""
+        self.Address = ""
+        self.UserAddr = ""
+        self.Comment = ""
+        self.KeepAlive = ""
+        self.Identity = ""
+        self.CustomArgs = []
 
 class Connections:
     ''' This handles the connections list.
@@ -510,13 +521,13 @@ class Connections:
         self.LoadedServersDict = {}
             # ^ The yaml connections file loaded into a dict. Apart from conversion to
             #   internal formats, this dict won't be used again.
-        self.FullServersList = []
+        self.FullServersList = collections.defaultdict(ServerXS)
             # ^ Full list as imported from the loaded object
             #   This is the source list that we reuse during the program.
             #   It is also sorted in place if the user chooses sorting by column.
-        self.MaxLenCounter = 0      # Length of the longest serial number field
-        self.MaxLenFriendly = 0     # Length of the longest friendly name
-        self.MaxLenCommand = 0      # Length of the longest connection string command
+        self.MaxLenServerXSNum = 0  # Length of the longest serial number field
+        self.MaxLenFriendlyName = 0 # Length of the longest friendly name
+        self.MaxLenUserAddr = 0     # Length of the longest connection string command
                                     #   (root@server)
         self.MaxLenComment = 0      # Length of the longest comment column
 
@@ -600,33 +611,41 @@ class Connections:
         # Populate the FullServersList (list of config items as lists,
         # even unconfigured items):
         try:
-            for Counter, Item in enumerate(sorted(
+            for ServerXSNum, FriendlyName in enumerate(sorted(
                 self.LoadedServersDict.keys(), key=str.lower)):
-                #LogWrite.debug('Processing Item = {} , Counter = {}'
-                #    .format(Item, Counter))
+                # whilst ServerXSNum is being used as the dict key here do not
+                # assume that it'll be the ServerXSNum beyond this point. Always
+                # use FSL.ServerXSNum if you want it.
+                FSL = self.FullServersList[ServerXSNum] # too much typing. :)
+                FSL.ServerXSNum = ServerXSNum
+                FSL.FriendlyName = FriendlyName
+                #LogWrite.debug('Processing FriendlyName = {} , ServerXSNum = {}'
+                #    .format(FriendlyName, ServerXSNum))
 
                 # The following supports extracting UserName & Address from FriendlyName
                 # if UserName & Address are not supplied:
-                UserName = self.LoadedServersDict[Item].get('user', False)
-                if not UserName:
-                    UserName = self.LoadedServersDict[Item].get(
-                        'user', Item.split(sep='@')[0])
+                FSL.UserName = self.LoadedServersDict[FriendlyName].get('user', False)
+                if not FSL.UserName:
+                    FSL.UserName = self.LoadedServersDict[FriendlyName].get(
+                        'user', FriendlyName.split(sep='@')[0], 1)
 
-                Address = self.LoadedServersDict[Item].get('address', False)
-                if not Address:
-                    Address = self.LoadedServersDict[Item].get(
-                        'address', Item.split(sep='@')[1])
+                FSL.Address = self.LoadedServersDict[FriendlyName].get('address', False)
+                if not FSL.Address:
+                    FSL.Address = self.LoadedServersDict[FriendlyName].get(
+                        'address', FriendlyName.split(sep='@')[1], 1)
 
-                Comment = self.LoadedServersDict[Item].get('comment', '')
+                FSL.UserAddr = '{}@{}'.format(FSL.UserName, FSL.Address) # for convenience
+
+                FSL.Comment = self.LoadedServersDict[FriendlyName].get('comment', '')
                     # ^ .get because item my be empty
 
-                KeepAlive = self.LoadedServersDict[Item].get(
+                FSL.KeepAlive = self.LoadedServersDict[FriendlyName].get(
                     'keepalive', self.DefaultKeepAlive)
                         # ^ If custom keepalive supplied use that,
                         #   else use the default value
 
                 # Build the KeepAlive ssh argument:
-                KeepAlive = '-o ServerAliveInterval={}'.format(KeepAlive)
+                FSL.KeepAlive = '-o ServerAliveInterval={}'.format(FSL.KeepAlive)
                     # ^ Note that KeepAlive will always be built - either from
                     #   the per-connection setting or from the default value.
 
@@ -638,115 +657,51 @@ class Connections:
                 # the '-i ' part to it.
                 # Otherwise it should be set to '' which will have no effect
                 # upon the ssh command line:
-                Identity = self.LoadedServersDict[Item].get('identity', False)
+                FSL.Identity = self.LoadedServersDict[FriendlyName].get('identity', False)
                     # ^ Note that per-connection "identity" may not be supplied
                     #   and also the default nccm_config_identity may be False.
                     #   The following code handles this situation
 
                 # Build the Identity ssh argument per priority of supplied values:
-                if Identity:            # Prefer the custom identity
-                    Identity = '-i {}'.format(Identity)
+                if FSL.Identity:            # Prefer the custom identity
+                    FSL.Identity = '-i {}'.format(FSL.Identity)
 
                 elif self.Identity:     # Or the configured default
-                    Identity = '-i {}'.format(self.Identity)
+                    FSL.Identity = '-i {}'.format(self.Identity)
 
                 else:                   # Or keep it blank and ssh uses default key
-                    Identity = ''
+                    FSL.Identity = ''
 
-                CustomArgs = self.LoadedServersDict[Item].get('customargs', '')
+                FSL.CustomArgs = self.LoadedServersDict[FriendlyName].get('customargs', '')
+                if isinstance(FSL.CustomArgs, str):
+                    FSL.CustomArgs = shlex.split(FSL.CustomArgs)
 
-                LogWrite.debug('Counter = {} , Item = {} , UserName = {}'
-                    'Address = {} , Comment = {} , KeepAlive = {} , '
+                LogWrite.debug('ServerXSNum = {} , FriendlyName = {} , UserName = {}'
+                    'Address = {} , UserAddr = {}, Comment = {} , KeepAlive = {} , '
                     'Identity = {} , CustomArgs = {}'
-                        .format(Counter, Item, UserName, Address, Comment,
-                            KeepAlive, Identity, CustomArgs))
-
-                self.FullServersList.append([
-                    Counter, Item,
-                    '{}@{}'.format(UserName, Address),
-                    Comment, KeepAlive, Identity, CustomArgs])
-            # ^ Now we have a list of lists:
-            #  [[Serial # , FriendlyName , ConnString , Comment] , [...]]
-            #LogWrite.debug('self.FullServersList = {}'.format(self.FullServersList))
-
-            ''' Each item in self.FullServersList is a list of the following
-                fields & types:
-
-                Field #     Type
-                =======     ====
-                0           Serial number
-                1           Friendly name
-                2           Username@Host (only for sorting purposes this is
-                              treated as 2 fields)
-                3           Comment
-                4           Keep alive value
-                5           Identity string ('-i path' or '')
-                6           Custom args value   # Always keep this as the last in the list
-
-            '''
+                        .format(FSL.ServerXSNum, FSL.FriendlyName,
+                            FSL.UserName, FSL.Address, FSL.UserAddr,
+                            FSL.Comment,
+                            FSL.KeepAlive, FSL.Identity, ' '.join(FSL.CustomArgs)))
 
             LogWrite.debug('Completed loading all connections successfully')
 
         except Exception as Exc:
-            LogWrite.error('Error loading connection. Counter = {} , Item = {}'
-                .format(Counter, Item))
+            LogWrite.error('Error loading connection. ServerXSNum = {} , FriendlyName = {}'
+                .format(ServerXSNum, FriendlyName))
             raise Exc
 
         # Calculate the max length of each column:
-        for Counter, Looper in enumerate([
-            'MaxLenCounter', 'MaxLenFriendly', 'MaxLenCommand', 'MaxLenComment']):
-            setattr(self, Looper, max(len(str(i[Counter])) for i in self.FullServersList))
+        for Column in qw('ServerXSNum FriendlyName UserAddr Comment'):
+            setattr(self, 'MaxLen{}'.format(Column), max(len(str(getattr(i, Column))) for i in self.FullServersList.values()))
 
 
     def Sort(self, Column):
-        ''' Sorts the internal-use FullServersList list per the requested column
-
-            Example line / Column numbers:
-                12  My server   root@1.2.3.4    This is a description
-                0   1           2    3          4
-
-            Columns:
-                0   List serial #       (12)
-                1   Friendly name       (My server)
-                2   User name           (root)
-                3   Server address      (1.2.3.4)
-                4   Description         (This is a description)
-
-
-            Note - there are more fields in the self.FullServersList list
-            (such as KeepAlive), which get sorted as part of the list items sort,
-            but they don't have their own keyboard sort command.
-        '''
+        ''' Sorts the internal-use FullServersList list per the requested column '''
 
         LogWrite.debug('Sort by Column = {}'.format(Column))
 
-        if Column in [ 0, 1, 2 ]:
-            self.FullServersList.sort(
-                key=operator.itemgetter(Column),
-                reverse=self.SortOrder)
-
-        if Column == 3:
-            #def ReturnAddress(var):    # Alternate sorting code
-            #    return var[2].split(sep='@')[1]
-
-            self.FullServersList.sort(
-                key=lambda x: x[2].split(sep='@')[1],
-                reverse=self.SortOrder)
-                    # ^ Sort by the address bit ignoring the user name bit
-
-            #self.FullServersList.sort(key=ReturnAddress, reverse=self.SortOrder)
-                # ^ If the lambda confuses you, uncomment this version
-                #   instead + def from above
-                #   Does exactly the same thing.
-
-        if Column == 4:
-            self.FullServersList.sort(
-                key=operator.itemgetter(3),
-                reverse=self.SortOrder)
-                # ^ Column == 4 becomes sort by list item 3 because list item 3
-                #   is treated as Columns 2 and 3:
-                #       2 for the entire user@address
-                #       3 for the address bit
+        self.FullServersList = dict(enumerate(sorted(self.FullServersList.values(), key=operator.attrgetter(Column), reverse=self.SortOrder)))
 
         self.SortOrder = not(self.SortOrder)
             # ^ Reverse True to False, False to True so that next time this function
@@ -758,15 +713,16 @@ class Connections:
         # Nothing here. Might add save feature if I allow user to add connection details
 
 
-    def GetConnect(self, Counter):
+    def GetConnect(self, ServerXSNum):
         ''' Get link to connect to '''
 
-        Counter = int(Counter)
+        ServerXSNum = int(ServerXSNum)
 
         # Get the item line of the connection we want from the full connections list.
         # (This is the unmodified original list as it was loaded):
-        for SelectedEntry in self.FullServersList:
-            if SelectedEntry[0] == Counter:
+        for Server in self.FullServersList.values():
+            if Server.ServerXSNum == ServerXSNum:
+                SelectedEntry = Server
                 break
 
         LogWrite.debug('SelectedEntry = {}'.format(SelectedEntry))
@@ -777,19 +733,19 @@ class Connections:
         SshCommand = (
             self.SshProgram + ' ' +
                 # ^ "ssh" or your alternative command name
-            SelectedEntry[2] + ' ' +
+            SelectedEntry.UserAddr + ' ' +
                 # ^ "user@host"
-            SelectedEntry[4] + ' ' +
+            SelectedEntry.KeepAlive + ' ' +
                 # ^ -o ServerAliveInterval=KeepAlive
-            SelectedEntry[5] + ' ' +
+            SelectedEntry.Identity + ' ' +
                 # ^ "-i path"   or ''
-            SelectedEntry[6]
+            ' '.join(SelectedEntry.CustomArgs)
                 # ^ CustomArgs   or ''
             )
 
-        LogWrite.debug('Counter (this is the connection list '
+        LogWrite.debug('ServerXSNum (this is the connection list '
             'line number) = {} , SshCommand = "{}"'
-                .format(Counter, SshCommand))
+                .format(ServerXSNum, SshCommand))
             # ^ This line logs as:
             #   SshCommand = "ssh stn@192.168.1.10 -o ServerAliveInterval=40 "
             #   Note the space at the end - this comes from the + ' ' after
@@ -823,17 +779,17 @@ class Connections:
             FilterTextList.update(set(Looper.Text.split(' ')))
 
         # Populate self.ResultsList with all line that match the above filter:
-        for Counter, LineLooper in enumerate(self.FullServersList):
-            Line = ('{:<{CounterWidth}}    {:<{ItemWidth}}    '
-                '{:<{CommandWidth}}    {:<{CommentWidth}}'
+        for FSL in self.FullServersList.values():
+            Line = ('{:<{ServerXSNumWidth}}    {:<{FriendlyNameWidth}}    '
+                '{:<{UserAddrWidth}}    {:<{CommentWidth}}'
                  .format(
-                    LineLooper[0],
-                    LineLooper[1],
-                    LineLooper[2],
-                    LineLooper[3],
-                    CounterWidth = self.MaxLenCounter,
-                    ItemWidth = self.MaxLenFriendly,
-                    CommandWidth = self.MaxLenCommand,
+                    FSL.ServerXSNum,
+                    FSL.FriendlyName,
+                    FSL.UserAddr,
+                    FSL.Comment,
+                    ServerXSNumWidth = self.MaxLenServerXSNum,
+                    FriendlyNameWidth = self.MaxLenFriendlyName,
+                    UserAddrWidth = self.MaxLenUserAddr,
                     CommentWidth = self.MaxLenComment))
 
             if len(Line) > self.MaxLineLength:
@@ -943,6 +899,12 @@ class TextBox:
         self.Window.clear()
         self.Window.addstr(0, 0, self.Text)
 
+def qw(liststr: str):
+    ''' analogous to Perl's qw() - split on whitespace and return list '''
+    if liststr is None:
+        return None
+    else:
+        return liststr.split()
 
 def RestoreTerminal(stdscr):
     ''' Restore the terminal to a sane status '''
@@ -1176,23 +1138,23 @@ def MainCursesFunction(stdscr):
 
         elif ( UserKey == 33                # ! key (sort by column #1)
             and ActiveWindow == ConnBox ):
-                ConnectionsList.Sort(0)
+                ConnectionsList.Sort('ServerXSNum')
 
         elif ( UserKey == 64                # @ key (sort by column #2)
             and ActiveWindow == ConnBox ):
-                ConnectionsList.Sort(1)
+                ConnectionsList.Sort('FriendlyName')
 
         elif ( UserKey == 35                # # key (sort by column #3)
             and ActiveWindow == ConnBox ):
-                ConnectionsList.Sort(2)
+                ConnectionsList.Sort('UserName')
 
         elif ( UserKey == 36                # $ key (sort by column #4)
             and ActiveWindow == ConnBox ):
-                ConnectionsList.Sort(3)
+                ConnectionsList.Sort('Address')
 
-        elif ( UserKey == 37                # $ key (sort by column #5)
+        elif ( UserKey == 37                # % key (sort by column #5)
             and ActiveWindow == ConnBox ):
-                ConnectionsList.Sort(4)
+                ConnectionsList.Sort('Comment')
 
         elif UserKey == 337:                # Shift up arrow
             if ConnectionsList.ControlMode == 'focus':
@@ -1280,19 +1242,19 @@ def MainCursesFunction(stdscr):
                     ConnectionsList.MaxTextWidth)
 
         elif UserKey == 265:                # F1 key (sort by column #1)
-            ConnectionsList.Sort(0)
+            ConnectionsList.Sort('ServerXSNum')
 
         elif UserKey == 266:                # F2 key (sort by column #2)
-            ConnectionsList.Sort(1)
+            ConnectionsList.Sort('FriendlyName')
 
         elif UserKey == 267:                # F3 key (sort by column #3)
-            ConnectionsList.Sort(2)
+            ConnectionsList.Sort('UserName')
 
         elif UserKey == 268:                # F4 key (sort by column #4)
-            ConnectionsList.Sort(3)
+            ConnectionsList.Sort('Address')
 
         elif UserKey == 269:                # F4 key (sort by column #5)
-            ConnectionsList.Sort(4)
+            ConnectionsList.Sort('Comment')
 
         elif ((UserKey == curses.KEY_ENTER or UserKey in [10, 13])  # Enter key
             and ActiveWindow == ConnBox
