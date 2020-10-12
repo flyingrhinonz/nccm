@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+# vim:set shiftwidth=4 expandtab:
 
 '''
 NCurses ssh Connection Manager (nccm)
