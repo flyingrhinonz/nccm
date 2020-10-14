@@ -389,10 +389,12 @@ import argparse
 import collections
 import curses
 import datetime
+import getpass
 import itertools
 import logging
 import logging.handlers
 import operator
+import os
 import os.path
 import pathlib
 import pydoc
@@ -429,7 +431,9 @@ LogWriteFormatter = logging.Formatter('{}[%(process)d]: <%(levelname)s> '
     #   Documented here: https://docs.python.org/3/library/logging.html
     #     (LogRecord attributes)
 LogHandler.setFormatter(LogWriteFormatter)
-LogWrite.debug('nccm started with log level = {}'.format(LogWrite.getEffectiveLevel()))
+LogWrite.debug('nccm started with log level = {} as set by '
+    'LogWrite.setLevel (hardcoded in the script)'
+        .format(LogWrite.getEffectiveLevel()))
 
 # Global variables go here:
 
@@ -455,7 +459,15 @@ HelpMenuItems = collections.OrderedDict((
     ( 'ctrl-q',     'Quit' ),
 ))
 
-ForceDebugLogging = False   # Force debug logging
+# If the log level was set to debug in the command above
+# LogWrite.setLevel(logging.DEBUG) - then enforce debug level logging
+# regardless of whether the debug switch (-d) was supplied or not,
+# and ignore nccm.yml nccm_config_loglevel setting:
+if LogWrite.getEffectiveLevel() <= 10:
+    ForceDebugLogging = True    # Force debug logging
+else:
+    ForceDebugLogging = False   # Let future functions determine log level
+
 FilterTextArg = ''          # Filter text supplied at the command line
 
 
@@ -575,7 +587,7 @@ class Connections:
         LogWrite.debug('Loaded config self.ControlMode = {}'.format(self.ControlMode))
 
         if ForceDebugLogging:
-            LogWrite.debug('Command line arg --debug forced nccm to run in debug mode. '
+            LogWrite.debug('NCCM was forced to run in debug mode. '
             'Ignoring nccm_config_loglevel from nccm.yml ...')
             self.LoadedServersDict.pop('nccm_config_loglevel', 'WARNING')
                 # ^ Just to remove this setting from the yml config
@@ -1276,6 +1288,23 @@ def MainCursesFunction(stdscr):
     return CommandLine
 
 
+def LogStartInfo():
+    ''' Put any useful logging here - such as startup env details.
+        This will require DEBUG level logging, so set the line as follows:
+            LogWrite.setLevel(logging.DEBUG)
+    '''
+
+    LogWrite.debug("Invoked commandline: {CmdLine} , "
+        "from directory: {Dir} , by user: {User} , "
+        "UID: {UID} , PPID: {PPID}"
+        .format(
+            CmdLine = sys.argv,
+            Dir = os.getcwd(),
+            User = getpass.getuser(),
+            UID = os.getuid(),
+            PPID = os.getppid(), ))
+
+
 def ParseArgs():
     ''' Handle any command line arguments supplied '''
 
@@ -1329,6 +1358,7 @@ def ParseArgs():
 
 def main(*args):
 
+    LogStartInfo()
     ParseArgs()     # Command line args processing happens here
     CommandLine = curses.wrapper(MainCursesFunction)
 
