@@ -410,7 +410,7 @@ import yaml         # Requires: 'pip3 install --user PyYAML'
 
 # This block handles logging to syslog:
 LogWrite = logging.getLogger('nccm')
-LogWrite.setLevel(logging.DEBUG)
+LogWrite.setLevel(logging.WARNING)
     # ^ Set this to logging.DEBUG or logging.WARNING for your INITIAL desired log level.
     #   Config file (nccm.yml) log level takes over from when it is loaded,
     #   this value controls logging verbosity until then.
