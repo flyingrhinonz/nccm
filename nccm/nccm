@@ -171,8 +171,10 @@ In both modes:
 - Tab:                Switch between text boxes
 - Enter or Ctrl-m:    Connect to the selected entry
 - Ctrl-h:             Display this help menu
-- Ctrl-k              Toggle cursor mode std <--> focus
-- Ctrl-q or Ctrl-c:   Quit the program
+- Ctrl-k:             Toggle cursor mode std <--> focus
+- Ctrl-q or
+- Ctrl-c or
+- Ctrl-d:             Quit the program
 - F1-F5 or !@#$% :    Sort by respective column (1-5)
 
 
@@ -1263,7 +1265,8 @@ def MainCursesFunction(stdscr):
             else:
                 ConnectionsList.ControlMode = 'std'
 
-        elif UserKey == 17 or UserKey == 3:     # ctrl-q / ctrl-c (quit)
+        elif UserKey == 17 or UserKey == 3 or UserKey == 4:
+            # ^ ctrl-q / ctrl-c / ctrl-d
             break
 
         UpdateDisplay()
