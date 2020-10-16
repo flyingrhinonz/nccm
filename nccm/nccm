@@ -329,6 +329,9 @@ much if at all anything.
 By default the production level of the script logs WARNING
 and above which results in syslog silence until something
 bad happens.
+Very long log lines are split into multiple lines, with
+subsequent lines (not including the first) being prepended
+by '    ....!!LINEWRAPPED!!'.
 
 Increase logging verbosity level to debug using the
 `-d` or `--debug` command line arguments.
@@ -343,7 +346,7 @@ code that runs before loading the config file).
 And to log stuff that happens before the config file is
 loaded and before the argument parser sets the debug level,
 change this line inside the nccm code:
-`LogWrite.setLevel(logging.DEBUG)`
+`LogLevel = logging.DEBUG`
 
 Also - more debugging calls exist but are commented out in
 the code due to too much logging. Enable them as required.
@@ -380,7 +383,7 @@ Credits
 -------
 
 Big thanks goes to Andrew P. for suggesting features and
-improvements.
+submitting improvements.
 
 '''
 
@@ -402,15 +405,78 @@ import shlex
 import string
 import subprocess
 import sys
+import textwrap
 import time
 
 # Pay attention to these imports:
 import yaml         # Requires: 'pip3 install --user PyYAML'
 
 
+# Beginning of logging setup section:
+
+# Variables that control logging:
+MaxLogLineLength = 800      # Wrap log lines longer than this many chars.
+                            # Keep a sensible and usable limit.
+SysLogProgName = 'nccm'     # This is how our program is identified in syslog
+Indent = 8                  # Wrapped lines are indented by n spaces to make
+                            # logging easier to read.
+                            # This field is optional.
+IndentChar = '.'            # What sub character to use for indenting.
+                            # This field is optional.
+LogLevel = logging.DEBUG    # Initial log level of this program
+
 # This block handles logging to syslog:
-LogWrite = logging.getLogger('nccm')
-LogWrite.setLevel(logging.WARNING)
+class CustomHandler(logging.handlers.SysLogHandler):
+    ''' Subclass for our custom log handler '''
+
+    def __init__(self):
+        super(CustomHandler, self).__init__(address = '/dev/log')
+            # ^ Very important to send the address bit to SysLogHandler
+            #   else you won't get logging in syslog!
+
+
+    def emit(self, record):
+        ''' Method for returning log lines to SysLogHandler.
+            Here is where we split long lines into smaller slices and
+            each slice gets logged with the appropriate syslog formatting,
+            as well as the identifiers we add that clearly state where
+            wrapping occurred.
+        '''
+
+        ReceivedMessage = record.msg.splitlines()
+            # ^ If the log message supplied contains new lines we will split
+            #   it at the newline mark - each split logged as a separate line.
+
+        SplitLinesMessage = []
+            # ^ Final version of line splitting
+
+        for LineLooper in ReceivedMessage:
+            if len(LineLooper) < MaxLogLineLength:
+                SplitLinesMessage.append(LineLooper)
+
+            else:
+                SplitLinesMessage.extend(textwrap.wrap(
+                    LineLooper,
+                    width=MaxLogLineLength,
+                    subsequent_indent='!!LINEWRAPPED!!',
+                    drop_whitespace=False))
+                    # ^ If line to log is longer than MaxLogLineLength -
+                    #   split it into multiple lines and prepend !!LINEWRAPPED!!
+                    #   to the subsequent lines created by the split
+
+        for Counter, Looper in enumerate(SplitLinesMessage):
+            if Counter > 0:
+                Looper = ( ((Indent - 4) * ' ') +
+                    (IndentChar * 4) +
+                    Looper.replace('\t', '    ') )
+                    # ^ This adds the indent and .... to all subsequent lines
+                    #   after the first line
+            record.msg = Looper
+            super(CustomHandler, self).emit(record)
+
+
+LogWrite = logging.getLogger(SysLogProgName)
+LogWrite.setLevel(LogLevel)
     # ^ Set this to logging.DEBUG or logging.WARNING for your INITIAL desired log level.
     #   Config file (nccm.yml) log level takes over from when it is loaded,
     #   this value controls logging verbosity until then.
@@ -418,10 +484,13 @@ LogWrite.setLevel(logging.WARNING)
     #   overrides this setting), make it DEBUG here. This will also let you
     #   troubleshoot problems that occur in the initial stages of nccm run - before
     #   the nccm.yml file is loaded.
+
 LogWrite.propagate = False
     # ^ Prevents duplicate logging by ancestor loggers (if any)
-LogHandler = logging.handlers.SysLogHandler(address = '/dev/log')
+
+LogHandler = CustomHandler()
 LogWrite.addHandler(LogHandler)
+
 LogWriteFormatter = logging.Formatter('{}[%(process)d]: <%(levelname)s> '
     '(ProcessName: %(processName)s , Module: %(module)s , '
     'LoggerName: %(name)s , FuncName: %(funcName)s , '
@@ -430,12 +499,16 @@ LogWriteFormatter = logging.Formatter('{}[%(process)d]: <%(levelname)s> '
     # ^ Select the attributes to include in the log lines
     #   Documented here: https://docs.python.org/3/library/logging.html
     #     (LogRecord attributes)
+
 LogHandler.setFormatter(LogWriteFormatter)
 LogWrite.debug('nccm started with log level = {} as set by '
     'LogWrite.setLevel (hardcoded in the script)'
         .format(LogWrite.getEffectiveLevel()))
 
-# Global variables go here:
+# ^ End of logging setup section
+
+
+# The rest of our global variables go here:
 
 # Setup the supported directories/pathnames for the connections file.
 # If you want to store nccm.yml in a directory that's not already supported
@@ -459,8 +532,8 @@ HelpMenuItems = collections.OrderedDict((
     ( 'ctrl-q',     'Quit' ),
 ))
 
-# If the log level was set to debug in the command above
-# LogWrite.setLevel(logging.DEBUG) - then enforce debug level logging
+# If the log level was set to debug in the variable we set earlier -
+#   LogLevel = logging.DEBUG - then enforce debug level logging
 # regardless of whether the debug switch (-d) was supplied or not,
 # and ignore nccm.yml nccm_config_loglevel setting:
 if LogWrite.getEffectiveLevel() <= 10:
@@ -482,6 +555,7 @@ class HelpTextDisplay:
             self.Window.addstr('  '+Looper, curses.color_pair(1))
             self.Window.addstr('-'+HelpMenuItems[Looper], curses.color_pair(2))
 
+
     def Display(self):
         self.Window.noutrefresh()
 
@@ -496,10 +570,12 @@ class BasicTextDisplay:
         self.Window = curses.newwin(LinesCount, ColsCount, BeginY, BeginX)
         self.Window.addstr(Text, curses.color_pair(ColorPair))
 
+
     def Display(self):
         LogWrite.debug('class BasicTextDisplay: {} method Display completed'
             .format(self.Name))
         self.Window.noutrefresh()
+
 
 class ServerXS:
     def __init__(self):
@@ -512,6 +588,7 @@ class ServerXS:
         self.KeepAlive = ""
         self.Identity = ""
         self.CustomArgs = []
+
 
 class Connections:
     ''' This handles the connections list.
@@ -905,12 +982,14 @@ class TextBox:
         self.Window.clear()
         self.Window.addstr(0, 0, self.Text)
 
+
 def qw(liststr: str):
     ''' analogous to Perl's qw() - split on whitespace and return list '''
     if liststr is None:
         return None
     else:
         return liststr.split()
+
 
 def RestoreTerminal(stdscr):
     ''' Restore the terminal to a sane status '''
@@ -1304,7 +1383,7 @@ def MainCursesFunction(stdscr):
 def LogStartInfo():
     ''' Put any useful logging here - such as startup env details.
         This will require DEBUG level logging, so set the line as follows:
-            LogWrite.setLevel(logging.DEBUG)
+            LogLevel = logging.DEBUG
     '''
 
     LogWrite.debug("Invoked commandline: {CmdLine} , "
