@@ -423,7 +423,10 @@ Indent = 8                  # Wrapped lines are indented by n spaces to make
                             # This field is optional.
 IndentChar = '.'            # What sub character to use for indenting.
                             # This field is optional.
-LogLevel = logging.DEBUG    # Initial log level of this program
+EnhancedLogging = True      # Use the fancy log line splitting (set to True).
+                            # Send log line as-is to syslog (set to False) -
+                            # you are responsible for line length constraints.
+LogLevel = logging.WARNING  # Initial log level of this program
 
 # This block handles logging to syslog:
 class CustomHandler(logging.handlers.SysLogHandler):
@@ -443,36 +446,41 @@ class CustomHandler(logging.handlers.SysLogHandler):
             wrapping occurred.
         '''
 
-        ReceivedMessage = record.msg.splitlines()
-            # ^ If the log message supplied contains new lines we will split
-            #   it at the newline mark - each split logged as a separate line.
+        if EnhancedLogging:
+            ReceivedMessage = record.msg.splitlines()
+                # ^ If the log message supplied contains new lines we will split
+                #   it at the newline mark - each split logged as a separate line.
 
-        SplitLinesMessage = []
-            # ^ Final version of line splitting
+            SplitLinesMessage = []
+                # ^ Final version of line splitting
 
-        for LineLooper in ReceivedMessage:
-            if len(LineLooper) < MaxLogLineLength:
-                SplitLinesMessage.append(LineLooper)
+            for LineLooper in ReceivedMessage:
+                if len(LineLooper) < MaxLogLineLength:
+                    SplitLinesMessage.append(LineLooper)
 
-            else:
-                SplitLinesMessage.extend(textwrap.wrap(
-                    LineLooper,
-                    width=MaxLogLineLength,
-                    subsequent_indent='!!LINEWRAPPED!!',
-                    drop_whitespace=False))
-                    # ^ If line to log is longer than MaxLogLineLength -
-                    #   split it into multiple lines and prepend !!LINEWRAPPED!!
-                    #   to the subsequent lines created by the split
+                else:
+                    SplitLinesMessage.extend(textwrap.wrap(
+                        LineLooper,
+                        width=MaxLogLineLength,
+                        subsequent_indent='!!LINEWRAPPED!!',
+                        drop_whitespace=False))
+                        # ^ If line to log is longer than MaxLogLineLength -
+                        #   split it into multiple lines and prepend !!LINEWRAPPED!!
+                        #   to the subsequent lines created by the split
 
-        for Counter, Looper in enumerate(SplitLinesMessage):
-            if Counter > 0:
-                Looper = ( ((Indent - 4) * ' ') +
-                    (IndentChar * 4) +
-                    Looper.replace('\t', '    ') )
-                    # ^ This adds the indent and .... to all subsequent lines
-                    #   after the first line
-            record.msg = Looper
+            for Counter, Looper in enumerate(SplitLinesMessage):
+                if Counter > 0:
+                    Looper = ( ((Indent - 4) * ' ') +
+                        (IndentChar * 4) +
+                        Looper.replace('\t', '    ') )
+                        # ^ This adds the indent and .... to all subsequent lines
+                        #   after the first line
+                record.msg = Looper
+                super(CustomHandler, self).emit(record)
+
+        else:
             super(CustomHandler, self).emit(record)
+                # ^ Pass it through as-is
 
 
 LogWrite = logging.getLogger(SysLogProgName)
