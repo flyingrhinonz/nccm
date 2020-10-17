@@ -347,6 +347,8 @@ And to log stuff that happens before the config file is
 loaded and before the argument parser sets the debug level,
 change this line inside the nccm code:
 `LogLevel = logging.DEBUG`
+Extra logging controls can be found in the code under the
+`Variables that control logging` section.
 
 Also - more debugging calls exist but are commented out in
 the code due to too much logging. Enable them as required.
@@ -415,6 +417,7 @@ import yaml         # Requires: 'pip3 install --user PyYAML'
 # Beginning of logging setup section:
 
 # Variables that control logging:
+LogLevel = logging.WARNING  # Initial log level of this program
 MaxLogLineLength = 800      # Wrap log lines longer than this many chars.
                             # Keep a sensible and usable limit.
 SysLogProgName = 'nccm'     # This is how our program is identified in syslog
@@ -426,7 +429,6 @@ IndentChar = '.'            # What sub character to use for indenting.
 EnhancedLogging = True      # Use the fancy log line splitting (set to True).
                             # Send log line as-is to syslog (set to False) -
                             # you are responsible for line length constraints.
-LogLevel = logging.WARNING  # Initial log level of this program
 
 # This block handles logging to syslog:
 class CustomHandler(logging.handlers.SysLogHandler):
@@ -450,6 +452,8 @@ class CustomHandler(logging.handlers.SysLogHandler):
             ReceivedMessage = record.msg.splitlines()
                 # ^ If the log message supplied contains new lines we will split
                 #   it at the newline mark - each split logged as a separate line.
+                #   ReceivedMessage is a list, even if there was only one line in
+                #   the original log message.
 
             SplitLinesMessage = []
                 # ^ Final version of line splitting
@@ -467,12 +471,14 @@ class CustomHandler(logging.handlers.SysLogHandler):
                         # ^ If line to log is longer than MaxLogLineLength -
                         #   split it into multiple lines and prepend !!LINEWRAPPED!!
                         #   to the subsequent lines created by the split
+                        #   textwrap.wrap returns a list, therefore we use the extend
+                        #   method on SplitLinesMessage.
 
             for Counter, Looper in enumerate(SplitLinesMessage):
                 if Counter > 0:
                     Looper = ( ((Indent - 4) * ' ') +
                         (IndentChar * 4) +
-                        Looper.replace('\t', '    ') )
+                        Looper )
                         # ^ This adds the indent and .... to all subsequent lines
                         #   after the first line
                 record.msg = Looper
@@ -514,7 +520,6 @@ LogWrite.debug('nccm started with log level = {} as set by '
         .format(LogWrite.getEffectiveLevel()))
 
 # ^ End of logging setup section
-
 
 # The rest of our global variables go here:
 
@@ -677,7 +682,8 @@ class Connections:
             'nccm_config_controlmode', 'std').lower()
                 # ^ Controls how arrow keys move the display & the marker.
                 #   Options are std, focus
-        LogWrite.debug('Loaded config self.ControlMode = {}'.format(self.ControlMode))
+        LogWrite.debug('Loaded {} config self.ControlMode = {}'
+            .format(ConfigFile, self.ControlMode))
 
         # Handle loading of the loglevel setting:
         if ForceDebugLogging:
@@ -689,8 +695,8 @@ class Connections:
         else:
             LogWrite.setLevel(getattr(logging, self.LoadedServersDict.pop
                 ('nccm_config_loglevel', 'WARNING').upper()))
-            LogWrite.debug('Loaded config log level. Log level now = {}'
-                .format(LogWrite.getEffectiveLevel()))
+            LogWrite.debug('Loaded {} config log level. Log level now = {}'
+                .format(ConfigFile, LogWrite.getEffectiveLevel()))
                 # ^ Values documented here:
                 #   https://docs.python.org/3/library/logging.html#levels
 
@@ -698,28 +704,28 @@ class Connections:
         self.DefaultKeepAlive = int(self.LoadedServersDict.pop(
             'nccm_config_keepalive', '0'))
                 # ^ Controls the keep alive message frequency
-        LogWrite.debug('Loaded config self.DefaultKeepAlive = {}'
-            .format(self.DefaultKeepAlive))
+        LogWrite.debug('Loaded {} config self.DefaultKeepAlive = {}'
+            .format(ConfigFile, self.DefaultKeepAlive))
 
         # Handle loading of the default identity value from nccm_config_identity:
         self.Identity = self.LoadedServersDict.pop(
             'nccm_config_identity', '')
             # This is the -i arg sent to ssh
-        LogWrite.debug('Loaded config self.Identity = {}'
-            .format(self.Identity))
+        LogWrite.debug('Loaded {} config self.Identity = {}'
+            .format(ConfigFile, self.Identity))
 
         # Handle loading of the default ssh program from nccm_config_sshprogram:
         self.SshProgram = self.LoadedServersDict.pop(
             'nccm_config_sshprogram', 'ssh')
-        LogWrite.debug('Loaded config self.SshProgram = {}'
-            .format(self.SshProgram))
+        LogWrite.debug('Loaded {} config self.SshProgram = {}'
+            .format(ConfigFile, self.SshProgram))
 
         # ^ The config items nccm_config_* have been removed from
         # self.LoadedServersDict , leaving us with only the ssh connection
         # details in it.
 
-        LogWrite.debug('Completed loading config args, '
-            'next we load the connections details ...')
+        LogWrite.debug('Completed loading {} config args, '
+            'next we load the connections details ...'.format(ConfigFile))
 
         # Populate the FullServersList (list of config items as lists,
         # even unconfigured items):

@@ -168,8 +168,10 @@ In both modes:
 - Tab:                Switch between text boxes
 - Enter or Ctrl-m:    Connect to the selected entry
 - Ctrl-h:             Display this help menu
-- Ctrl-k              Toggle cursor mode std <--> focus
-- Ctrl-q or Ctrl-c:   Quit the program
+- Ctrl-k:             Toggle cursor mode std <--> focus
+- Ctrl-q or
+- Ctrl-c or
+- Ctrl-d:             Quit the program
 - F1-F5 or !@#$% :    Sort by respective column (1-5)
 
 
@@ -255,7 +257,7 @@ Column #  Column name       Sort    Alternate sort
 2         Friendly name     F2      @
 3         User name         F3      #
 4         Server address    F4      $
-5         Description       F5      %
+5         Comment           F5      %
 ```
 
 
@@ -324,6 +326,9 @@ much if at all anything.
 By default the production level of the script logs WARNING
 and above which results in syslog silence until something
 bad happens.
+Very long log lines are split into multiple lines, with
+subsequent lines (not including the first) being prepended
+by '    ....!!LINEWRAPPED!!'.
 
 Increase logging verbosity level to debug using the
 `-d` or `--debug` command line arguments.
@@ -338,7 +343,9 @@ code that runs before loading the config file).
 And to log stuff that happens before the config file is
 loaded and before the argument parser sets the debug level,
 change this line inside the nccm code:
-`LogWrite.setLevel(logging.DEBUG)`
+`LogLevel = logging.DEBUG`
+Extra logging controls can be found in the code under the
+`Variables that control logging` section.
 
 Also - more debugging calls exist but are commented out in
 the code due to too much logging. Enable them as required.
@@ -375,5 +382,5 @@ Credits
 -------
 
 Big thanks goes to Andrew P. for suggesting features and
-improvements.
+submitting improvements.
 
