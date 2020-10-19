@@ -147,6 +147,11 @@ path. If you want to explicitly set the path to ssh, or
 you want to use a different program - set it here.
 This is a global setting that affects all your connections.
 
+`nccm_config_promptuser`
+By default nccm will connect immediately to the selected
+server. Set this value to `true` if you want nccm to
+prompt the user to press Enter before a connection is made.
+
 
 Controls
 --------
@@ -221,7 +226,8 @@ while keeping your current line selected.
 Command line arguments
 ----------------------
 
-* Supply initial filtering text. Examples:
+* Supply initial filtering text. These are considered part
+    of the Filter field and are AND'ed. Examples:
       `nccm abc xyz`
       `nccm -d ab cd ef`
     If there is only one match - nccm will connect to it
@@ -331,7 +337,7 @@ and above which results in syslog silence until something
 bad happens.
 Very long log lines are split into multiple lines, with
 subsequent lines (not including the first) being prepended
-by '    ....!!LINEWRAPPED!!'.
+by `    ....!!LINEWRAPPED!!`.
 
 Increase logging verbosity level to debug using the
 `-d` or `--debug` command line arguments.
@@ -555,6 +561,7 @@ else:
     ForceDebugLogging = False   # Let future functions determine log level
 
 FilterTextArg = ''          # Filter text supplied at the command line
+PromptToContinue = False    # Prompt user to press Enter before connecting
 
 
 class HelpTextDisplay:
@@ -652,6 +659,10 @@ class Connections:
     def Load(self):
         ''' Loads the connections file '''
 
+        global PromptToContinue
+            # ^ Required because the connection is made in main() which does not
+            #   have access to these objects.
+
         for FileLooper in ConfigFilePath:
             if os.path.exists(FileLooper):
                 break
@@ -719,6 +730,12 @@ class Connections:
             'nccm_config_sshprogram', 'ssh')
         LogWrite.debug('Loaded {} config self.SshProgram = {}'
             .format(ConfigFile, self.SshProgram))
+
+        # Handle loading of the PromptToContinue value from nccm_config_promptuser:
+        PromptToContinue = self.LoadedServersDict.pop(
+            'nccm_config_promptuser', False)
+        LogWrite.debug('Loaded {} config PromptToContinue = {}'
+            .format(ConfigFile, PromptToContinue))
 
         # ^ The config items nccm_config_* have been removed from
         # self.LoadedServersDict , leaving us with only the ssh connection
@@ -860,7 +877,7 @@ class Connections:
 
         if NewScreenHeight != ScreenHeight or NewScreenWidth != ScreenWidth:
             RestoreTerminal(self.stdscr)
-            print('nccm: Resizing the window during menu display is not permitted.\n'
+            print('\nnccm: Resizing the window during menu display is not permitted.\n'
                 'You may resize the window during or after connection initiation.\n')
             LogWrite.warning('Resizing the window during menu display is not permitted')
             sys.exit(1)
@@ -1005,6 +1022,16 @@ def qw(liststr: str):
         return liststr.split()
 
 
+def PressEnterToCont():
+    ''' A simple wait until Enter key pressed '''
+
+    if PromptToContinue:
+        LogWrite.debug('Waiting for user to press Enter...')
+        Ans = input('Press Enter to continue... ')
+
+    return
+
+
 def RestoreTerminal(stdscr):
     ''' Restore the terminal to a sane status '''
 
@@ -1051,7 +1078,7 @@ def SetupCurses(stdscr):
 
     if not curses.has_colors(): # Color not supported
         RestoreTerminal(stdscr)
-        print('nccm: This program requires color support\n')
+        print('\nnccm: This program requires color support\n')
         LogWrite.warning('This program requires color support')
         return False
 
@@ -1061,7 +1088,7 @@ def SetupCurses(stdscr):
 
     if ScreenWidth < 60 or ScreenHeight < 15:
         RestoreTerminal(stdscr)
-        print('nccm: Window must be at least 60x15\n')
+        print('\nnccm: Window must be at least 60x15\n')
         LogWrite.warning('Window must be at least 60x15. '
             'ScreenHeight = {} , ScreenWidth = {}'
                 .format(ScreenHeight, ScreenWidth))
@@ -1069,7 +1096,7 @@ def SetupCurses(stdscr):
 
     if len(FilterTextArg) > ScreenWidth-32:
         RestoreTerminal(stdscr)
-        print('nccm: Filter text too long ({} chars). '
+        print('\nnccm: Filter text too long ({} chars). '
             'For your window size enter no more than {} chars\n'
                 .format(len(FilterTextArg), ScreenWidth-32))
         LogWrite.warning('nccm: Filter text too long ({} chars). '
@@ -1469,14 +1496,15 @@ def main(*args):
     CommandLine = curses.wrapper(MainCursesFunction)
 
     if CommandLine:
-        print('nccm: About to ssh using:\n{}\n'.format(' '.join(CommandLine)))
+        PressEnterToCont()
+        print('\nnccm: About to ssh using:\n{}\n'.format(' '.join(CommandLine)))
         LogWrite.debug('About to subprocess.run ExtCommand = {} ...'
             .format(' '.join(CommandLine)))
         StartTime = time.time()
         subprocess.run(CommandLine)          # Connect to the ssh server
         EndTime = time.time()
         SessionTime = round(EndTime - StartTime)
-        print('nccm: Completed ssh using:\n{}\nSession time was: '
+        print('\nnccm: Completed ssh using:\n{}\nSession time was: '
             '{} ({} seconds)\n'
                 .format(' '.join(CommandLine), datetime.timedelta(seconds=SessionTime),
                     SessionTime))

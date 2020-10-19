@@ -79,6 +79,11 @@ nccm_config_sshprogram: ssh
 #   state the path of your ssh program, or even use a different program that
 #   does the ssh (maybe you have a script or wrapper...).
 
+nccm_config_promptuser: false
+# ^ Prompt user to press Enter before nccm makes the ssh connection to
+#   the server (set to true). This may be useful in some cases, especially
+#   if you need to resize your window before the connection is made.
+
 
 # connections configs:
 

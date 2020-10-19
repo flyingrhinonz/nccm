@@ -144,6 +144,11 @@ path. If you want to explicitly set the path to ssh, or
 you want to use a different program - set it here.
 This is a global setting that affects all your connections.
 
+`nccm_config_promptuser`
+By default nccm will connect immediately to the selected
+server. Set this value to `true` if you want nccm to
+prompt the user to press Enter before a connection is made.
+
 
 Controls
 --------
@@ -218,7 +223,8 @@ while keeping your current line selected.
 Command line arguments
 ----------------------
 
-* Supply initial filtering text. Examples:
+* Supply initial filtering text. These are considered part
+    of the Filter field and are AND'ed. Examples:
       `nccm abc xyz`
       `nccm -d ab cd ef`
     If there is only one match - nccm will connect to it
@@ -328,7 +334,7 @@ and above which results in syslog silence until something
 bad happens.
 Very long log lines are split into multiple lines, with
 subsequent lines (not including the first) being prepended
-by '    ....!!LINEWRAPPED!!'.
+by `    ....!!LINEWRAPPED!!`.
 
 Increase logging verbosity level to debug using the
 `-d` or `--debug` command line arguments.
