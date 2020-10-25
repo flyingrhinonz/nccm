@@ -67,14 +67,16 @@ present in which case you need to install them manually.
 
 
 On Debian or similar use apt:
+If you want to only use the distro's packages you can do:
+`sudo apt install python3-yaml yamllint`
+
+Or if you prefer to install PyYAML from pip3:
 `sudo apt install python3-pip yamllint`
+`pip3 install --user PyYAML`
 
 On Fedora or similar use dnf:
 `sudo dnf install python3-pip yamllint`
-
-Then install PyYAML:
 `pip3 install --user PyYAML`
-
 
 Before starting, edit the `nccm.yml` file and add your
 own ssh connections. Formatting YAML is easy and the file
