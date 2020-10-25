@@ -70,14 +70,16 @@ present in which case you need to install them manually.
 
 
 On Debian or similar use apt:
+If you want to only use the distro's packages you can do:
+`sudo apt install python3-yaml yamllint`
+
+Or if you prefer to install PyYAML from pip3:
 `sudo apt install python3-pip yamllint`
+`pip3 install --user PyYAML`
 
 On Fedora or similar use dnf:
 `sudo dnf install python3-pip yamllint`
-
-Then install PyYAML:
 `pip3 install --user PyYAML`
-
 
 Before starting, edit the `nccm.yml` file and add your
 own ssh connections. Formatting YAML is easy and the file
@@ -418,6 +420,8 @@ import time
 
 # Pay attention to these imports:
 import yaml         # Requires: 'pip3 install --user PyYAML'
+                    #   On a Debian based system you can also do:
+                    #   sudo apt-get install python3-yaml
 
 
 # Beginning of logging setup section:
@@ -528,6 +532,8 @@ LogWrite.debug('nccm started with log level = {} as set by '
 # ^ End of logging setup section
 
 # The rest of our global variables go here:
+
+__version__ = '1.2.0'       # nccm version string
 
 # Setup the supported directories/pathnames for the connections file.
 # If you want to store nccm.yml in a directory that's not already supported
