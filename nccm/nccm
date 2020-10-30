@@ -533,7 +533,7 @@ LogWrite.debug('nccm started with log level = {} as set by '
 
 # The rest of our global variables go here:
 
-__version__ = '1.2.0'       # nccm version string
+__version__ = '1.2.1'       # nccm version string
 
 # Setup the supported directories/pathnames for the connections file.
 # If you want to store nccm.yml in a directory that's not already supported
@@ -761,20 +761,35 @@ class Connections:
                 FSL = self.FullServersList[ServerXSNum] # too much typing. :)
                 FSL.ServerXSNum = ServerXSNum
                 FSL.FriendlyName = FriendlyName
-                #LogWrite.debug('Processing FriendlyName = {} , ServerXSNum = {}'
-                #    .format(FriendlyName, ServerXSNum))
+                LogWrite.debug('Processing FSL = {} , FriendlyName = {} , ServerXSNum = {}'
+                    .format(FSL, FriendlyName, ServerXSNum))
 
                 # The following supports extracting UserName & Address from FriendlyName
                 # if UserName & Address are not supplied:
-                FSL.UserName = self.LoadedServersDict[FriendlyName].get('user', False)
-                if not FSL.UserName:
-                    FSL.UserName = self.LoadedServersDict[FriendlyName].get(
-                        'user', FriendlyName.split(sep='@')[0], 1)
 
+                # Get FSL.UserName:
+                FSL.UserName = self.LoadedServersDict[FriendlyName].get('user', False)
+                LogWrite.debug('FSL.UserName = {}'.format(FSL.UserName))
+
+                # 'user:' not present, extract username from friendly name:
+                if not FSL.UserName:
+                    LogWrite.debug('FSL.UserName was false. Trying to decode it '
+                        'from friendlyname (user@address) ...')
+                    FSL.UserName = self.LoadedServersDict[FriendlyName].get(
+                        'user', FriendlyName.split(sep='@')[0])
+                    LogWrite.debug('FSL.UserName = {}'.format(FSL.UserName))
+
+                # Get FSL.Address:
                 FSL.Address = self.LoadedServersDict[FriendlyName].get('address', False)
+                LogWrite.debug('FSL.Address = {}'.format(FSL.Address))
+
+                # 'address:' not present, extract address from friendly name:
                 if not FSL.Address:
+                    LogWrite.debug('FSL.Address was false. Trying to decode it '
+                        'from friendlyname (user@address) ...')
                     FSL.Address = self.LoadedServersDict[FriendlyName].get(
-                        'address', FriendlyName.split(sep='@')[1], 1)
+                        'address', FriendlyName.split(sep='@')[1])
+                    LogWrite.debug('FSL.Address = {}'.format(FSL.Address))
 
                 FSL.UserAddr = '{}@{}'.format(FSL.UserName, FSL.Address) # for convenience
 
