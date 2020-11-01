@@ -538,7 +538,7 @@ LogWrite.debug('nccm started with log level = {} as set by '
 
 # The rest of our global variables go here:
 
-__version__ = '1.2.1'       # nccm version string
+__version__ = '1.2.2'       # nccm version string
 
 # Setup the supported directories/pathnames for the connections file.
 # If you want to store nccm.yml in a directory that's not already supported
