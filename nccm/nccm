@@ -309,9 +309,19 @@ Troubleshooting
 ---------------
 
 Starting nccm:
-The most common problem is missing Python3 dependencies.
+
+The most common problem for existing installations is
+user errors in the nccm.yml file.
+Try `yamllint nccm.yml`. If yamllint passes and
+nccm still fails: run as `nccm -d` and check syslog for
+errors - you may see a message about the connection item
+line that fails or at least the last line that succeeded.
+
+The most common problem for new installations is
+missing Python3 dependencies.
 Run nccm and read the exception message - it will tell
 you what's missing.
+
 The second most common problem is different nccm and
 nccm.yml versions. This usually happens if you download
 a newer nccm version and use your existing and older
@@ -324,11 +334,6 @@ If this happens, best is to backup your nccm.yml then
 download both nccm and nccm.yml, verify that nccm now
 works properly, then update the newly downloaded nccm.yml
 from your backup copy.
-Another common problem is user errors in the nccm.yml file:
-try `yamllint nccm.yml`. If yamllint passes and
-nccm still fails: run as `nccm -d` and check syslog for
-errors - you may see a message about the connection item
-line that fails or at least the last line that succeeded.
 
 Logging:
 Look at your syslog file for nccm entries. Depending upon
@@ -626,6 +631,13 @@ class Connections:
     def __init__(self, LinesCount=None, ColsCount=None, BeginY=None,
         BeginX=None, ColorPair=0, TextFilters=None, stdscr=None, Name=False):
 
+        LogWrite.debug('Class Connections method __init__ started with: '
+            'Name = {} , LinesCount = {} , ColsCount = {} , '
+            'BeginY = {} , BeginX = {} , ColorPair = {} , '
+            'TextFilters = {}, stdscr = {}'
+                .format(Name, LinesCount , ColsCount, BeginY, BeginX,
+                    ColorPair, TextFilters, stdscr))
+
         # Window parameters:
         self.Name = Name
         self.SshProgram = 'ssh'     # Path to ssh command - updated from nccm.yml
@@ -809,11 +821,13 @@ class Connections:
                 # the '-i ' part to it.
                 # Otherwise it should be set to '' which will have no effect
                 # upon the ssh command line:
-                FSL.Identity = self.LoadedServersDict[FriendlyName].get('identity', self.Identity)
+                FSL.Identity = self.LoadedServersDict[FriendlyName].get(
+                    'identity', self.Identity)
                     # ^ Note that per-connection "identity" may not be supplied
                     #   and also the default nccm_config_identity may be False.
 
-                FSL.CustomArgs = self.LoadedServersDict[FriendlyName].get('customargs', '')
+                FSL.CustomArgs = self.LoadedServersDict[FriendlyName].get(
+                    'customargs', '')
                 if isinstance(FSL.CustomArgs, str):
                     FSL.CustomArgs = shlex.split(FSL.CustomArgs)
 
@@ -834,7 +848,9 @@ class Connections:
 
         # Calculate the max length of each column:
         for Column in qw('ServerXSNum FriendlyName UserAddr Comment'):
-            setattr(self, 'MaxLen{}'.format(Column), max(len(str(getattr(i, Column))) for i in self.FullServersList.values()))
+            setattr(self, 'MaxLen{}'.format(Column),
+                max(len(str(getattr(i, Column)))
+                    for i in self.FullServersList.values()))
 
 
     def Sort(self, Column):
@@ -842,7 +858,10 @@ class Connections:
 
         LogWrite.debug('Sort by Column = {}'.format(Column))
 
-        self.FullServersList = dict(enumerate(sorted(self.FullServersList.values(), key=operator.attrgetter(Column), reverse=self.SortOrder)))
+        self.FullServersList = dict(enumerate(sorted(
+            self.FullServersList.values(),
+            key=operator.attrgetter(Column),
+            reverse=self.SortOrder)))
 
         self.SortOrder = not(self.SortOrder)
             # ^ Reverse True to False, False to True so that next time this function
@@ -875,7 +894,8 @@ class Connections:
         CommandLine += (self.SshProgram, )
         CommandLine += (SelectedEntry.UserAddr, )
         if SelectedEntry.KeepAlive:
-            CommandLine += ('-o', 'ServerAliveInterval={}'.format(SelectedEntry.KeepAlive))
+            CommandLine += ('-o', 'ServerAliveInterval={}'
+                .format(SelectedEntry.KeepAlive))
         if SelectedEntry.Identity:
             CommandLine += ('-i', SelectedEntry.Identity)
         if SelectedEntry.CustomArgs:
@@ -891,10 +911,12 @@ class Connections:
 
     def Display(self):
 
+        LogWrite.debug('Class Connections method Display started')
         # Check if the window was resized since it was started:
         NewScreenHeight, NewScreenWidth = self.stdscr.getmaxyx()
-        LogWrite.debug('NewScreenHeight = {} , NewScreenWidth = {} '
-            .format(NewScreenHeight, NewScreenWidth))
+        LogWrite.debug('Class Connections method Display: '
+            'NewScreenHeight = {} , NewScreenWidth = {} '
+                .format(NewScreenHeight, NewScreenWidth))
 
         if NewScreenHeight != ScreenHeight or NewScreenWidth != ScreenWidth:
             RestoreTerminal(self.stdscr)
@@ -903,15 +925,24 @@ class Connections:
             LogWrite.warning('Resizing the window during menu display is not permitted')
             sys.exit(1)
 
-        FilterTextList = set()          # Unique text strings for filtering
-        self.ResultsList = []           # Result of the filtering
+        FilterTextList = set()          # Unique text strings for filtering.
+        self.ResultsList = []           # This is the full list of lines that
+                                        #   matched filtering of the text entered by
+                                        #   the user.
 
         self.Window.erase()
 
         # Merge the users text input into a set whose uniqueness
         # improves search performance:
         for Looper in self.TextFilters:
+            LogWrite.debug('Looper.Text = {}'.format(Looper.Text))
+                # ^ Remember that the object has a self.Text attribute so
+                #   we need to read the filter text from self.Text .
             FilterTextList.update(set(Looper.Text.split(' ')))
+
+        LogWrite.debug('FilterTextList = {}'.format(FilterTextList))
+            # ^ Now the combined text fields from both objects stored in
+            #   self.TextFilters .
 
         # Populate self.ResultsList with all line that match the above filter:
         for FSL in self.FullServersList.values():
@@ -930,8 +961,13 @@ class Connections:
             if len(Line) > self.MaxLineLength:
                 self.MaxLineLength = len(Line)
 
-            if sorted(FilterTextList) == sorted(x for x in FilterTextList if x in Line):
-                self.ResultsList.append(Line)
+            # Here's the actual search where we check if each of the filter
+            # fields are IN the Line we got from above:
+            if sorted(FilterTextList) == sorted(
+                x for x in FilterTextList if x in Line.lower()):
+                    self.ResultsList.append(Line)
+                    LogWrite.debug('Added Line = "{}" to self.ResultsList'
+                        .format(Line))
 
         self.ResultsList = [x.ljust(self.MaxLineLength, ' ') for x in self.ResultsList]
         self.DisplayResultsCount = 0
@@ -969,12 +1005,17 @@ class TextBox:
         BeginY=None, BeginX=None, ColorPair=0, FilterText='',
         Name=False):
 
+        LogWrite.debug('class TextBox, method __init__ started wth: '
+            'Name = {} , LinesCount = {} , ColsCount = {} BeginY = {} , '
+            'BeginX = {} , ColorPair = {} , FilterText = {}'
+                .format(Name, LinesCount, ColsCount, BeginY, BeginX,
+                    ColorPair, FilterText))
+
         self.Name = Name
         self.Text = FilterText
             # ^ This is the text that the user enters.
             #   We pass in FilterText in case we need to load it from
             #   the command line --filter arg
-        LogWrite.debug('TextBox {} : self.Text = {}'.format(self.Name, self.Text))
         self.MaxText = ColsCount-1
         self.Window = curses.newwin(LinesCount, ColsCount, BeginY, BeginX)
         self.Window.keypad(True)
@@ -1031,6 +1072,8 @@ class TextBox:
             self.Text += chr(Key).lower()
                 # ^ Force to lower and search is case insensitive
 
+        LogWrite.debug('self.Name = {} , self.Text = {}'
+            .format(self.Name, self.Text))
         self.Window.clear()
         self.Window.addstr(0, 0, self.Text)
 
@@ -1182,6 +1225,10 @@ def SetupWindows(stdscr):
         ColsCount=ScreenWidth, BeginY=0, BeginX=0, ColorPair=0,
         TextFilters=[FilterBox, ConnBox] , stdscr=stdscr,
         Name='ConnectionsList')
+            # ^ We send TextFilters=[FilterBox, ConnBox] and not FilterBox.Text
+            #   because we are referencig the object and when the Text changes
+            #   within the object - the changes reflect in Connections.Display
+            #   method.
     ConnectionsList.Load()
         # ^ Load the connections list config file into this object (normal operation)
     DisplayObjects.append(ConnectionsList)
@@ -1500,10 +1547,12 @@ def ParseArgs():
 
     if args.filter_text:
         FilterTextArg = args.filter_text
-        LogWrite.debug('FilterTextArg = {}'.format(FilterTextArg))
-        FilterTextArg = ' '.join(FilterTextArg)
+        LogWrite.debug('FilterTextArg (user-supplied filtering text '
+            'at the command line) = {}'.format(FilterTextArg))
+        FilterTextArg = ' '.join(FilterTextArg).lower()
             # ^ Stored in class TextBox.Text as a space delimited string
-        LogWrite.debug('As a string: FilterTextArg = {}'.format(FilterTextArg))
+        LogWrite.debug('Lowercased and converted to a string: FilterTextArg = {}'
+            .format(FilterTextArg))
 
     if args.man:
         DisplayHelp()
