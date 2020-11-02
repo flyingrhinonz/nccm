@@ -538,7 +538,7 @@ LogWrite.debug('nccm started with log level = {} as set by '
 
 # The rest of our global variables go here:
 
-__version__ = '1.2.2'       # nccm version string
+__version__ = '1.2.3'       # nccm version string
 
 # Setup the supported directories/pathnames for the connections file.
 # If you want to store nccm.yml in a directory that's not already supported
@@ -787,8 +787,7 @@ class Connections:
                 if not FSL.UserName:
                     LogWrite.debug('FSL.UserName was false. Trying to decode it '
                         'from friendlyname (user@address) ...')
-                    FSL.UserName = self.LoadedServersDict[FriendlyName].get(
-                        'user', FriendlyName.split(sep='@')[0])
+                    FSL.UserName = FriendlyName.split(sep='@', maxsplit=1)[0]
                     LogWrite.debug('FSL.UserName = {}'.format(FSL.UserName))
 
                 # Get FSL.Address:
@@ -799,8 +798,7 @@ class Connections:
                 if not FSL.Address:
                     LogWrite.debug('FSL.Address was false. Trying to decode it '
                         'from friendlyname (user@address) ...')
-                    FSL.Address = self.LoadedServersDict[FriendlyName].get(
-                        'address', FriendlyName.split(sep='@')[1])
+                    FSL.Address = FriendlyName.split(sep='@', maxsplit=1)[1]
                     LogWrite.debug('FSL.Address = {}'.format(FSL.Address))
 
                 FSL.UserAddr = '{}@{}'.format(FSL.UserName, FSL.Address) # for convenience
