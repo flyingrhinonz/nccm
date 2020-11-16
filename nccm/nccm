@@ -348,6 +348,9 @@ by `    ....!!LINEWRAPPED!!`.
 
 Increase logging verbosity level to debug using the
 `-d` or `--debug` command line arguments.
+This is by far the easiest way to debug and covers most
+scenarios except for faults that occur before reading
+the `-d` command line argument.
 
 To permanently increase logging verbosity change this line
 in the `nccm.yml` config file to debug:
@@ -538,7 +541,7 @@ LogWrite.debug('nccm started with log level = {} as set by '
 
 # The rest of our global variables go here:
 
-__version__ = '1.2.3'       # nccm version string
+__version__ = '1.2.4'       # nccm version string
 
 # Setup the supported directories/pathnames for the connections file.
 # If you want to store nccm.yml in a directory that's not already supported
@@ -781,6 +784,11 @@ class Connections:
 
                 # Get FSL.UserName:
                 FSL.UserName = self.LoadedServersDict[FriendlyName].get('user', False)
+                    # ^ I could merge the "user not present" section below into the
+                    #   code above replacing "False", but keeping the code separate
+                    #   is clearer, allows debug logging, as well as allows for future
+                    #   expansion if a new feature is required.
+                    #   Same comment for FSL.Address .
                 LogWrite.debug('FSL.UserName = {}'.format(FSL.UserName))
 
                 # 'user:' not present, extract username from friendly name:
@@ -1448,7 +1456,8 @@ def MainCursesFunction(stdscr):
         elif UserKey == 269:                # F4 key (sort by column #5)
             ConnectionsList.Sort('Comment')
 
-        elif ((UserKey == curses.KEY_ENTER or UserKey in [10, 13])  # Enter key
+        # Enter key in ConnBox:
+        elif ((UserKey == curses.KEY_ENTER or UserKey in [10, 13])
             and ActiveWindow == ConnBox
             and ConnBox.Text):
                 LogWrite.debug('Handle Enter key in ConnBox ...')
@@ -1457,8 +1466,9 @@ def MainCursesFunction(stdscr):
                         CommandLine = ConnectionsList.GetCommandLine(ConnBox.Text)
                         break
 
+        # Enter key in FilterBox:
         elif ((UserKey == curses.KEY_ENTER or UserKey in [10, 13])
-            and ConnectionsList.SelectedEntry):  # Enter key
+            and ConnectionsList.SelectedEntry):
                 LogWrite.debug('Handle Enter key in FilterBox ...')
                     # ^ Well, it has to be FilterBox because we explicitly checked
                     #   for ConnBox earlier...
@@ -1569,15 +1579,21 @@ def main(*args):
         LogWrite.debug('About to subprocess.run ExtCommand = {} ...'
             .format(' '.join(CommandLine)))
         StartTime = time.time()
-        subprocess.run(CommandLine)          # Connect to the ssh server
-        EndTime = time.time()
-        SessionTime = round(EndTime - StartTime)
-        print('\nnccm: Completed ssh using:\n{}\nSession time was: '
-            '{} ({} seconds)\n'
-                .format(' '.join(CommandLine), datetime.timedelta(seconds=SessionTime),
-                    SessionTime))
-        LogWrite.debug('Completed ssh using: {} . SessionTime was: {} seconds'
-            .format(' '.join(CommandLine), SessionTime))
+
+        try:
+            subprocess.run(CommandLine, check=True)          # Connect to the ssh server
+            EndTime = time.time()
+            SessionTime = round(EndTime - StartTime)
+            print('\nnccm: Completed ssh using:\n{}\nSession time was: '
+                '{} ({} seconds)\n'
+                    .format(' '.join(CommandLine), datetime.timedelta(seconds=SessionTime),
+                        SessionTime))
+            LogWrite.debug('Completed ssh using: {} . SessionTime was: {} seconds'
+                .format(' '.join(CommandLine), SessionTime))
+
+        except subprocess.CalledProcessError as CPE:
+            print('\n***** SSH FAILED! Exit code = {} *****\n'
+                .format(CPE.returncode))
 
 
 if __name__ == '__main__':
