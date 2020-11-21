@@ -1594,6 +1594,7 @@ def main(*args):
         except subprocess.CalledProcessError as CPE:
             print('\n***** SSH FAILED! Exit code = {} *****\n'
                 .format(CPE.returncode))
+            LogWrite.warning('ssh failed. Exit code = {}'.format(CPE.returncode))
 
 
 if __name__ == '__main__':
