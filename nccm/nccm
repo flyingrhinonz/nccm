@@ -445,6 +445,8 @@ Indent = 8                  # Wrapped lines are indented by n spaces to make
 IndentChar = '.'            # What sub character to use for indenting.
                             # This field is optional.
 EnhancedLogging = True      # Use the fancy log line splitting (set to True).
+                            # This includes forced splitting the supplied text at
+                            # any \n newline marks.
                             # Send log line as-is to syslog (set to False) -
                             # you are responsible for line length constraints.
 
@@ -467,30 +469,44 @@ class CustomHandler(logging.handlers.SysLogHandler):
         '''
 
         if EnhancedLogging:
-            ReceivedMessage = record.msg.splitlines()
+            # ^ We will split the supplied log line (record.msg) into multiple lines.
+            #   First - split the message at whatver \n newline chars were supplied
+            #   by the caller (even before our own fancy splitting is done):
+
+            RecordMsgSplitNL = record.msg.splitlines()
                 # ^ If the log message supplied contains new lines we will split
                 #   it at the newline mark - each split logged as a separate line.
-                #   ReceivedMessage is a list, even if there was only one line in
-                #   the original log message.
+                #   The splitlines() method creates RecordMsgSplitNL as a list,
+                #   even if there was only one line in the original log message.
 
             SplitLinesMessage = []
                 # ^ Final version of line splitting
 
-            for LineLooper in ReceivedMessage:
+            for LineLooper in RecordMsgSplitNL:
                 if len(LineLooper) < MaxLogLineLength:
                     SplitLinesMessage.append(LineLooper)
 
                 else:
-                    SplitLinesMessage.extend(textwrap.wrap(
+                    TempTextWrapLines = (textwrap.wrap(
                         LineLooper,
-                        width=MaxLogLineLength,
+                        width=(MaxLogLineLength - 15),
                         subsequent_indent='!!LINEWRAPPED!!',
                         drop_whitespace=False))
                         # ^ If line to log is longer than MaxLogLineLength -
                         #   split it into multiple lines and prepend !!LINEWRAPPED!!
-                        #   to the subsequent lines created by the split
-                        #   textwrap.wrap returns a list, therefore we use the extend
-                        #   method on SplitLinesMessage.
+                        #   to the subsequent lines created by the split.
+                        #   Note - textwrap.wrap doesn't know how to append text
+                        #   to wrapped lines, so we must do it manually later.
+                        #   Note - textwrap.wrap returns a list.
+
+                    #   If we needed to wrap long lines let's append the !!LINEWRAPPED!!
+                    #   text to the end of all lines except the last one:
+                    if len(TempTextWrapLines) > 1:
+                        for Looper in range(len(TempTextWrapLines)-1):
+                            TempTextWrapLines[Looper] = ( TempTextWrapLines[Looper] +
+                                '!!LINEWRAPPED!!' )
+
+                    SplitLinesMessage.extend(TempTextWrapLines)
 
             for Counter, Looper in enumerate(SplitLinesMessage):
                 if Counter > 0:
@@ -498,7 +514,10 @@ class CustomHandler(logging.handlers.SysLogHandler):
                         (IndentChar * 4) +
                         Looper )
                         # ^ This adds the indent and .... to all subsequent lines
-                        #   after the first line
+                        #   after the first line.
+                        #   Don't be confused if some lines don't have the
+                        #   !!LINEWRAPPED!! text in them - there could be \n in
+                        #   the string passed, and we made new lines from that.
                 record.msg = Looper
                 super(CustomHandler, self).emit(record)
 
@@ -565,7 +584,7 @@ LogWrite.debug('nccm started with log level = {} as set by '
 
 # The rest of our global variables go here:
 
-__version__ = '1.2.6'       # nccm version string
+__version__ = '1.2.7'       # nccm version string
 
 # Setup the supported directories/pathnames for the connections file.
 # If you want to store nccm.yml in a directory that's not already supported
