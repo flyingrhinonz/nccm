@@ -524,14 +524,20 @@ LogHandler = CustomHandler()
 LogWrite.addHandler(LogHandler)
 
 LogWriteFormatter = logging.Formatter('{}[%(process)d]: <%(levelname)s> '
-    '(PN: %(processName)s , MN: %(module)s , '
+    '({} , PN: %(processName)s , MN: %(module)s , '
     'FN: %(funcName)s , '
     'LI: %(lineno)d , TN: %(threadName)s):    '
-    '%(message)s'.format(SysLogProgName))
+    '%(message)s'
+        .format(SysLogProgName,
+            datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]))
     # ^ Select the attributes to include in the log lines
     #   Documented here: https://docs.python.org/3/library/logging.html
     #     (LogRecord attributes)
+    #
     #   I'm not using:  LN: %(lineno)d  because it's the same as var: SysLogProgName
+    #
+    #   Note: On Python 3.6+ we can get millisecond date using:
+    #       datetime.datetime.now().isoformat(sep=' ', timespec='milliseconds')
 
     # Fields explained:
     #   PN: Process Name
@@ -546,8 +552,8 @@ LogWriteFormatter = logging.Formatter('{}[%(process)d]: <%(levelname)s> '
     #               {}[%(process)d]:
 
     # Example:
-    #   Dec 29 13:14:23 asus303 nccm[27458]: <DEBUG> (PN: MainProcess ,
-    #   MN: cm , FN: SetupWindows , LI: 1251 , TN: MainThread):
+    #   Dec 29 14:35:29 asus303 nccm[31470]: <DEBUG> (2020-12-29 14:35:29.048 ,
+    #   PN: MainProcess , MN: cm , FN: SetupWindows , LI: 1268 , TN: MainThread):
     #   ConnectionsList window built
 
 LogHandler.setFormatter(LogWriteFormatter)
@@ -559,7 +565,7 @@ LogWrite.debug('nccm started with log level = {} as set by '
 
 # The rest of our global variables go here:
 
-__version__ = '1.2.5'       # nccm version string
+__version__ = '1.2.6'       # nccm version string
 
 # Setup the supported directories/pathnames for the connections file.
 # If you want to store nccm.yml in a directory that's not already supported
