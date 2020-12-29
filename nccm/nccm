@@ -524,13 +524,31 @@ LogHandler = CustomHandler()
 LogWrite.addHandler(LogHandler)
 
 LogWriteFormatter = logging.Formatter('{}[%(process)d]: <%(levelname)s> '
-    '(ProcessName: %(processName)s , Module: %(module)s , '
-    'LoggerName: %(name)s , FuncName: %(funcName)s , '
-    'LineNo: %(lineno)d , ThreadName: %(threadName)s):    '
-    '%(message)s'.format('nccm'))
+    '(PN: %(processName)s , MN: %(module)s , '
+    'FN: %(funcName)s , '
+    'LI: %(lineno)d , TN: %(threadName)s):    '
+    '%(message)s'.format(SysLogProgName))
     # ^ Select the attributes to include in the log lines
     #   Documented here: https://docs.python.org/3/library/logging.html
     #     (LogRecord attributes)
+    #   I'm not using:  LN: %(lineno)d  because it's the same as var: SysLogProgName
+
+    # Fields explained:
+    #   PN: Process Name
+    #   MN: Module Name (Also the file name of the first py file that is run
+    #       or the name of the symlink that ran it)
+    #   FN: Function Name
+    #   LI: LIne number
+    #   TN: Thread Name
+    #
+    #       LN: Logger Name (This is the contents of variable: SysLogProgName)
+    #           I'm not using it because it's already used in the first {} of:
+    #               {}[%(process)d]:
+
+    # Example:
+    #   Dec 29 13:14:23 asus303 nccm[27458]: <DEBUG> (PN: MainProcess ,
+    #   MN: cm , FN: SetupWindows , LI: 1251 , TN: MainThread):
+    #   ConnectionsList window built
 
 LogHandler.setFormatter(LogWriteFormatter)
 LogWrite.debug('nccm started with log level = {} as set by '
@@ -541,7 +559,7 @@ LogWrite.debug('nccm started with log level = {} as set by '
 
 # The rest of our global variables go here:
 
-__version__ = '1.2.4'       # nccm version string
+__version__ = '1.2.5'       # nccm version string
 
 # Setup the supported directories/pathnames for the connections file.
 # If you want to store nccm.yml in a directory that's not already supported
@@ -731,6 +749,9 @@ class Connections:
                 .format(ConfigFile, LogWrite.getEffectiveLevel()))
                 # ^ Values documented here:
                 #   https://docs.python.org/3/library/logging.html#levels
+            LogWrite.info('Fields explained: PN: Process Name , MN: Module Name , '
+                'FN: Function Name , LI: LIne number , '
+                'TN: Thread Name')
 
         # Handle loading of the default keepalive value from nccm_config_keepalive:
         self.DefaultKeepAlive = int(self.LoadedServersDict.pop(
