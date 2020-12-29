@@ -495,9 +495,15 @@ class CustomHandler(logging.handlers.SysLogHandler):
                         # ^ If line to log is longer than MaxLogLineLength -
                         #   split it into multiple lines and prepend !!LINEWRAPPED!!
                         #   to the subsequent lines created by the split.
-                        #   Note - textwrap.wrap doesn't know how to append text
+
+                        # ^ Note - We subtract 15 because we're adding !!LINEWRAPPED!!
+                        #   at the end of lines, and we don't want the total length
+                        #   of the log line to exceed MaxLogLineLength .
+
+                        # ^ Note - textwrap.wrap doesn't know how to append text
                         #   to wrapped lines, so we must do it manually later.
-                        #   Note - textwrap.wrap returns a list.
+
+                        # ^ Note - textwrap.wrap returns a list.
 
                     #   If we needed to wrap long lines let's append the !!LINEWRAPPED!!
                     #   text to the end of all lines except the last one:
@@ -1645,4 +1651,5 @@ def main(*args):
 
 if __name__ == '__main__':
         main()
+        LogWrite.debug('nccm exiting...')
 
