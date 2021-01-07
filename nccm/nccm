@@ -436,7 +436,7 @@ import yaml         # Requires: 'pip3 install --user PyYAML'
 
 # Variables that control logging:
 LogLevel = logging.WARNING  # Initial log level of this program
-MaxLogLineLength = 800      # Wrap log lines longer than this many chars.
+MaxLogLineLength = 700      # Wrap log lines longer than this many chars.
                             # Keep a sensible and usable limit.
 SysLogProgName = 'nccm'     # This is how our program is identified in syslog
 Indent = 8                  # Wrapped lines are indented by n spaces to make
@@ -478,15 +478,19 @@ class CustomHandler(logging.handlers.SysLogHandler):
                 #   it at the newline mark - each split logged as a separate line.
                 #   The splitlines() method creates RecordMsgSplitNL as a list,
                 #   even if there was only one line in the original log message.
+                #   Note - lines split because of \n will not get the !!LINEWRAPPED!!
+                #   text prepended/appended at the split points.
 
             SplitLinesMessage = []
                 # ^ Final version of line splitting
 
             for LineLooper in RecordMsgSplitNL:
                 if len(LineLooper) < MaxLogLineLength:
+                    # ^ Normal line length detected
                     SplitLinesMessage.append(LineLooper)
 
                 else:
+                    # ^ Long line detected, need to split
                     TempTextWrapLines = (textwrap.wrap(
                         LineLooper,
                         width=(MaxLogLineLength - 15),
@@ -514,13 +518,17 @@ class CustomHandler(logging.handlers.SysLogHandler):
 
                     SplitLinesMessage.extend(TempTextWrapLines)
 
+            # Finally, return the lines to the class,
+            # adding the indent to lines #2 and above if required:
             for Counter, Looper in enumerate(SplitLinesMessage):
                 if Counter > 0:
                     Looper = ( ((Indent - 4) * ' ') +
                         (IndentChar * 4) +
                         Looper )
                         # ^ This adds the indent and .... to all subsequent lines
-                        #   after the first line.
+                        #   after the first line - and applies to ALL LINES from
+                        #   the second onwards, both for lines split on newline
+                        #   and lines split on length!
                         #   Don't be confused if some lines don't have the
                         #   !!LINEWRAPPED!! text in them - there could be \n in
                         #   the string passed, and we made new lines from that.
@@ -590,7 +598,7 @@ LogWrite.debug('nccm started with log level = {} as set by '
 
 # The rest of our global variables go here:
 
-__version__ = '1.2.7'       # nccm version string
+__version__ = '1.2.9'       # nccm version string
 
 # Setup the supported directories/pathnames for the connections file.
 # If you want to store nccm.yml in a directory that's not already supported
