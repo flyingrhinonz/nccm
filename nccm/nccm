@@ -593,12 +593,14 @@ LogHandler.setFormatter(LogWriteFormatter)
 LogWrite.debug('nccm started with log level = {} as set by '
     'LogWrite.setLevel (hardcoded in the script)'
         .format(LogWrite.getEffectiveLevel()))
+    # ^ Note - this only gets logged if debug level is set in the script
+    #   using the LogLevel variable.
 
 # ^ End of logging setup section
 
 # The rest of our global variables go here:
 
-__version__ = '1.2.9'       # nccm version string
+__version__ = '1.2.10'       # nccm version string
 
 # Setup the supported directories/pathnames for the connections file.
 # If you want to store nccm.yml in a directory that's not already supported
@@ -1559,7 +1561,10 @@ def MainCursesFunction(stdscr):
 
 def LogStartInfo():
     ''' Put any useful logging here - such as startup env details.
-        This will require DEBUG level logging, so set the line as follows:
+        This will require DEBUG level logging, so start nccm
+        in debug mode with the -d command line arg.
+
+        Or set the line as follows:
             LogLevel = logging.DEBUG
     '''
 
@@ -1572,6 +1577,8 @@ def LogStartInfo():
             User = getpass.getuser(),
             UID = os.getuid(),
             PPID = os.getppid(), ))
+
+    LogWrite.debug('nccm __version__ = {}'.format(__version__))
 
 
 def ParseArgs():
@@ -1629,8 +1636,10 @@ def ParseArgs():
 
 def main(*args):
 
-    LogStartInfo()
     ParseArgs()     # Command line args processing happens here
+    LogStartInfo()
+        # ^ Moved it after ParseArgs so that we have debugging info logged if
+        #   started using 'nccm -d' .
     CommandLine = curses.wrapper(MainCursesFunction)
 
     if CommandLine:
@@ -1655,6 +1664,7 @@ def main(*args):
             print('\n***** SSH FAILED! Exit code = {} *****\n'
                 .format(CPE.returncode))
             LogWrite.warning('ssh failed. Exit code = {}'.format(CPE.returncode))
+            LogWrite.warning('Further debug details: {}'.format(CPE))
 
 
 if __name__ == '__main__':
