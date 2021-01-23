@@ -369,6 +369,9 @@ Extra logging controls can be found in the code under the
 Also - more debugging calls exist but are commented out in
 the code due to too much logging. Enable them as required.
 
+To completely disable logging - uncomment this line:
+`logging.disable(level=logging.CRITICAL)`  .
+
 If you find bugs please update to the latest version of
 nccm first (this may include updating your yaml file in
 case the format changed). If the bug persists please report
@@ -540,6 +543,10 @@ class CustomHandler(logging.handlers.SysLogHandler):
                 # ^ Pass it through as-is
 
 
+#logging.disable(level=logging.CRITICAL)
+    # ^ Uncomment this if you want to completely disable logging regardless of any
+    #   logging settings made anywhere else.
+
 LogWrite = logging.getLogger(SysLogProgName)
 LogWrite.setLevel(LogLevel)
     # ^ Set this to logging.DEBUG or logging.WARNING for your INITIAL desired log level.
@@ -600,7 +607,7 @@ LogWrite.debug('nccm started with log level = {} as set by '
 
 # The rest of our global variables go here:
 
-__version__ = '1.2.10'       # nccm version string
+__version__ = '1.2.11'       # nccm version string
 
 # Setup the supported directories/pathnames for the connections file.
 # If you want to store nccm.yml in a directory that's not already supported

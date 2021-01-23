@@ -306,9 +306,19 @@ Troubleshooting
 ---------------
 
 Starting nccm:
-The most common problem is missing Python3 dependencies.
+
+The most common problem for existing installations is
+user errors in the nccm.yml file.
+Try `yamllint nccm.yml`. If yamllint passes and
+nccm still fails: run as `nccm -d` and check syslog for
+errors - you may see a message about the connection item
+line that fails or at least the last line that succeeded.
+
+The most common problem for new installations is
+missing Python3 dependencies.
 Run nccm and read the exception message - it will tell
 you what's missing.
+
 The second most common problem is different nccm and
 nccm.yml versions. This usually happens if you download
 a newer nccm version and use your existing and older
@@ -321,11 +331,6 @@ If this happens, best is to backup your nccm.yml then
 download both nccm and nccm.yml, verify that nccm now
 works properly, then update the newly downloaded nccm.yml
 from your backup copy.
-Another common problem is user errors in the nccm.yml file:
-try `yamllint nccm.yml`. If yamllint passes and
-nccm still fails: run as `nccm -d` and check syslog for
-errors - you may see a message about the connection item
-line that fails or at least the last line that succeeded.
 
 Logging:
 Look at your syslog file for nccm entries. Depending upon
@@ -340,6 +345,9 @@ by `    ....!!LINEWRAPPED!!`.
 
 Increase logging verbosity level to debug using the
 `-d` or `--debug` command line arguments.
+This is by far the easiest way to debug and covers most
+scenarios except for faults that occur before reading
+the `-d` command line argument.
 
 To permanently increase logging verbosity change this line
 in the `nccm.yml` config file to debug:
@@ -357,6 +365,9 @@ Extra logging controls can be found in the code under the
 
 Also - more debugging calls exist but are commented out in
 the code due to too much logging. Enable them as required.
+
+To completely disable logging - uncomment this line:
+`logging.disable(level=logging.CRITICAL)`  .
 
 If you find bugs please update to the latest version of
 nccm first (this may include updating your yaml file in
