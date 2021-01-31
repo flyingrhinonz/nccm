@@ -607,7 +607,7 @@ LogWrite.debug('nccm started with log level = {} as set by '
 
 # The rest of our global variables go here:
 
-__version__ = '1.2.12'       # nccm version string
+__version__ = '1.2.13'       # nccm version string
 
 # Setup the supported directories/pathnames for the connections file.
 # If you want to store nccm.yml in a directory that's not already supported
@@ -842,6 +842,9 @@ class Connections:
                 # whilst ServerXSNum is being used as the dict key here do not
                 # assume that it'll be the ServerXSNum beyond this point. Always
                 # use FSL.ServerXSNum if you want it.
+
+                SshUserFromLogin = False
+                    # ^ Did we recover UserName from login user?
                 FSL = self.FullServersList[ServerXSNum] # too much typing. :)
                 FSL.ServerXSNum = ServerXSNum
                 FSL.FriendlyName = FriendlyName
@@ -862,9 +865,25 @@ class Connections:
 
                 # 'user:' not present, extract username from friendly name:
                 if not FSL.UserName:
-                    LogWrite.debug('FSL.UserName was false. Trying to decode it '
-                        'from friendlyname (user@address) ...')
-                    FSL.UserName = FriendlyName.split(sep='@', maxsplit=1)[0]
+                    LogWrite.debug('FSL.UserName was False. Trying to decode it '
+                        'from FriendlyName (user@address) ...')
+                    #FSL.UserName = FriendlyName.split(sep='@', maxsplit=1)[0]
+                        # ^ Old code, prior to adding support for no username
+                    TempSplit = FriendlyName.split(sep='@', maxsplit=1)
+                    if len(TempSplit) == 2:
+                        FSL.UserName = TempSplit[0]
+                        LogWrite.debug('FSL.UserName successfully decoded '
+                            'from FriendlyName)')
+                    elif len(TempSplit) == 1:
+                        FSL.UserName = getpass.getuser()
+                        LogWrite.debug('FriendlyName contains only one field - assuming '
+                            'this is server Address. '
+                            'FSL.UserName taken from currently logged in user name')
+                        SshUserFromLogin = True
+                    else:
+                        LogWrite.warn('Something wrong with config: '
+                            'TempSplit = {}'.format(TempSplit))
+                            # ^ Probably will crash soon...
                     LogWrite.debug('FSL.UserName = {}'.format(FSL.UserName))
 
                 # Get FSL.Address:
@@ -873,15 +892,27 @@ class Connections:
 
                 # 'address:' not present, extract address from friendly name:
                 if not FSL.Address:
-                    LogWrite.debug('FSL.Address was false. Trying to decode it '
-                        'from friendlyname (user@address) ...')
-                    FSL.Address = FriendlyName.split(sep='@', maxsplit=1)[1]
+                    LogWrite.debug('FSL.Address was False. Trying to decode it '
+                        'from FriendlyName (user@address) ...')
+                    FSL.Address = FriendlyName.split(sep='@', maxsplit=1)[-1]
+                        # ^ Assuming the last element is always the address component.
+                        #   When user@ is not supplied this will work too - because
+                        #   we will have a list length of 1.
                     LogWrite.debug('FSL.Address = {}'.format(FSL.Address))
 
                 FSL.UserAddr = '{}@{}'.format(FSL.UserName, FSL.Address) # for convenience
 
                 FSL.Comment = self.LoadedServersDict[FriendlyName].get('comment', '')
                     # ^ .get because item my be empty
+
+                # If we recovered the ssh login user name from the currently logged in
+                # username - add this text to the comment so the user will know where
+                # their user name is coming from:
+                if SshUserFromLogin:
+                    if FSL.Comment:
+                        FSL.Comment += ' '
+                            # ^ Pretty formtting, nothing else...
+                    FSL.Comment += '[{}@ from login user]'.format(FSL.UserName)
 
                 FSL.KeepAlive = self.LoadedServersDict[FriendlyName].get(
                     'keepalive', self.DefaultKeepAlive)
@@ -906,8 +937,8 @@ class Connections:
                 if isinstance(FSL.CustomArgs, str):
                     FSL.CustomArgs = shlex.split(FSL.CustomArgs)
 
-                LogWrite.debug('ServerXSNum = {} , FriendlyName = {} , UserName = {}'
-                    'Address = {} , UserAddr = {}, Comment = {} , KeepAlive = {} , '
+                LogWrite.debug('ServerXSNum = {} , FriendlyName = {} , UserName = {} , '
+                    'Address = {} , UserAddr = {} , Comment = {} , KeepAlive = {} , '
                     'Identity = {} , CustomArgs = {}'
                         .format(FSL.ServerXSNum, FSL.FriendlyName,
                             FSL.UserName, FSL.Address, FSL.UserAddr,
@@ -1658,6 +1689,15 @@ def main(*args):
 
         try:
             subprocess.run(CommandLine, check=True)          # Connect to the ssh server
+
+        except subprocess.CalledProcessError as CPE:
+            print('\n***** ssh exit code = {} *****'
+                .format(CPE.returncode))
+            print('Further debug details: {}'.format(CPE))
+            LogWrite.warning('ssh exit code = {}'.format(CPE.returncode))
+            LogWrite.warning('Further debug details: {}'.format(CPE))
+
+        finally:
             EndTime = time.time()
             SessionTime = round(EndTime - StartTime)
             print('\nnccm: Completed ssh using:\n{}\nSession time was: '
@@ -1666,13 +1706,6 @@ def main(*args):
                         SessionTime))
             LogWrite.debug('Completed ssh using: {} . SessionTime was: {} seconds'
                 .format(' '.join(CommandLine), SessionTime))
-
-        except subprocess.CalledProcessError as CPE:
-            print('\n***** SSH FAILED! Exit code = {} *****\n'
-                .format(CPE.returncode))
-            print('Further debug details: {}'.format(CPE))
-            LogWrite.warning('ssh failed. Exit code = {}'.format(CPE.returncode))
-            LogWrite.warning('Further debug details: {}'.format(CPE))
 
 
 if __name__ == '__main__':

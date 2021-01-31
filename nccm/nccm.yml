@@ -19,8 +19,10 @@
 #     customargs: CUSTOM_ARGS
 #
 #   Details:
-#       FRIENDLY_NAME - Can be any freetext descriptive name or user@server:
-#         (mandatory field).
+#       FRIENDLY_NAME (mandatory field). Can be any of:
+#         Freetext descriptive name:
+#         user@server:
+#         server:
 #       USER_NAME - Your login name (optional field).
 #       SERVER_ADDRESS - Hostname or IP address (optional field).
 #       FREETEXT_COMMENT - Any freetext you like to store as a comment on
@@ -35,15 +37,27 @@
 #         are not currently supported in nccm. These will be appended to
 #         the end of the ssh command at connection time (optional field).
 #
-# You can also supply FRIENDLY_NAME as:
-#     user@server:
-#   if you don't want to supply any of the details fields
-#   as in these examples (don't indent):
-#     root@10.10.1.1:
-#     user@example2.com:
+# You can supply FRIENDLY_NAME as:
+#   1.  Descriptive text - this is just a descriptive freetext name and
+#       the real username & servername will be read from their own fields.
+#       This is the default state and nccm will always prefer taking the
+#       username & servername from their dedicated fields if supplied.
 #
-# In this case user name and address will be extracted from friendly name
-#   automatically.
+#   2. user@server:
+#       Use this format if you don't want to supply any of the details
+#       fields as in these examples (don't indent). The username &
+#       servername will be decoded from this line:
+#         root@10.10.1.1:
+#         user@example2.com:
+#
+#   3.  servername:
+#         It's also possible to supply only the server address without
+#         username. In this case nccm will read your currently logged in
+#         user name and use that as the ssh login name (don't indent).
+#         This will also append: [user@ from login user] to the comment text:
+#           myserver:
+#           192.168.1.1:
+#
 #
 # Once you're done editing this file, verify it as follows:
 #   yamllint nccm.yaml
@@ -120,6 +134,13 @@ root@10.10.2.2:   # Note how nothing else is supplied...
 
 user@example2.com:
   comment: Comment supplied, user/server extracted from FriendlyName
+
+192.168.20.1:
+  comment: Only server supplied. Currenly logged in username will be used
+
+server.example.com:
+# ^ Here nothing else is supplied, just the server name.
+#   Again, the currently logged in username will be used
 
 # The final line of yaml must have content. yamllint will complain if you
 #   leave empty lines at the bottom.
