@@ -98,6 +98,12 @@ nccm_config_promptuser: false
 #   the server (set to true). This may be useful in some cases, especially
 #   if you need to resize your window before the connection is made.
 
+nccm_config_logpath: false
+# ^ Path to save the session log file. Set to false to disable logging.
+#   Supply something like: /home/myname/nccm_logs/
+#   Uses tee to create a copy of the ssh output. You can view this file
+#   with regular 'cat' or catstep.
+
 
 # connections configs:
 
