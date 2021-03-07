@@ -156,8 +156,10 @@ prompt the user to press Enter before a connection is made.
 
 `nccm_config_logpath`
 If you want nccm to save a copy of ssh output using `tee`
-set this to the logfile path. Use `cat` or `catstep` to
-view the resulting file.
+set this to the logfile path. Tip - use `cat` or `catstep`
+to view the resulting file.
+If this dir is missing nccm will log a warning and
+continue running.
 
 
 Controls
@@ -621,7 +623,7 @@ LogWrite.debug('nccm started with log level = {} as set by '
 
 # The rest of our global variables go here:
 
-__version__ = '1.3.2'       # nccm version string
+__version__ = '1.3.3'       # nccm version string
 
 # Setup the supported directories/pathnames for the connections file.
 # If you want to store nccm.yml in a directory that's not already supported
@@ -850,6 +852,8 @@ class Connections:
         if self.LogPath:        # If supplied, validate this is a legitimate dir:
             if not pathlib.Path(self.LogPath).is_dir():
                 self.LogPath = False
+                LogWrite.warn('nccm_config_logpath = {} not found. nccm will continue'
+                    'to run without logging'.format(self.LogPath))
 
         # ^ The config items nccm_config_* have been removed from
         # self.LoadedServersDict , leaving us with only the ssh connection

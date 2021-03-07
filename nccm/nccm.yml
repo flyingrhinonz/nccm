@@ -101,8 +101,10 @@ nccm_config_promptuser: false
 nccm_config_logpath: false
 # ^ Path to save the session log file. Set to false to disable logging.
 #   Supply something like: /home/myname/nccm_logs/
+#   You can use or skip the trailing slash - nccm can handle either.
 #   Uses tee to create a copy of the ssh output. You can view this file
 #   with regular 'cat' or catstep.
+#   If nccm cant find this path it will continue to run without logging.
 
 
 # connections configs:
