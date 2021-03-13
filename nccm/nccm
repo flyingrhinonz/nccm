@@ -623,7 +623,7 @@ LogWrite.debug('nccm started with log level = {} as set by '
 
 # The rest of our global variables go here:
 
-__version__ = '1.3.3'       # nccm version string
+__version__ = '1.3.5'       # nccm version string
 
 # Setup the supported directories/pathnames for the connections file.
 # If you want to store nccm.yml in a directory that's not already supported
@@ -855,6 +855,16 @@ class Connections:
                 LogWrite.warn('nccm_config_logpath = {} not found. nccm will continue'
                     'to run without logging'.format(self.LogPath))
 
+        if self.LogPath:        # If logging is still valid, log window dimensions
+            LogWrite.info('ScreenHeight = {} , ScreenWidth = {} . '
+                'You might need these dimensions if you are replaying this '
+                'log with catstep'
+                    .format(ScreenHeight, ScreenWidth))
+                # ^ I am logging the window dimensions in case the user needs to
+                #   replay the log with catstep and needs to know the minimum
+                #   window dimensions. Note - if the user changed window size
+                #   later - we won't know of it.
+
         # ^ The config items nccm_config_* have been removed from
         # self.LoadedServersDict , leaving us with only the ssh connection
         # details in it.
@@ -1040,7 +1050,7 @@ class Connections:
 
         if self.LogPath:    # Log file path is set:
             LogFileName = pathlib.PurePath(self.LogPath).joinpath('{}_{}'
-                .format(datetime.datetime.now().strftime('%Y-%m-%d_%H:%M:%S'),
+                .format(datetime.datetime.now().strftime('%Y-%m-%d_%H%M%S'),
                     SelectedEntry.UserAddr.replace('@', '_AT_')))
             CommandLine += ('|', 'tee', str(LogFileName))
 
