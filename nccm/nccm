@@ -155,11 +155,20 @@ server. Set this value to `true` if you want nccm to
 prompt the user to press Enter before a connection is made.
 
 `nccm_config_logpath`
-If you want nccm to save a copy of ssh output using `tee`
-set this to the logfile path. Tip - use `cat` or `catstep`
-to view the resulting file.
-If this dir is missing nccm will log a warning and
-continue running.
+If you want nccm to save a copy of ssh terminal output
+using `tee` - set this to the logfile path.
+If this dir is missing, nccm will log an error and exit -
+either fix the logging or disable it. The reasoning is that
+you have logging on for a reason (either checking it later
+or audit, etc) and it's better to know that logging is not
+working now rather than doing your work and later finding
+out that you don't have a log file.
+To view the resulting file I recommend using `catstep`
+which can replay the file slowly and also let you step
+through it at your own pace - it is available on my
+github page: https://github.com/flyingrhinonz/catstep .
+You can also use the regular Linux `cat` program but the
+output will fly by really fast.
 
 
 Controls
@@ -623,7 +632,7 @@ LogWrite.debug('nccm started with log level = {} as set by '
 
 # The rest of our global variables go here:
 
-__version__ = '1.3.5'       # nccm version string
+__version__ = '1.3.7'       # nccm version string
 
 # Setup the supported directories/pathnames for the connections file.
 # If you want to store nccm.yml in a directory that's not already supported
@@ -851,9 +860,13 @@ class Connections:
 
         if self.LogPath:        # If supplied, validate this is a legitimate dir:
             if not pathlib.Path(self.LogPath).is_dir():
-                self.LogPath = False
-                LogWrite.warn('nccm_config_logpath = {} not found. nccm will continue'
-                    'to run without logging'.format(self.LogPath))
+                LogWrite.error('nccm_config_logpath = {} not found. '
+                    'nccm will not run without logging. Either fix the '
+                    'log path or disable logging'.format(self.LogPath))
+                raise Exception('Log path configured but not found')
+                    # ^ If you configured logging - you meant for it to work, and rely
+                    #   upon it for later checkups or audit. Therefore if
+                    #   it doesn't work it should be fixed or disabled.
 
         if self.LogPath:        # If logging is still valid, log window dimensions
             LogWrite.info('ScreenHeight = {} , ScreenWidth = {} . '

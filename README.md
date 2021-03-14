@@ -151,6 +151,22 @@ By default nccm will connect immediately to the selected
 server. Set this value to `true` if you want nccm to
 prompt the user to press Enter before a connection is made.
 
+`nccm_config_logpath`
+If you want nccm to save a copy of ssh terminal output
+using `tee` - set this to the logfile path.
+If this dir is missing, nccm will log an error and exit -
+either fix the logging or disable it. The reasoning is that
+you have logging on for a reason (either checking it later
+or audit, etc) and it's better to know that logging is not
+working now rather than doing your work and later finding
+out that you don't have a log file.
+To view the resulting file I recommend using `catstep`
+which can replay the file slowly and also let you step
+through it at your own pace - it is available on my
+github page: https://github.com/flyingrhinonz/catstep .
+You can also use the regular Linux `cat` program but the
+output will fly by really fast.
+
 
 Controls
 --------
@@ -253,10 +269,10 @@ sorting purposes.
 The Fn keys may be captured by certain GUIs so we have
 an alternative - when focused on `Conn` window, press
 Shift-1 through 5 (!@#$%) to toggle sorting by the
-respective field number. If you type these special
+respective field number. Pressing the same key again
+reverses the sort order. If you type these special
 characters in the `Filter` textbox they become standard
 filters just like any printable character.
-Pressing the same key again reverses the sort order.
 
 ```
 Column #  Column name       Sort    Alternate sort
@@ -368,6 +384,16 @@ the code due to too much logging. Enable them as required.
 
 To completely disable logging - uncomment this line:
 `logging.disable(level=logging.CRITICAL)`  .
+
+When you use ssh (either directly from the shell or wrapped
+by nccm - ssh always exits with an exit code. Exit code 0
+means normal exit and non zero for other scenarios.
+If you're getting messages from nccm saying ssh exited
+non-zero - try running ssh directly from the shell and
+immediately after it exits type `echo $?` - this will
+display the error code. Remember - nccm doesn't cause ssh
+to exit non-zero, all it does is expose this fact to the
+user.
 
 If you find bugs please update to the latest version of
 nccm first (this may include updating your yaml file in
