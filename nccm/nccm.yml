@@ -102,10 +102,12 @@ nccm_config_logpath: false
 # ^ Path to save the session log file. Set to false to disable logging.
 #   Supply something like: /home/myname/nccm_logs/
 #   You can use or skip the trailing slash - nccm can handle either.
-#   Uses 'tee' to create a copy of the ssh output. You can view this file
+#   Uses 'tee' to create a copy of the ssh output. Best to view this file
 #   with 'catstep' ( get it from: https://github.com/flyingrhinonz/catstep )
 #   or regular 'cat'.
-#   If nccm cant find this path it will exit with an exception.
+#   If nccm cant find this path it will exit with an exception. The reason
+#   being that it's bad if you're expecting logging and it doesn't happen -
+#   either fix the path or disable logging.
 
 
 # connections configs:

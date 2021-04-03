@@ -632,7 +632,7 @@ LogWrite.debug('nccm started with log level = {} as set by '
 
 # The rest of our global variables go here:
 
-__version__ = '1.3.7'       # nccm version string
+__version__ = '1.3.8'       # nccm version string
 
 # Setup the supported directories/pathnames for the connections file.
 # If you want to store nccm.yml in a directory that's not already supported
@@ -963,7 +963,7 @@ class Connections:
                     if FSL.Comment:
                         FSL.Comment += ' '
                             # ^ Pretty formtting, nothing else...
-                    FSL.Comment += '[{}@ from login user]'.format(FSL.UserName)
+                    FSL.Comment += '[{}@ taken from login user]'.format(FSL.UserName)
 
                 FSL.KeepAlive = self.LoadedServersDict[FriendlyName].get(
                     'keepalive', self.DefaultKeepAlive)
@@ -1062,9 +1062,12 @@ class Connections:
             CommandLine += SelectedEntry.CustomArgs
 
         if self.LogPath:    # Log file path is set:
-            LogFileName = pathlib.PurePath(self.LogPath).joinpath('{}_{}'
+            LogFileName = pathlib.PurePath(self.LogPath).joinpath('{}_{}{}'
                 .format(datetime.datetime.now().strftime('%Y-%m-%d_%H%M%S'),
-                    SelectedEntry.UserAddr.replace('@', '_AT_')))
+                    SelectedEntry.UserAddr.replace('@', '_AT_'),
+                    '.tee.log'))
+            LogWrite.debug('LogFileName = {} of type: {}'
+                .format(LogFileName, type(LogFileName)))
             CommandLine += ('|', 'tee', str(LogFileName))
 
         CommandLine = ' '.join(CommandLine)
