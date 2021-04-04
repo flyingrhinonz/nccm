@@ -160,6 +160,12 @@ you have logging on for a reason (either checking it later
 or audit, etc) and it's better to know that logging is not
 working now rather than doing your work and later finding
 out that you don't have a log file.
+The log filename format is:
+{DATE}_{TIME}_{USER}_AT_{SERVER}_{SCREENWIDTH}x{SCREENHEIGHT}.tee.log
+Note - the screen dimensions are those when nccm started
+the connection - they might have changed later on during
+your session.
+
 To view the resulting file I recommend using `catstep`
 which can replay the file slowly and also let you step
 through it at your own pace - it is available on my
