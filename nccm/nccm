@@ -154,6 +154,16 @@ By default nccm will connect immediately to the selected
 server. Set this value to `true` if you want nccm to
 prompt the user to press Enter before a connection is made.
 
+`nccm_config_importnccmd:`
+This setting defines whether nccm should try to import any
+yml files it finds in /etc/nccm.d/ . Useful in a multiuser
+env where each user can have their own nccm.yml as well as
+shared connection details files. These files should be
+called <name>.yml and can only contain connection details
+without any program settings.
+As files are imported - older data will be updated with
+newer data/values.
+
 `nccm_config_logpath`
 If you want nccm to save a copy of ssh terminal output
 using `tee` - set this to the logfile path.
@@ -164,7 +174,7 @@ or audit, etc) and it's better to know that logging is not
 working now rather than doing your work and later finding
 out that you don't have a log file.
 The log filename format is:
-{DATE}_{TIME}_{USER}_AT_{SERVER}_{SCREENWIDTH}x{SCREENHEIGHT}.tee.log
+{DATE}_{TIME}_{USER}_AT_{SERVER}_{SCREENWIDTH}x{SCREENHEIGHT}.nccm.log
 Note - the screen dimensions are those when nccm started
 the connection - they might have changed later on during
 your session.
@@ -266,6 +276,9 @@ Command line arguments
 
 * -m  or --man :
     Display the man page.
+
+* -v or --version :
+    Display nccm version.
 
 
 Sorting
@@ -638,17 +651,24 @@ LogWrite.debug('nccm started with log level = {} as set by '
 
 # The rest of our global variables go here:
 
-__version__ = '1.3.9'       # nccm version string
+__version__ = '1.3.10'      # nccm version string
 
 # Setup the supported directories/pathnames for the connections file.
 # If you want to store nccm.yml in a directory that's not already supported
 # or change the filename, do it here:
 ConfigFile = 'nccm.yml'
+ConfigFileIncDir = '/etc/nccm.d/'
+    # ^ For use by nccm_config_importnccmd
 ConfigFilePath = []
+    # ^ Try to load nccm.yml from these paths whichever is found first
 ConfigFilePath.append(str(pathlib.Path.home()) + '/.config/nccm/' + ConfigFile)
+    # ^ ~/.config/nccm/nccm.yml
 ConfigFilePath.append(str(pathlib.Path.home()) + '/.' + ConfigFile)
+    # ^ ~/.nccm.yml
 ConfigFilePath.append(str(pathlib.Path.home()) + '/' + ConfigFile)
+    # ^ ~/nccm.yml
 ConfigFilePath.append('/etc/' + ConfigFile)
+    # ^ /etc/nccm.yml
 
 ScreenHeight = ScreenWidth = 0      # The terminal window dimensions
 DisplayObjects = []     # A list of window objects that display info on
@@ -777,6 +797,7 @@ class Connections:
     def Load(self):
         ''' Loads the connections file '''
 
+        ImportNccmD = False     # Whether to import yml files from /etc/nccm.d/
         global PromptToContinue
             # ^ Required because the connection is made in main() which does not
             #   have access to these objects.
@@ -793,18 +814,17 @@ class Connections:
             #   This is both the ssh connections details as well as the
             #   nccm_config_* items - all in the same dict.
 
-        # This code is needed because FriendlyName connections without any
-        # config items have a value of None. I need to replace it with {} for
-        # the dict lookups to work later on:
-        for Looper in self.LoadedServersDict:
-            if self.LoadedServersDict[Looper] == None:
-                self.LoadedServersDict[Looper] = {}
-        LogWrite.debug('self.LoadedServersDict = {}'.format(self.LoadedServersDict))
+        LogWrite.debug('self.LoadedServersDict (contains prog settings + conn details) = {}'
+            .format(self.LoadedServersDict))
+            # ^ This dump will have program config + connection config details.
+            #   Soon we will pop out the program config items.
 
         # First we extract config items from self.LoadedServersDict
         # to prevent them from being read as conns later on.
         # After this code block self.LoadedServersDict will be left with only
         # the ssh connection details.
+
+        LogWrite.debug('Extracting program configs from self.LoadedServersDict ...')
 
         # Handle loading of the control mode setting:
         self.ControlMode = self.LoadedServersDict.pop(
@@ -816,7 +836,7 @@ class Connections:
 
         # Handle loading of the loglevel setting:
         if ForceDebugLogging:
-            LogWrite.debug('NCCM was forced to run in debug mode. '
+            LogWrite.debug('nccm was forced to run in debug mode. '
             'Ignoring nccm_config_loglevel from nccm.yml ...')
             self.LoadedServersDict.pop('nccm_config_loglevel', 'WARNING')
                 # ^ Just to remove this setting from the yml config
@@ -858,6 +878,12 @@ class Connections:
         LogWrite.debug('Loaded {} config PromptToContinue = {}'
             .format(ConfigFile, PromptToContinue))
 
+        # Handle loading of the importnccmd value from nccm_config_importnccmd:
+        ImportNccmD = self.LoadedServersDict.pop(
+            'nccm_config_importnccmd', False)
+        LogWrite.debug('Loaded {} config ImportNccmD = {}'
+            .format(ConfigFile, ImportNccmD))
+
         # Handle loading of the LogPath value from nccm_config_logpath:
         self.LogPath = self.LoadedServersDict.pop(
             'nccm_config_logpath', False)
@@ -884,12 +910,50 @@ class Connections:
                 #   window dimensions. Note - if the user changed window size
                 #   later - we won't know of it.
 
-        # ^ The config items nccm_config_* have been removed from
+        # ^ The config items nccm_config_* have been removed with pop from
         # self.LoadedServersDict , leaving us with only the ssh connection
         # details in it.
 
-        LogWrite.debug('Completed loading {} config args, '
-            'next we load the connections details ...'.format(ConfigFile))
+        LogWrite.debug('Done extracting program configs from self.LoadedServersDict. '
+            'Next we import additional connections from {} if configured ...'
+                .format(ConfigFileIncDir))
+
+        # If user wants to import /etc/nccm.d/* then do it here:
+        if ImportNccmD:
+            if pathlib.Path(ConfigFileIncDir).exists():
+                LogWrite.debug('Path: {} found. Proceeding to import yml files from it ...'
+                    .format(ConfigFileIncDir))
+                NccmdFiles = sorted(pathlib.Path(ConfigFileIncDir).glob('*.yml'))
+                LogWrite.debug('NccmdFiles = {}'.format(NccmdFiles))
+
+                for NccmdLooper in NccmdFiles:
+                    LogWrite.debug('Importing NccmdLooper = {} ...'
+                        .format(NccmdLooper))
+                    with open (NccmdLooper, 'r') as NccmdFileToRead:
+                        self.LoadedServersDict.update(yaml.safe_load(NccmdFileToRead))
+
+            else:
+                LogWrite.debug('Path: {} not found. Skipping import feature'
+                    .format(ConfigFileIncDir))
+
+        else:
+            LogWrite.debug('ImportNccmD = {} - not attempting to import connection details '
+                'from {}'
+                    .formaat(ImportNccmD, ConfigFileIncDir))
+
+        # This code is needed because FriendlyName connections without any
+        # config items have a value of None. I need to replace it with {} for
+        # the dict lookups to work later on:
+        for Looper in self.LoadedServersDict:
+            if self.LoadedServersDict[Looper] == None:
+                self.LoadedServersDict[Looper] = {}
+
+        LogWrite.debug('self.LoadedServersDict (by now it contains only conn details) = {}'
+            .format(self.LoadedServersDict))
+            # ^ Now we have all the imported connection details too, and the
+            #   program configs are gone because we pop'ed them out earlier.
+
+        LogWrite.debug('Next we load the connections details ...')
 
         # Populate the FullServersList (list of config items as lists,
         # even unconfigured items):
@@ -1068,15 +1132,16 @@ class Connections:
             CommandLine += SelectedEntry.CustomArgs
 
         if self.LogPath:    # Log file path is set:
-            LogFileName = pathlib.PurePath(self.LogPath).joinpath('{}_{}_{}x{}{}'
+            self.LogFileName = pathlib.PurePath(self.LogPath).joinpath('{}_{}_{}x{}{}'
                 .format(datetime.datetime.now().strftime('%Y-%m-%d_%H%M%S'),
                     SelectedEntry.UserAddr.replace('@', '_AT_'),
                     ScreenWidth,
                     ScreenHeight,
-                    '.tee.log'))
-            LogWrite.debug('LogFileName = {} of type: {}'
-                .format(LogFileName, type(LogFileName)))
-            CommandLine += ('|', 'tee', str(LogFileName))
+                    '.nccm.log'))
+            LogWrite.debug('self.LogFileName = {} , of type: {}'
+                .format(self.LogFileName, type(self.LogFileName)))
+            CommandLine += ('|', 'tee', '--append', str(self.LogFileName))
+            self.WriteLogFileHeader()   # Write info intro to the log file
 
         CommandLine = ' '.join(CommandLine)
         # ^ CommandLine was a list. Let's make it a string. Now looks like:
@@ -1085,6 +1150,25 @@ class Connections:
             'line number) = {} , CommandLine = {}'
                 .format(ServerXSNum, CommandLine))
         return CommandLine
+
+
+    def WriteLogFileHeader(self):
+        ''' Write a few lines to the beginning of self.LogFileName
+            to identify it as created by nccm.
+            Unsuspecting users might open this log file with 'less' or 'vim' and see
+            a lot of unreadable chars; these info lines inform them how to view
+            the log file properly.
+        '''
+
+        IntroText = ( '\n### Info ###\n\n'
+            'This log file was created by nccm:\n'
+            '  https://github.com/flyingrhinonz/nccm\n'
+            'and can be viewed with catstep:\n'
+            '  https://github.com/flyingrhinonz/catstep\n\n'
+            '### Your log follows ###\n' )
+
+        LogFile = pathlib.Path(self.LogFileName)
+        LogFile.write_text(IntroText)
 
 
     def Display(self):
@@ -1713,6 +1797,10 @@ def ParseArgs():
         help='display nccm man page and exit',
         action='store_true' )
 
+    parser.add_argument('-v', '--version',
+        help='show version and exit',
+        action='store_true' )
+
     parser.add_argument('filter_text',
         nargs='*',
         help="supply initial filter text, example: nccm -d xyz abc . "
@@ -1741,6 +1829,10 @@ def ParseArgs():
 
     if args.man:
         DisplayHelp()
+        sys.exit(0)
+
+    if args.version:
+        print(__version__)
         sys.exit(0)
 
 

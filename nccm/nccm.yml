@@ -98,6 +98,15 @@ nccm_config_promptuser: false
 #   the server (set to true). This may be useful in some cases, especially
 #   if you need to resize your window before the connection is made.
 
+nccm_config_importnccmd: true
+# ^ Should nccm try to import whatever yml files exist in /etc/nccm.d/ ?
+#   This is helpful in a multiuser env where each user can have their own
+#   nccm.yml file in their home dir and still benefit from any shared
+#   yml files in /etc/nccm.d/ .
+#   Files in /etc/nccm.d/ should be called <name>.yml , and following
+#   the same connections config format as used here but must not include
+#   any program settings values - only connections details.
+
 nccm_config_logpath: false
 # ^ Path to save the session log file. Set to false to disable logging.
 #   Supply something like: /home/myname/nccm_logs/

@@ -151,6 +151,16 @@ By default nccm will connect immediately to the selected
 server. Set this value to `true` if you want nccm to
 prompt the user to press Enter before a connection is made.
 
+`nccm_config_importnccmd:`
+This setting defines whether nccm should try to import any
+yml files it finds in /etc/nccm.d/ . Useful in a multiuser
+env where each user can have their own nccm.yml as well as
+shared connection details files. These files should be
+called <name>.yml and can only contain connection details
+without any program settings.
+As files are imported - older data will be updated with
+newer data/values.
+
 `nccm_config_logpath`
 If you want nccm to save a copy of ssh terminal output
 using `tee` - set this to the logfile path.
@@ -161,7 +171,7 @@ or audit, etc) and it's better to know that logging is not
 working now rather than doing your work and later finding
 out that you don't have a log file.
 The log filename format is:
-{DATE}_{TIME}_{USER}_AT_{SERVER}_{SCREENWIDTH}x{SCREENHEIGHT}.tee.log
+{DATE}_{TIME}_{USER}_AT_{SERVER}_{SCREENWIDTH}x{SCREENHEIGHT}.nccm.log
 Note - the screen dimensions are those when nccm started
 the connection - they might have changed later on during
 your session.
@@ -263,6 +273,9 @@ Command line arguments
 
 * -m  or --man :
     Display the man page.
+
+* -v or --version :
+    Display nccm version.
 
 
 Sorting
