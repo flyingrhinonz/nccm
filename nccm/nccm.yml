@@ -97,6 +97,7 @@ nccm_config_promptuser: false
 # ^ Prompt user to press Enter before nccm makes the ssh connection to
 #   the server (set to true). This may be useful in some cases, especially
 #   if you need to resize your window before the connection is made.
+#   Supported values: true, false
 
 nccm_config_importnccmd: true
 # ^ Should nccm try to import whatever yml files exist in /etc/nccm.d/ ?
@@ -106,6 +107,7 @@ nccm_config_importnccmd: true
 #   Files in /etc/nccm.d/ should be called <name>.yml , and following
 #   the same connections config format as used here but must not include
 #   any program settings values - only connections details.
+#   Supported values: true, false
 
 nccm_config_logpath: false
 # ^ Path to save the session log file. Set to false to disable logging.
@@ -115,8 +117,8 @@ nccm_config_logpath: false
 #   with 'catstep' ( get it from: https://github.com/flyingrhinonz/catstep )
 #   or regular 'cat'.
 #   If nccm cant find this path it will exit with an exception. The reason
-#   being that it's bad if you're expecting logging and it doesn't happen -
-#   either fix the path or disable logging.
+#   being that it's bad if you're expecting logging to occur and it doesn't
+#   happen - either fix the path or disable logging.
 
 
 # connections configs:

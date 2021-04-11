@@ -160,6 +160,8 @@ called <name>.yml and can only contain connection details
 without any program settings.
 As files are imported - older data will be updated with
 newer data/values.
+Note - nccm.yml from one of the supported directories is
+loaded first, then /etc/nccm.d/*.yml are imported.
 
 `nccm_config_logpath`
 If you want nccm to save a copy of ssh terminal output
