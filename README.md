@@ -122,6 +122,9 @@ Controls the cursor movement mode. Two modes are supported:
 
 `nccm_config_loglevel`:
 Controls log level of messages sent by nccm to syslog.
+If you are using systemd it usually captures syslog
+messages which you can read in `journalctl`. I will use
+the word syslog in this documentation as referral to both.
 Use this for debugging. Default level is warning.
 Supported levels: debug, info, warning, error, critical
 
@@ -184,6 +187,12 @@ through it at your own pace - it is available on my
 github page: https://github.com/flyingrhinonz/catstep .
 You can also use the regular Linux `cat` program but the
 output will fly by really fast.
+
+`nccm_loop_nccm`
+Run nccm in a loop - when you exit out of your ssh session
+nccm menu will reappear. You are allowed to resize your
+window outside nccm and the new window size will apply when
+nccm menu reappears after you exit from your ssh session.
 
 
 Controls

@@ -125,6 +125,9 @@ Controls the cursor movement mode. Two modes are supported:
 
 `nccm_config_loglevel`:
 Controls log level of messages sent by nccm to syslog.
+If you are using systemd it usually captures syslog
+messages which you can read in `journalctl`. I will use
+the word syslog in this documentation as referral to both.
 Use this for debugging. Default level is warning.
 Supported levels: debug, info, warning, error, critical
 
@@ -187,6 +190,12 @@ through it at your own pace - it is available on my
 github page: https://github.com/flyingrhinonz/catstep .
 You can also use the regular Linux `cat` program but the
 output will fly by really fast.
+
+`nccm_loop_nccm`
+Run nccm in a loop - when you exit out of your ssh session
+nccm menu will reappear. You are allowed to resize your
+window outside nccm and the new window size will apply when
+nccm menu reappears after you exit from your ssh session.
 
 
 Controls
@@ -653,7 +662,7 @@ LogWrite.debug('nccm started with log level = {} as set by '
 
 # The rest of our global variables go here:
 
-__version__ = '1.3.12'      # nccm version string
+__version__ = '1.4.2'      # nccm version string
 
 # Setup the supported directories/pathnames for the connections file.
 # If you want to store nccm.yml in a directory that's not already supported
@@ -672,11 +681,6 @@ ConfigFilePath.append(str(pathlib.Path.home()) + '/' + ConfigFile)
 ConfigFilePath.append('/etc/' + ConfigFile)
     # ^ /etc/nccm.yml
 
-ScreenHeight = ScreenWidth = 0      # The terminal window dimensions
-DisplayObjects = []     # A list of window objects that display info on
-                        #   the screen (no user input)
-TextboxObjects = []     # A list of editable textbox windows (user input)
-
 HelpMenuItems = collections.OrderedDict((
     ( 'Arrows',     'Scroll' ),
     ( 'Enter',      'Select' ),
@@ -684,17 +688,39 @@ HelpMenuItems = collections.OrderedDict((
     ( 'ctrl-q',     'Quit' ),
 ))
 
+
+class GlobalConfig:
+    ''' This is used as a simple global variable storage because GlobalConfig only
+        exists in the global scope, all references to it will escalate here '''
+
+    PromptToContinue = False
+        # ^ Prompt user to press Enter before connecting
+    LoopNccm = False
+        # ^ Run nccm in a loop after exiting from ssh?
+    FilterTextArg = ''
+        # ^ Filter text supplied at the command line
+    ForceDebugLogging = False
+        # ^ Force debug logging - will be set properly shortly
+    ScreenHeight = ScreenWidth = 0
+        # ^ The terminal window dimensions
+    DisplayObjects = []
+        # ^ A list of window objects that display info on
+        #   the screen (no user input)
+    TextboxObjects = []
+        # ^ A list of editable textbox windows (user input)
+
+
+
 # If the log level was set to debug in the variable we set earlier -
 #   LogLevel = logging.DEBUG - then enforce debug level logging
 # regardless of whether the debug switch (-d) was supplied or not,
 # and ignore nccm.yml nccm_config_loglevel setting:
 if LogWrite.getEffectiveLevel() <= 10:
-    ForceDebugLogging = True    # Force debug logging
+    GlobalConfig.ForceDebugLogging = True
+        # ^ Force debug logging
 else:
-    ForceDebugLogging = False   # Let future functions determine log level
-
-FilterTextArg = ''          # Filter text supplied at the command line
-PromptToContinue = False    # Prompt user to press Enter before connecting
+    GlobalConfig.ForceDebugLogging = False
+        # ^ Let future functions determine log level
 
 
 class HelpTextDisplay:
@@ -725,7 +751,7 @@ class BasicTextDisplay:
 
 
     def Display(self):
-        LogWrite.debug('class BasicTextDisplay: {} method Display completed'
+        LogWrite.debug('class: BasicTextDisplay, instance: {} - method Display completed'
             .format(self.Name))
         self.Window.noutrefresh()
 
@@ -800,9 +826,6 @@ class Connections:
         ''' Loads the connections file '''
 
         ImportNccmD = False     # Whether to import yml files from /etc/nccm.d/
-        global PromptToContinue
-            # ^ Required because the connection is made in main() which does not
-            #   have access to these objects.
 
         for FileLooper in ConfigFilePath:
             if pathlib.Path(FileLooper).exists():
@@ -837,11 +860,12 @@ class Connections:
             .format(ConfigFile, self.ControlMode))
 
         # Handle loading of the loglevel setting:
-        if ForceDebugLogging:
+        if GlobalConfig.ForceDebugLogging:
             LogWrite.debug('nccm was forced to run in debug mode. '
             'Ignoring nccm_config_loglevel from nccm.yml ...')
             self.LoadedServersDict.pop('nccm_config_loglevel', 'WARNING')
-                # ^ Just to remove this setting from the yml config
+                # ^ Just to remove this setting from the yml config so we won't read
+                #   it and override the user's desire for debug logging...
 
         else:
             LogWrite.setLevel(getattr(logging, self.LoadedServersDict.pop
@@ -874,17 +898,23 @@ class Connections:
         LogWrite.debug('Loaded {} config self.SshProgram = {}'
             .format(ConfigFile, self.SshProgram))
 
-        # Handle loading of the PromptToContinue value from nccm_config_promptuser:
-        PromptToContinue = self.LoadedServersDict.pop(
+        # Handle loading of the GlobalConfig.PromptToContinue value from nccm_config_promptuser:
+        GlobalConfig.PromptToContinue = self.LoadedServersDict.pop(
             'nccm_config_promptuser', False)
-        LogWrite.debug('Loaded {} config PromptToContinue = {}'
-            .format(ConfigFile, PromptToContinue))
+        LogWrite.debug('Loaded {} config GlobalConfig.PromptToContinue = {}'
+            .format(ConfigFile, GlobalConfig.PromptToContinue))
 
         # Handle loading of the importnccmd value from nccm_config_importnccmd:
         ImportNccmD = self.LoadedServersDict.pop(
             'nccm_config_importnccmd', False)
         LogWrite.debug('Loaded {} config ImportNccmD = {}'
             .format(ConfigFile, ImportNccmD))
+
+        # Handle loading of the GlobalConfig.LoopNccm value from nccm_loop_nccm:
+        GlobalConfig.LoopNccm = self.LoadedServersDict.pop(
+            'nccm_loop_nccm', False)
+        LogWrite.debug('Loaded {} config GlobalConfig.LoopNccm = {}'
+            .format(ConfigFile, GlobalConfig.LoopNccm))
 
         # Handle loading of the LogPath value from nccm_config_logpath:
         self.LogPath = self.LoadedServersDict.pop(
@@ -903,10 +933,10 @@ class Connections:
                     #   it doesn't work it should be fixed or disabled.
 
         if self.LogPath:        # If logging is still valid, log window dimensions
-            LogWrite.info('ScreenHeight = {} , ScreenWidth = {} . '
+            LogWrite.info('GlobalConfig.ScreenHeight = {} , GlobalConfig.ScreenWidth = {} . '
                 'You might need these dimensions if you are replaying this '
                 'log with catstep'
-                    .format(ScreenHeight, ScreenWidth))
+                    .format(GlobalConfig.ScreenHeight, GlobalConfig.ScreenWidth))
                 # ^ I am logging the window dimensions in case the user needs to
                 #   replay the log with catstep and needs to know the minimum
                 #   window dimensions. Note - if the user changed window size
@@ -1137,8 +1167,8 @@ class Connections:
             self.LogFileName = pathlib.PurePath(self.LogPath).joinpath('{}_{}_{}x{}{}'
                 .format(datetime.datetime.now().strftime('%Y-%m-%d_%H%M%S'),
                     SelectedEntry.UserAddr.replace('@', '_AT_'),
-                    ScreenWidth,
-                    ScreenHeight,
+                    GlobalConfig.ScreenWidth,
+                    GlobalConfig.ScreenHeight,
                     '.nccm.log'))
             LogWrite.debug('self.LogFileName = {} , of type: {}'
                 .format(self.LogFileName, type(self.LogFileName)))
@@ -1182,7 +1212,7 @@ class Connections:
             'NewScreenHeight = {} , NewScreenWidth = {} '
                 .format(NewScreenHeight, NewScreenWidth))
 
-        if NewScreenHeight != ScreenHeight or NewScreenWidth != ScreenWidth:
+        if NewScreenHeight != GlobalConfig.ScreenHeight or NewScreenWidth != GlobalConfig.ScreenWidth:
             RestoreTerminal(self.stdscr)
             print('\nnccm: Resizing the window during menu display is not permitted.\n'
                 'You may resize the window during or after connection initiation.\n')
@@ -1257,7 +1287,7 @@ class Connections:
             self.Window.addstr('\n')
 
         self.Window.noutrefresh()
-        LogWrite.debug('class Connections: {} method Display completed. '
+        LogWrite.debug('class: Connections, instance: {} method Display completed. '
             'Number of results = {} , number of displayed results = {}'
             .format(self.Name, len(self.ResultsList), self.DisplayResultsCount))
 
@@ -1269,7 +1299,7 @@ class TextBox:
         BeginY=None, BeginX=None, ColorPair=0, FilterText='',
         Name=False):
 
-        LogWrite.debug('class TextBox, method __init__ started wth: '
+        LogWrite.debug('class TextBox, method __init__ started with: '
             'Name = {} , LinesCount = {} , ColsCount = {} BeginY = {} , '
             'BeginX = {} , ColorPair = {} , FilterText = {}'
                 .format(Name, LinesCount, ColsCount, BeginY, BeginX,
@@ -1293,9 +1323,9 @@ class TextBox:
 
 
     def Display(self):
-        LogWrite.debug('class TextBox: {} method Display completed'
-            .format(self.Name))
         self.Window.noutrefresh()
+        LogWrite.debug('class: TextBox, instance: {} - method Display completed'
+            .format(self.Name))
 
 
     def ZeroCursor(self):
@@ -1342,8 +1372,31 @@ class TextBox:
         self.Window.addstr(0, 0, self.Text)
 
 
+def LogGlobalConfig():
+    ''' Log all the GlobalConfig vars for debugging purposes '''
+
+    LogWrite.debug('Displaying variables of class GlobalConfig:\n'
+        'GlobalConfig.PromptToContinue = {}\n'
+        'GlobalConfig.LoopNccm = {}\n'
+        'GlobalConfig.FilterTextArg = {}\n'
+        'GlobalConfig.ForceDebugLogging = {}\n'
+        'GlobalConfig.ScreenHeight = {}\n'
+        'GlobalConfig.ScreenWidth = {}\n'
+        'GlobalConfig.DisplayObjects: total = {} , details = {}\n'
+        'GlobalConfig.TextboxObjects: total = {} , details = {}\n'
+            .format(GlobalConfig.PromptToContinue,
+                GlobalConfig.LoopNccm,
+                GlobalConfig.FilterTextArg,
+                GlobalConfig.ForceDebugLogging,
+                GlobalConfig.ScreenHeight,
+                GlobalConfig.ScreenWidth,
+                len(GlobalConfig.DisplayObjects), GlobalConfig.DisplayObjects,
+                len(GlobalConfig.TextboxObjects), GlobalConfig.TextboxObjects) )
+
+
 def qw(liststr: str):
     ''' analogous to Perl's qw() - split on whitespace and return list '''
+
     if liststr is None:
         return None
     else:
@@ -1353,7 +1406,7 @@ def qw(liststr: str):
 def PressEnterToCont():
     ''' A simple wait until Enter key pressed '''
 
-    if PromptToContinue:
+    if GlobalConfig.PromptToContinue:
         LogWrite.debug('Waiting for user to press Enter...')
         Ans = input('Press Enter to continue... ')
 
@@ -1371,12 +1424,10 @@ def RestoreTerminal(stdscr):
 
 
 def UpdateDisplay():
-    ''' The window objects were added to DisplayObjects list,
+    ''' The window objects were added to GlobalConfig.DisplayObjects list,
         so here we need to use the Display method of those objects. '''
 
-    global DisplayObjects
-
-    for Looper in DisplayObjects:
+    for Looper in GlobalConfig.DisplayObjects:
         LogWrite.debug('Calling Looper = {} Display method ...'.format(Looper))
         Looper.Display()
 
@@ -1389,10 +1440,7 @@ def UpdateDisplay():
 def SetupCurses(stdscr):
     ''' Put all pre-run tests here. Any failure will exit the program. '''
 
-
-    global ScreenHeight, ScreenWidth
-    global FilterTextArg
-
+    LogWrite.debug('Function SetupCurses started')
     curses.curs_set(1)          # Enable the blinking cursor
     curses.noecho()             # Disable echo to the terminal
     stdscr.keypad(True)
@@ -1410,83 +1458,93 @@ def SetupCurses(stdscr):
         LogWrite.warning('This program requires color support')
         return False
 
-    ScreenHeight, ScreenWidth = stdscr.getmaxyx()
-    LogWrite.debug('ScreenHeight = {} , ScreenWidth = {}'
-        .format(ScreenHeight, ScreenWidth))
+    GlobalConfig.ScreenHeight, GlobalConfig.ScreenWidth = stdscr.getmaxyx()
+    LogWrite.debug('GlobalConfig.ScreenHeight = {} , GlobalConfig.ScreenWidth = {}'
+        .format(GlobalConfig.ScreenHeight, GlobalConfig.ScreenWidth))
 
-    if ScreenWidth < 60 or ScreenHeight < 15:
+    if GlobalConfig.ScreenWidth < 60 or GlobalConfig.ScreenHeight < 15:
         RestoreTerminal(stdscr)
         print('\nnccm: Window must be at least 60x15\n')
         LogWrite.warning('Window must be at least 60x15. '
-            'ScreenHeight = {} , ScreenWidth = {}'
-                .format(ScreenHeight, ScreenWidth))
+            'GlobalConfig.ScreenHeight = {} , GlobalConfig.ScreenWidth = {}'
+                .format(GlobalConfig.ScreenHeight, GlobalConfig.ScreenWidth))
         return False
 
-    if len(FilterTextArg) > ScreenWidth-32:
+    if len(GlobalConfig.FilterTextArg) > GlobalConfig.ScreenWidth-32:
         RestoreTerminal(stdscr)
         print('\nnccm: Filter text too long ({} chars). '
             'For your window size enter no more than {} chars\n'
-                .format(len(FilterTextArg), ScreenWidth-32))
+                .format(len(GlobalConfig.FilterTextArg), GlobalConfig.ScreenWidth-32))
         LogWrite.warning('nccm: Filter text too long ({} chars). '
             'For your window size enter no more than {} chars\n'
-                .format(len(FilterTextArg), ScreenWidth-32))
+                .format(len(GlobalConfig.FilterTextArg), GlobalConfig.ScreenWidth-32))
         return False
+
+    LogWrite.debug('Function SetupCurses should have completed successfully')
 
 
 def SetupWindows(stdscr):
     ''' Create the various windows '''
 
-    global ScreenHeight, ScreenWidth
-    global DisplayObjects
-    global TextboxObjects
-
     LogWrite.debug('Function SetupWindows started - create the various windows')
 
+    GlobalConfig.DisplayObjects = []
+        # ^ Need to reset this otherwise we'll end up with multiple windows
+        #   being drawn due to the line GlobalConfig.DisplayObjects.append(...)
+        #   You will see the bad result of this if you run nccm in a loop and
+        #   make the screen smaller after connection establishment.
+        #   It's visible in function LogGlobalConfig where the
+        #   GlobalConfig.DisplayObjects list keeps growing.
+
+    GlobalConfig.TextboxObjects = []
+        # ^ Same comment as above in regards to the list needing to be reset...
+
     # Help text display window:
-    HelpBox = HelpTextDisplay(LinesCount=1, ColsCount=ScreenWidth,
-        BeginY=ScreenHeight-1, BeginX=0)
-    DisplayObjects.append(HelpBox)      # Add this window to the displayable windows
-    LogWrite.debug('HelpBox window built')
+    HelpBox = HelpTextDisplay(LinesCount=1, ColsCount=GlobalConfig.ScreenWidth,
+        BeginY=GlobalConfig.ScreenHeight-1, BeginX=0)
+    GlobalConfig.DisplayObjects.append(HelpBox)
+        # ^ Add this window to the displayable windows
+    LogWrite.debug('HelpBox window built (the line that displays help text)')
 
     # Connection text display window:
     ConnText = BasicTextDisplay(LinesCount=1, ColsCount=10,
-        BeginY=ScreenHeight-3, BeginX=2, Text='Conn #', ColorPair=1,
+        BeginY=GlobalConfig.ScreenHeight-3, BeginX=2, Text='Conn #', ColorPair=1,
         Name='ConnText')
-    DisplayObjects.append(ConnText)
-    LogWrite.debug('ConnText window built')
+    GlobalConfig.DisplayObjects.append(ConnText)
+    LogWrite.debug('ConnText window built (the text that displays "Conn #")')
 
     # Connection text input window:
     ConnBox = TextBox(LinesCount=1, ColsCount=8,
-        BeginY=ScreenHeight-3, BeginX=10, ColorPair=3,
+        BeginY=GlobalConfig.ScreenHeight-3, BeginX=10, ColorPair=3,
         FilterText='', Name='ConnBox')
-    DisplayObjects.append(ConnBox)
+    GlobalConfig.DisplayObjects.append(ConnBox)
         # ^ Add this window to the displayable windows
-    TextboxObjects.append(ConnBox)
+    GlobalConfig.TextboxObjects.append(ConnBox)
         # ^ Add this window to the windows that store user input.
         #   We do this because later we filter the ConnectionsList
         #   display output based upon the text here.
-    LogWrite.debug('ConnBox window built')
+    LogWrite.debug('ConnBox window built (the textbox that accepts user input)')
 
     # Filter text display window:
     FilterText = BasicTextDisplay(LinesCount=1, ColsCount=10,
-        BeginY=ScreenHeight-3, BeginX=20, Text='Filter:', ColorPair=1,
+        BeginY=GlobalConfig.ScreenHeight-3, BeginX=20, Text='Filter:', ColorPair=1,
         Name='FilterText')
-    DisplayObjects.append(FilterText)
-    LogWrite.debug('FilterText window built')
+    GlobalConfig.DisplayObjects.append(FilterText)
+    LogWrite.debug('FilterText window built (the text that displays "Filter:")')
 
     # Filter text input window:
-    FilterBox = TextBox(LinesCount=1, ColsCount=ScreenWidth-31,
-        BeginY=ScreenHeight-3, BeginX=29, ColorPair=3,
-        FilterText=FilterTextArg, Name='FilterBox')
+    FilterBox = TextBox(LinesCount=1, ColsCount=GlobalConfig.ScreenWidth-31,
+        BeginY=GlobalConfig.ScreenHeight-3, BeginX=29, ColorPair=3,
+        FilterText=GlobalConfig.FilterTextArg, Name='FilterBox')
             # ^ Preload it with whatever was supplied as --filter command line arg
 
-    DisplayObjects.append(FilterBox)
-    TextboxObjects.append(FilterBox)
-    LogWrite.debug('FilterBox window built')
+    GlobalConfig.DisplayObjects.append(FilterBox)
+    GlobalConfig.TextboxObjects.append(FilterBox)
+    LogWrite.debug('FilterBox window built (the textbox that accepts user input)')
 
     # Connections list text display window:
-    ConnectionsList = Connections(LinesCount=ScreenHeight-3,
-        ColsCount=ScreenWidth, BeginY=0, BeginX=0, ColorPair=0,
+    ConnectionsList = Connections(LinesCount=GlobalConfig.ScreenHeight-3,
+        ColsCount=GlobalConfig.ScreenWidth, BeginY=0, BeginX=0, ColorPair=0,
         TextFilters=[FilterBox, ConnBox] , stdscr=stdscr,
         Name='ConnectionsList')
             # ^ We send TextFilters=[FilterBox, ConnBox] and not FilterBox.Text
@@ -1495,10 +1553,10 @@ def SetupWindows(stdscr):
             #   method.
     ConnectionsList.Load()
         # ^ Load the connections list config file into this object (normal operation)
-    DisplayObjects.append(ConnectionsList)
-    LogWrite.debug('ConnectionsList window built')
+    GlobalConfig.DisplayObjects.append(ConnectionsList)
+    LogWrite.debug('ConnectionsList window built (the window with the list of servers)')
 
-    CyclicTextboxObjects = itertools.cycle(TextboxObjects)
+    CyclicTextboxObjects = itertools.cycle(GlobalConfig.TextboxObjects)
         # ^ Call this after adding all the textbox windows
         #   We will use it as a cyclic list iterator so that every press of TAB
         #   will give us the next textbox object in the list.
@@ -1516,6 +1574,7 @@ def DisplayHelp():
 
 def MainCursesFunction(stdscr):
 
+    LogWrite.debug('Function MainCursesFunction started')
     CommandLine = []
 
     if SetupCurses(stdscr) == False:       # Something failed in setup or tests
@@ -1538,10 +1597,14 @@ def MainCursesFunction(stdscr):
         if Looper == ActiveWindow:
             break
 
-    if FilterTextArg and ConnectionsList.DisplayResultsCount == 1:
+    LogWrite.debug('Window setup complete. The following "LogGlobalConfig" output '
+        'is at this point...')
+    LogGlobalConfig()
+
+    if GlobalConfig.FilterTextArg and ConnectionsList.DisplayResultsCount == 1:
         # ^ User entered command line filter and there was only one match -
         #   connect to it immediately.
-        LogWrite.debug('FilterTextArg supplied and '
+        LogWrite.debug('GlobalConfig.FilterTextArg supplied and '
             'ConnectionsList.DisplayResultsCount == 1 . '
             'Automatically connect to this server ...')
         CommandLine = ConnectionsList.GetCommandLine(
@@ -1549,9 +1612,12 @@ def MainCursesFunction(stdscr):
         RestoreTerminal(stdscr)
         return CommandLine
 
+    LogWrite.debug('Starting keyboard read loop...')
+
     while True:
         UserKey = ActiveWindow.ReadKey()
-        LogWrite.debug('Keyboard entry UserKey = {}'.format(UserKey))
+        LogWrite.debug('Keyboard entry: UserKey = {}'.format(UserKey))
+            # ^ This is the code of the key the user pressed
 
 # This block is not required any more since I handle it better in
 #   Connections.Display() method:
@@ -1745,7 +1811,12 @@ def MainCursesFunction(stdscr):
                 ConnectionsList.ControlMode = 'std'
 
         elif UserKey == 17 or UserKey == 3 or UserKey == 4:
-            # ^ ctrl-q / ctrl-c / ctrl-d
+            # ^ ctrl-q (17) / ctrl-c (3) / ctrl-d (4)
+            LogWrite.debug('Setting: GlobalConfig.LoopNccm = False  so that we '
+                'can exit properly...')
+            GlobalConfig.LoopNccm = False
+                # ^ Otherwise we will be stuck in the loop if nccm was started
+                #   with config file containing -  nccm_loop_nccm: true
             break
 
         UpdateDisplay()
@@ -1780,9 +1851,6 @@ def LogStartInfo():
 def ParseArgs():
     ''' Handle any command line arguments supplied '''
 
-    global ForceDebugLogging
-    global FilterTextArg
-
     parser = argparse.ArgumentParser(
         description = 'NCurses Connection Manager',
         epilog = 'Thank you for using nccm',
@@ -1813,7 +1881,7 @@ def ParseArgs():
 
     if args.debug:
         LogWrite.setLevel(logging.DEBUG)
-        ForceDebugLogging = True
+        GlobalConfig.ForceDebugLogging = True
         LogWrite.debug('Received command line arg --debug forcing nccm '
             'to run in debug mode')
 
@@ -1821,13 +1889,13 @@ def ParseArgs():
     LogWrite.debug('args object = {}'.format(args))
 
     if args.filter_text:
-        FilterTextArg = args.filter_text
-        LogWrite.debug('FilterTextArg (user-supplied filtering text '
-            'at the command line) = {}'.format(FilterTextArg))
-        FilterTextArg = ' '.join(FilterTextArg).lower()
+        GlobalConfig.FilterTextArg = args.filter_text
+        LogWrite.debug('GlobalConfig.FilterTextArg (user-supplied filtering text '
+            'at the command line) = {}'.format(GlobalConfig.FilterTextArg))
+        GlobalConfig.FilterTextArg = ' '.join(GlobalConfig.FilterTextArg).lower()
             # ^ Stored in class TextBox.Text as a space delimited string
-        LogWrite.debug('Lowercased and converted to a string: FilterTextArg = {}'
-            .format(FilterTextArg))
+        LogWrite.debug('Lowercased and converted to a string: GlobalConfig.FilterTextArg = {}'
+            .format(GlobalConfig.FilterTextArg))
 
     if args.man:
         DisplayHelp()
@@ -1844,34 +1912,51 @@ def main(*args):
     LogStartInfo()
         # ^ Moved it after ParseArgs so that we have debugging info logged if
         #   started using 'nccm -d' .
-    CommandLine = curses.wrapper(MainCursesFunction)
 
-    if CommandLine:
-        PressEnterToCont()
-        print('\nnccm: About to ssh using:\n{}\n'.format(CommandLine))
-        LogWrite.info('About to subprocess.run ExtCommand = {} ...'
-            .format(CommandLine))
-        StartTime = time.time()
+    while True:
+        CommandLine = curses.wrapper(MainCursesFunction)
 
-        try:
-            subprocess.run(CommandLine, check=True, shell=True)          # Connect to the ssh server
+        if CommandLine:
+            PressEnterToCont()
+            print('\nnccm: About to ssh using:\n{}\n'.format(CommandLine))
+            LogWrite.info('About to subprocess.run ExtCommand = {} ...'
+                .format(CommandLine))
+            StartTime = time.time()
 
-        except subprocess.CalledProcessError as CPE:
-            print('\n***** ssh exit code = {} *****'
-                .format(CPE.returncode))
-            print('Further debug details: {}'.format(CPE))
-            LogWrite.warning('ssh exit code = {}'.format(CPE.returncode))
-            LogWrite.warning('Further debug details: {}'.format(CPE))
+            try:
+                subprocess.run(CommandLine, check=True, shell=True)
+                    # ^ Connect to the ssh server
 
-        finally:
-            EndTime = time.time()
-            SessionTime = round(EndTime - StartTime)
-            print('\nnccm: Completed ssh using:\n{}\nSession time was: '
-                '{} ({} seconds)\n'
-                    .format(CommandLine, datetime.timedelta(seconds=SessionTime),
-                        SessionTime))
-            LogWrite.info('Completed ssh using: {} . SessionTime was: {} seconds'
-                .format(CommandLine, SessionTime))
+            except subprocess.CalledProcessError as CPE:
+                print('\n***** ssh exit code = {} *****'
+                    .format(CPE.returncode))
+                print('Further debug details: {}'.format(CPE))
+                LogWrite.warning('ssh exit code = {}'.format(CPE.returncode))
+                LogWrite.warning('Further debug details: {}'.format(CPE))
+
+            finally:
+                EndTime = time.time()
+                SessionTime = round(EndTime - StartTime)
+                print('\nnccm: Completed ssh using:\n{}\nSession time was: '
+                    '{} ({} seconds)\n'
+                        .format(CommandLine, datetime.timedelta(seconds=SessionTime),
+                            SessionTime))
+                LogWrite.info('Completed ssh using: {} . SessionTime was: {} seconds'
+                    .format(CommandLine, SessionTime))
+
+        if GlobalConfig.LoopNccm:
+            LogWrite.debug('GlobalConfig.LoopNccm = {} -> looping nccm'
+                .format(GlobalConfig.LoopNccm))
+
+            GlobalConfig.FilterTextArg = ''
+                # ^ Need to cancel this in case user supplied enough command line
+                #   filter text to connect directly to a server. Without this it
+                #   will loop-connect to that server!
+
+        else:
+            LogWrite.debug('GlobalConfig.LoopNccm = {} -> exiting nccm'
+                .format(GlobalConfig.LoopNccm))
+            break
 
 
 if __name__ == '__main__':

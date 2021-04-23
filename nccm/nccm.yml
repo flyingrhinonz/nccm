@@ -76,7 +76,7 @@
 
 nccm_config_controlmode: std    # Supported values: std, focus
 
-nccm_config_loglevel: warning
+nccm_config_loglevel: info
 # ^ Supported values: debug, info, warning, error, critical
 
 nccm_config_keepalive: 30
@@ -119,6 +119,12 @@ nccm_config_logpath: false
 #   If nccm cant find this path it will exit with an exception. The reason
 #   being that it's bad if you're expecting logging to occur and it doesn't
 #   happen - either fix the path or disable logging.
+
+nccm_loop_nccm: false
+# ^ Run nccm in a loop - when you exit out of your ssh session nccm menu
+#   will reappear. You are allowed to resize your window outside nccm and
+#   the new window size will apply when nccm menu reappears after you exit
+#   from your ssh session.
 
 
 # connections configs:
