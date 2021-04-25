@@ -660,38 +660,13 @@ LogWrite.debug('nccm started with log level = {} as set by '
 
 # ^ End of logging setup section
 
-# The rest of our global variables go here:
+# Beginning of global variables section:
 
-__version__ = '1.4.2'      # nccm version string
-
-# Setup the supported directories/pathnames for the connections file.
-# If you want to store nccm.yml in a directory that's not already supported
-# or change the filename, do it here:
-ConfigFile = 'nccm.yml'
-ConfigFileIncDir = '/etc/nccm.d/'
-    # ^ For use by nccm_config_importnccmd
-ConfigFilePath = []
-    # ^ Try to load nccm.yml from these paths whichever is found first
-ConfigFilePath.append(str(pathlib.Path.home()) + '/.config/nccm/' + ConfigFile)
-    # ^ ~/.config/nccm/nccm.yml
-ConfigFilePath.append(str(pathlib.Path.home()) + '/.' + ConfigFile)
-    # ^ ~/.nccm.yml
-ConfigFilePath.append(str(pathlib.Path.home()) + '/' + ConfigFile)
-    # ^ ~/nccm.yml
-ConfigFilePath.append('/etc/' + ConfigFile)
-    # ^ /etc/nccm.yml
-
-HelpMenuItems = collections.OrderedDict((
-    ( 'Arrows',     'Scroll' ),
-    ( 'Enter',      'Select' ),
-    ( 'ctrl-h',     'Help' ),
-    ( 'ctrl-q',     'Quit' ),
-))
-
+__version__ = '1.4.3'      # nccm version string
 
 class GlobalConfig:
     ''' This is used as a simple global variable storage because GlobalConfig only
-        exists in the global scope, all references to it will escalate here '''
+        exists in the global scope, all references to it will escalate here. '''
 
     PromptToContinue = False
         # ^ Prompt user to press Enter before connecting
@@ -709,6 +684,22 @@ class GlobalConfig:
     TextboxObjects = []
         # ^ A list of editable textbox windows (user input)
 
+    # Setup the supported directories/pathnames for the connections file.
+    # If you want to store nccm.yml in a directory that's not already supported
+    # or change the filename, do it here:
+    ConfigFile = 'nccm.yml'
+    ConfigFileIncDir = '/etc/nccm.d/'
+        # ^ For use by nccm_config_importnccmd
+    ConfigFilePath = []
+        # ^ Try to load nccm.yml from these paths whichever is found first
+    ConfigFilePath.append(str(pathlib.Path.home()) + '/.config/nccm/' + ConfigFile)
+        # ^ ~/.config/nccm/nccm.yml
+    ConfigFilePath.append(str(pathlib.Path.home()) + '/.' + ConfigFile)
+        # ^ ~/.nccm.yml
+    ConfigFilePath.append(str(pathlib.Path.home()) + '/' + ConfigFile)
+        # ^ ~/nccm.yml
+    ConfigFilePath.append('/etc/' + ConfigFile)
+        # ^ /etc/nccm.yml
 
 
 # If the log level was set to debug in the variable we set earlier -
@@ -722,6 +713,8 @@ else:
     GlobalConfig.ForceDebugLogging = False
         # ^ Let future functions determine log level
 
+# ^ End of global variables section
+
 
 class HelpTextDisplay:
     ''' This manages window objects for help lines '''
@@ -730,9 +723,17 @@ class HelpTextDisplay:
         BeginY=None, BeginX=None):
         self.Window = curses.newwin(LinesCount, ColsCount, BeginY, BeginX)
 
-        for Looper in HelpMenuItems:
+        # This is the list of items displayed in the help menu:
+        self.HelpMenuItems = collections.OrderedDict((
+            ( 'Arrows',     'Scroll' ),
+            ( 'Enter',      'Select' ),
+            ( 'ctrl-h',     'Help' ),
+            ( 'ctrl-q',     'Quit' ),
+        ))
+
+        for Looper in self.HelpMenuItems:
             self.Window.addstr('  '+Looper, curses.color_pair(1))
-            self.Window.addstr('-'+HelpMenuItems[Looper], curses.color_pair(2))
+            self.Window.addstr('-'+self.HelpMenuItems[Looper], curses.color_pair(2))
 
 
     def Display(self):
@@ -827,7 +828,7 @@ class Connections:
 
         ImportNccmD = False     # Whether to import yml files from /etc/nccm.d/
 
-        for FileLooper in ConfigFilePath:
+        for FileLooper in GlobalConfig.ConfigFilePath:
             if pathlib.Path(FileLooper).exists():
                 break
         LogWrite.debug('Found config file: FileLooper = {}'.format(FileLooper))
@@ -857,7 +858,7 @@ class Connections:
                 # ^ Controls how arrow keys move the display & the marker.
                 #   Options are std, focus
         LogWrite.debug('Loaded {} config self.ControlMode = {}'
-            .format(ConfigFile, self.ControlMode))
+            .format(GlobalConfig.ConfigFile, self.ControlMode))
 
         # Handle loading of the loglevel setting:
         if GlobalConfig.ForceDebugLogging:
@@ -871,7 +872,7 @@ class Connections:
             LogWrite.setLevel(getattr(logging, self.LoadedServersDict.pop
                 ('nccm_config_loglevel', 'WARNING').upper()))
             LogWrite.debug('Loaded {} config log level. Log level now = {}'
-                .format(ConfigFile, LogWrite.getEffectiveLevel()))
+                .format(GlobalConfig.ConfigFile, LogWrite.getEffectiveLevel()))
                 # ^ Values documented here:
                 #   https://docs.python.org/3/library/logging.html#levels
             LogWrite.info('Fields explained: PN: Process Name , MN: Module Name , '
@@ -883,44 +884,44 @@ class Connections:
             'nccm_config_keepalive', '0'))
                 # ^ Controls the keep alive message frequency
         LogWrite.debug('Loaded {} config self.DefaultKeepAlive = {}'
-            .format(ConfigFile, self.DefaultKeepAlive))
+            .format(GlobalConfig.ConfigFile, self.DefaultKeepAlive))
 
         # Handle loading of the default identity value from nccm_config_identity:
         self.Identity = self.LoadedServersDict.pop(
             'nccm_config_identity', '')
             # This is the -i arg sent to ssh
         LogWrite.debug('Loaded {} config self.Identity = {}'
-            .format(ConfigFile, self.Identity))
+            .format(GlobalConfig.ConfigFile, self.Identity))
 
         # Handle loading of the default ssh program from nccm_config_sshprogram:
         self.SshProgram = self.LoadedServersDict.pop(
             'nccm_config_sshprogram', 'ssh')
         LogWrite.debug('Loaded {} config self.SshProgram = {}'
-            .format(ConfigFile, self.SshProgram))
+            .format(GlobalConfig.ConfigFile, self.SshProgram))
 
         # Handle loading of the GlobalConfig.PromptToContinue value from nccm_config_promptuser:
         GlobalConfig.PromptToContinue = self.LoadedServersDict.pop(
             'nccm_config_promptuser', False)
         LogWrite.debug('Loaded {} config GlobalConfig.PromptToContinue = {}'
-            .format(ConfigFile, GlobalConfig.PromptToContinue))
+            .format(GlobalConfig.ConfigFile, GlobalConfig.PromptToContinue))
 
         # Handle loading of the importnccmd value from nccm_config_importnccmd:
         ImportNccmD = self.LoadedServersDict.pop(
             'nccm_config_importnccmd', False)
         LogWrite.debug('Loaded {} config ImportNccmD = {}'
-            .format(ConfigFile, ImportNccmD))
+            .format(GlobalConfig.ConfigFile, ImportNccmD))
 
         # Handle loading of the GlobalConfig.LoopNccm value from nccm_loop_nccm:
         GlobalConfig.LoopNccm = self.LoadedServersDict.pop(
             'nccm_loop_nccm', False)
         LogWrite.debug('Loaded {} config GlobalConfig.LoopNccm = {}'
-            .format(ConfigFile, GlobalConfig.LoopNccm))
+            .format(GlobalConfig.ConfigFile, GlobalConfig.LoopNccm))
 
         # Handle loading of the LogPath value from nccm_config_logpath:
         self.LogPath = self.LoadedServersDict.pop(
             'nccm_config_logpath', False)
         LogWrite.debug('Loaded {} config self.LogPath = {}'
-            .format(ConfigFile, self.LogPath))
+            .format(GlobalConfig.ConfigFile, self.LogPath))
 
         if self.LogPath:        # If supplied, validate this is a legitimate dir:
             if not pathlib.Path(self.LogPath).is_dir():
@@ -948,14 +949,14 @@ class Connections:
 
         LogWrite.debug('Done extracting program configs from self.LoadedServersDict. '
             'Next we import additional connections from {} if configured ...'
-                .format(ConfigFileIncDir))
+                .format(GlobalConfig.ConfigFileIncDir))
 
         # If user wants to import /etc/nccm.d/* then do it here:
         if ImportNccmD:
-            if pathlib.Path(ConfigFileIncDir).exists():
+            if pathlib.Path(GlobalConfig.ConfigFileIncDir).exists():
                 LogWrite.debug('Path: {} found. Proceeding to import yml files from it ...'
-                    .format(ConfigFileIncDir))
-                NccmdFiles = sorted(pathlib.Path(ConfigFileIncDir).glob('*.yml'))
+                    .format(GlobalConfig.ConfigFileIncDir))
+                NccmdFiles = sorted(pathlib.Path(GlobalConfig.ConfigFileIncDir).glob('*.yml'))
                 LogWrite.debug('NccmdFiles = {}'.format(NccmdFiles))
 
                 for NccmdLooper in NccmdFiles:
@@ -966,12 +967,12 @@ class Connections:
 
             else:
                 LogWrite.debug('Path: {} not found. Skipping import feature'
-                    .format(ConfigFileIncDir))
+                    .format(GlobalConfig.ConfigFileIncDir))
 
         else:
             LogWrite.debug('ImportNccmD = {} - not attempting to import connection details '
                 'from {}'
-                    .format(ImportNccmD, ConfigFileIncDir))
+                    .format(ImportNccmD, GlobalConfig.ConfigFileIncDir))
 
         # This code is needed because FriendlyName connections without any
         # config items have a value of None. I need to replace it with {} for
