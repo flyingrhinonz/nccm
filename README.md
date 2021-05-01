@@ -57,6 +57,9 @@ In a multiuser system, placing nccm.yml in each user's
 home dir will allow each user to use their personalized
 settings if nccm.yml is present, and if not present then
 fallback to default settings from /etc/nccm.yml.
+Also refer to  `nccm_config_importnccmd` setting which
+allows you to import and merge connection details from
+/etc/nccm.d/ .
 
 
 nccm requires Python3 to be installed on your machine,
@@ -193,6 +196,19 @@ Run nccm in a loop - when you exit out of your ssh session
 nccm menu will reappear. You are allowed to resize your
 window outside nccm and the new window size will apply when
 nccm menu reappears after you exit from your ssh session.
+
+`nccm_keybindings`
+nccm is configured for US keyboard mapping. If you have
+something else and certain keys don't behave as you'd
+expect - change their codes here.
+Each of the keyboard codes is a list, you can map a
+keypress to as many codes as you wish.
+If you want to figure out what code results from a
+keypress - run 'nccm -d' , press a key and look for
+'Keyboard entry: UserKey = nnn' in your logs.
+You can even map other keys to nccm keys - for example
+instead of F1 you want to use F12 - just put the code for
+F12 in the F1 key position.
 
 
 Controls

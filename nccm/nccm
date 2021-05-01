@@ -60,6 +60,9 @@ In a multiuser system, placing nccm.yml in each user's
 home dir will allow each user to use their personalized
 settings if nccm.yml is present, and if not present then
 fallback to default settings from /etc/nccm.yml.
+Also refer to  `nccm_config_importnccmd` setting which
+allows you to import and merge connection details from
+/etc/nccm.d/ .
 
 
 nccm requires Python3 to be installed on your machine,
@@ -196,6 +199,19 @@ Run nccm in a loop - when you exit out of your ssh session
 nccm menu will reappear. You are allowed to resize your
 window outside nccm and the new window size will apply when
 nccm menu reappears after you exit from your ssh session.
+
+`nccm_keybindings`
+nccm is configured for US keyboard mapping. If you have
+something else and certain keys don't behave as you'd
+expect - change their codes here.
+Each of the keyboard codes is a list, you can map a
+keypress to as many codes as you wish.
+If you want to figure out what code results from a
+keypress - run 'nccm -d' , press a key and look for
+'Keyboard entry: UserKey = nnn' in your logs.
+You can even map other keys to nccm keys - for example
+instead of F1 you want to use F12 - just put the code for
+F12 in the F1 key position.
 
 
 Controls
@@ -662,7 +678,7 @@ LogWrite.debug('nccm started with log level = {} as set by '
 
 # Beginning of global variables section:
 
-__version__ = '1.4.3'      # nccm version string
+__version__ = '1.5.2'      # nccm version string
 
 class GlobalConfig:
     ''' This is used as a simple global variable storage because GlobalConfig only
@@ -857,7 +873,7 @@ class Connections:
             'nccm_config_controlmode', 'std').lower()
                 # ^ Controls how arrow keys move the display & the marker.
                 #   Options are std, focus
-        LogWrite.debug('Loaded {} config self.ControlMode = {}'
+        LogWrite.debug('Loaded {} config item:  self.ControlMode = {}'
             .format(GlobalConfig.ConfigFile, self.ControlMode))
 
         # Handle loading of the loglevel setting:
@@ -871,7 +887,7 @@ class Connections:
         else:
             LogWrite.setLevel(getattr(logging, self.LoadedServersDict.pop
                 ('nccm_config_loglevel', 'WARNING').upper()))
-            LogWrite.debug('Loaded {} config log level. Log level now = {}'
+            LogWrite.debug('Loaded {} config item:  log level. Log level now = {}'
                 .format(GlobalConfig.ConfigFile, LogWrite.getEffectiveLevel()))
                 # ^ Values documented here:
                 #   https://docs.python.org/3/library/logging.html#levels
@@ -883,44 +899,44 @@ class Connections:
         self.DefaultKeepAlive = int(self.LoadedServersDict.pop(
             'nccm_config_keepalive', '0'))
                 # ^ Controls the keep alive message frequency
-        LogWrite.debug('Loaded {} config self.DefaultKeepAlive = {}'
+        LogWrite.debug('Loaded {} config item:  self.DefaultKeepAlive = {}'
             .format(GlobalConfig.ConfigFile, self.DefaultKeepAlive))
 
         # Handle loading of the default identity value from nccm_config_identity:
         self.Identity = self.LoadedServersDict.pop(
             'nccm_config_identity', '')
             # This is the -i arg sent to ssh
-        LogWrite.debug('Loaded {} config self.Identity = {}'
+        LogWrite.debug('Loaded {} config item:  self.Identity = {}'
             .format(GlobalConfig.ConfigFile, self.Identity))
 
         # Handle loading of the default ssh program from nccm_config_sshprogram:
         self.SshProgram = self.LoadedServersDict.pop(
             'nccm_config_sshprogram', 'ssh')
-        LogWrite.debug('Loaded {} config self.SshProgram = {}'
+        LogWrite.debug('Loaded {} config item:  self.SshProgram = {}'
             .format(GlobalConfig.ConfigFile, self.SshProgram))
 
         # Handle loading of the GlobalConfig.PromptToContinue value from nccm_config_promptuser:
         GlobalConfig.PromptToContinue = self.LoadedServersDict.pop(
             'nccm_config_promptuser', False)
-        LogWrite.debug('Loaded {} config GlobalConfig.PromptToContinue = {}'
+        LogWrite.debug('Loaded {} config item:  GlobalConfig.PromptToContinue = {}'
             .format(GlobalConfig.ConfigFile, GlobalConfig.PromptToContinue))
 
         # Handle loading of the importnccmd value from nccm_config_importnccmd:
         ImportNccmD = self.LoadedServersDict.pop(
             'nccm_config_importnccmd', False)
-        LogWrite.debug('Loaded {} config ImportNccmD = {}'
+        LogWrite.debug('Loaded {} config item:  ImportNccmD = {}'
             .format(GlobalConfig.ConfigFile, ImportNccmD))
 
         # Handle loading of the GlobalConfig.LoopNccm value from nccm_loop_nccm:
         GlobalConfig.LoopNccm = self.LoadedServersDict.pop(
             'nccm_loop_nccm', False)
-        LogWrite.debug('Loaded {} config GlobalConfig.LoopNccm = {}'
+        LogWrite.debug('Loaded {} config item:  GlobalConfig.LoopNccm = {}'
             .format(GlobalConfig.ConfigFile, GlobalConfig.LoopNccm))
 
         # Handle loading of the LogPath value from nccm_config_logpath:
         self.LogPath = self.LoadedServersDict.pop(
             'nccm_config_logpath', False)
-        LogWrite.debug('Loaded {} config self.LogPath = {}'
+        LogWrite.debug('Loaded {} config item:  self.LogPath = {}'
             .format(GlobalConfig.ConfigFile, self.LogPath))
 
         if self.LogPath:        # If supplied, validate this is a legitimate dir:
@@ -933,7 +949,8 @@ class Connections:
                     #   upon it for later checkups or audit. Therefore if
                     #   it doesn't work it should be fixed or disabled.
 
-        if self.LogPath:        # If logging is still valid, log window dimensions
+        if self.LogPath:
+            # ^ If terminal logging path is valid, log window dimensions:
             LogWrite.info('GlobalConfig.ScreenHeight = {} , GlobalConfig.ScreenWidth = {} . '
                 'You might need these dimensions if you are replaying this '
                 'log with catstep'
@@ -943,7 +960,26 @@ class Connections:
                 #   window dimensions. Note - if the user changed window size
                 #   later - we won't know of it.
 
-        # ^ The config items nccm_config_* have been removed with pop from
+        # Handle loading of the keyboard bindings:
+        self.KeyboardBindings = self.LoadedServersDict.pop(
+            'nccm_keybindings', False)
+        LogWrite.debug('Loaded {} config item:  self.KeyboardBindings = {}'
+            .format(GlobalConfig.ConfigFile, self.KeyboardBindings))
+
+        # Check if self.KeyboardBindings exists. If it's False we can assume that
+        # the user is running an older version of nccm.yml and needs to update it.
+        # Now that nccm supports keyboard bindings the code expects these to be
+        # present and is not backward compatible with older nccm.yml versions:
+        if not self.KeyboardBindings:
+            LogWrite.error('Cannot find nccm_keybindings: self.KeyboardBindings = {} . '
+                'nccm.yml is an older version than supported. '
+                'Please update it to latest format.'
+                    .format(self.KeyboardBindings))
+            raise Exception('Cannot find nccm_keybindings settings. '
+                'nccm.yml is an older version than supported. '
+                'Please update it to the latest format.')
+
+        # ^ All the config items nccm_config_* have been removed with pop from
         # self.LoadedServersDict , leaving us with only the ssh connection
         # details in it.
 
@@ -1627,7 +1663,8 @@ def MainCursesFunction(stdscr):
 #            LogWrite.debug('Detected window resize')
 #            pass
 
-        if UserKey == 9:    # Tab key (move between text boxes)
+        if UserKey in ConnectionsList.KeyboardBindings['nccm_key_tab']:
+            # ^ Tab key (move between text boxes)
             LogWrite.debug('Handle Tab key ...')
             ActiveWindow = next(CyclicTextboxObjects)
                 # ^ See the 'for Looper in CyclicTextboxObjects:' comment above
@@ -1639,9 +1676,9 @@ def MainCursesFunction(stdscr):
         elif ( (chr(UserKey) in string.digits
             or chr(UserKey) in string.ascii_letters
             or chr(UserKey) in string.punctuation
-            or UserKey == 32        # Space
-            or UserKey == curses.KEY_BACKSPACE
-            or UserKey == 263)      # Backspace key
+            or UserKey in ConnectionsList.KeyboardBindings['nccm_key_space']    # Space
+            or UserKey in ConnectionsList.KeyboardBindings['nccm_key_backspace'] )
+                # ^ Backspace key
             and ActiveWindow == FilterBox ):
             # ^ Filterbox accepts any printable character or backspace
             #   Using string.punctuation crashes on ctrl-j input so I explictly
@@ -1654,52 +1691,62 @@ def MainCursesFunction(stdscr):
 
         # Handle text entry in ConnBox:
         elif ( (chr(UserKey) in string.digits
-            or UserKey == curses.KEY_BACKSPACE
-            or UserKey == 263)              # Backspace key
+            or UserKey in ConnectionsList.KeyboardBindings['nccm_key_backspace'] )
+                # ^ Backspace key
             and ActiveWindow == ConnBox ):
             # ^ Filterbox accepts any digit or backspace
                 LogWrite.debug('Handle text entry in ConnBox ...')
                 ActiveWindow.ProcessKey(UserKey)
 
-        elif ( UserKey == 33                # ! key (sort by column #1)
+        elif ( UserKey in ConnectionsList.KeyboardBindings['nccm_key_exc']
+            # ^ ! key (sort by column #1)
             and ActiveWindow == ConnBox ):
                 ConnectionsList.Sort('ServerXSNum')
 
-        elif ( UserKey == 64                # @ key (sort by column #2)
+        elif ( UserKey in ConnectionsList.KeyboardBindings['nccm_key_at']
+            # ^ @ key (sort by column #2)
             and ActiveWindow == ConnBox ):
                 ConnectionsList.Sort('FriendlyName')
 
-        elif ( UserKey == 35                # # key (sort by column #3)
+        elif ( UserKey in ConnectionsList.KeyboardBindings['nccm_key_hash']
+            # ^ # key (sort by column #3)
             and ActiveWindow == ConnBox ):
                 ConnectionsList.Sort('UserName')
 
-        elif ( UserKey == 36                # $ key (sort by column #4)
+        elif ( UserKey in ConnectionsList.KeyboardBindings['nccm_key_dollar']
+            # ^ $ key (sort by column #4)
             and ActiveWindow == ConnBox ):
                 ConnectionsList.Sort('Address')
 
-        elif ( UserKey == 37                # % key (sort by column #5)
+        elif ( UserKey in ConnectionsList.KeyboardBindings['nccm_key_percent']
+            # ^ % key (sort by column #5)
             and ActiveWindow == ConnBox ):
                 ConnectionsList.Sort('Comment')
 
-        elif UserKey == 337:                # Shift up arrow
+        elif UserKey in ConnectionsList.KeyboardBindings['nccm_key_shift_up']:
+            # ^ Shift up arrow
             if ConnectionsList.ControlMode == 'focus':
                 if ConnectionsList.MarkerLine > 0:
                     ConnectionsList.MarkerLine -= 1
 
-        elif UserKey == 336:                # Shift down arrow
+        elif UserKey in ConnectionsList.KeyboardBindings['nccm_key_shift_down']:
+            # ^ Shift down arrow
             if ConnectionsList.ControlMode == 'focus':
                 if ConnectionsList.MarkerLine < (ConnectionsList.DisplayResultsCount-1):
                     ConnectionsList.MarkerLine += 1
 
-        elif UserKey == 393:                # Shift left arrow
+        elif UserKey in ConnectionsList.KeyboardBindings['nccm_key_shift_left']:
+            # ^ Shift left arrow
             if ConnectionsList.ControlMode == 'focus':
                 ConnectionsList.MarkerLine = 0
 
-        elif UserKey == 402:                # Shift right arrow
+        elif UserKey in ConnectionsList.KeyboardBindings['nccm_key_shift_right']:
+            # ^ Shift right arrow
             if ConnectionsList.ControlMode == 'focus':
                 ConnectionsList.MarkerLine = (ConnectionsList.DisplayResultsCount-1)
 
-        elif UserKey == curses.KEY_UP:      # Up arrow
+        elif UserKey in ConnectionsList.KeyboardBindings['nccm_key_up']:
+            # ^ Up arrow
             if ConnectionsList.ControlMode == 'focus':
                 if ConnectionsList.YOffset > 0:
                     ConnectionsList.YOffset -= 1
@@ -1712,7 +1759,8 @@ def MainCursesFunction(stdscr):
                     else:
                         ConnectionsList.YOffset = 0
 
-        elif UserKey == curses.KEY_DOWN:    # Down arrow
+        elif UserKey in ConnectionsList.KeyboardBindings['nccm_key_down']:
+            # ^ Down arrow
             if ConnectionsList.ControlMode == 'focus':
                 if (len(ConnectionsList.ResultsList) -
                     ConnectionsList.YOffset > ConnectionsList.MaxTextLines):
@@ -1724,14 +1772,16 @@ def MainCursesFunction(stdscr):
                     ConnectionsList.YOffset > ConnectionsList.MaxTextLines):
                     ConnectionsList.YOffset += 1
 
-        elif UserKey == curses.KEY_HOME:    # Home key
+        elif UserKey in ConnectionsList.KeyboardBindings['nccm_key_home']:
+            # ^ Home key
             if ConnectionsList.ControlMode == 'focus':
                 ConnectionsList.YOffset = 0
             elif ConnectionsList.ControlMode == 'std':
                 ConnectionsList.YOffset = 0
                 ConnectionsList.MarkerLine = 0
 
-        elif UserKey == curses.KEY_END:     # End key
+        elif UserKey in ConnectionsList.KeyboardBindings['nccm_key_end']:
+            # ^ End key
             if ConnectionsList.ControlMode == 'focus':
                 if len(ConnectionsList.ResultsList) > ConnectionsList.MaxTextLines:
                     ConnectionsList.YOffset = (len(ConnectionsList.ResultsList) -
@@ -1742,47 +1792,56 @@ def MainCursesFunction(stdscr):
                         ConnectionsList.MaxTextLines)
                 ConnectionsList.MarkerLine = (ConnectionsList.DisplayResultsCount-1)
 
-        elif UserKey == curses.KEY_PPAGE:   # PageUp key
+        elif UserKey in ConnectionsList.KeyboardBindings['nccm_key_pgup']:
+            # ^ PageUp key
             ConnectionsList.YOffset -= ConnectionsList.MaxTextLines
             if ConnectionsList.YOffset < 0:
                 ConnectionsList.YOffset = 0
 
-        elif UserKey == curses.KEY_NPAGE:   # PageDown key
+        elif UserKey in ConnectionsList.KeyboardBindings['nccm_key_pgdn']:
+            # ^ PageDown key
             ConnectionsList.YOffset += ConnectionsList.MaxTextLines
             if (ConnectionsList.YOffset > (len(ConnectionsList.ResultsList) -
                 ConnectionsList.MaxTextLines)):
                 ConnectionsList.YOffset = (len(ConnectionsList.ResultsList) -
                     ConnectionsList.MaxTextLines)
 
-        elif UserKey == curses.KEY_LEFT:    # Left arrow (scroll left)
+        elif UserKey in ConnectionsList.KeyboardBindings['nccm_key_left']:
+            # ^ Left arrow (scroll left)
             ConnectionsList.XOffset -= (ConnectionsList.MaxTextWidth //3)
             if ConnectionsList.XOffset < 0:
                 ConnectionsList.XOffset = 0
 
-        elif UserKey == curses.KEY_RIGHT:   # Right arrow (scroll right)
+        elif UserKey in ConnectionsList.KeyboardBindings['nccm_key_right']:
+            # ^ Right arrow (scroll right)
             ConnectionsList.XOffset += (ConnectionsList.MaxTextWidth //3)
             if (ConnectionsList.XOffset > (ConnectionsList.MaxLineLength -
                 ConnectionsList.MaxTextWidth)):
                 ConnectionsList.XOffset = (ConnectionsList.MaxLineLength -
                     ConnectionsList.MaxTextWidth)
 
-        elif UserKey == 265:                # F1 key (sort by column #1)
+        elif UserKey in ConnectionsList.KeyboardBindings['nccm_key_f1']:
+            # ^ F1 key (sort by column #1)
             ConnectionsList.Sort('ServerXSNum')
 
-        elif UserKey == 266:                # F2 key (sort by column #2)
+        elif UserKey in ConnectionsList.KeyboardBindings['nccm_key_f2']:
+            # ^ F2 key (sort by column #2)
             ConnectionsList.Sort('FriendlyName')
 
-        elif UserKey == 267:                # F3 key (sort by column #3)
+        elif UserKey in ConnectionsList.KeyboardBindings['nccm_key_f3']:
+            # ^ F3 key (sort by column #3)
             ConnectionsList.Sort('UserName')
 
-        elif UserKey == 268:                # F4 key (sort by column #4)
+        elif UserKey in ConnectionsList.KeyboardBindings['nccm_key_f4']:
+            # ^ F4 key (sort by column #4)
             ConnectionsList.Sort('Address')
 
-        elif UserKey == 269:                # F4 key (sort by column #5)
+        elif UserKey in ConnectionsList.KeyboardBindings['nccm_key_f5']:
+            # ^ F5 key (sort by column #5)
             ConnectionsList.Sort('Comment')
 
         # Enter key in ConnBox:
-        elif ((UserKey == curses.KEY_ENTER or UserKey in [10, 13])
+        elif ((UserKey in ConnectionsList.KeyboardBindings['nccm_key_enter'])
             and ActiveWindow == ConnBox
             and ConnBox.Text):
                 LogWrite.debug('Handle Enter key in ConnBox ...')
@@ -1792,7 +1851,7 @@ def MainCursesFunction(stdscr):
                         break
 
         # Enter key in FilterBox:
-        elif ((UserKey == curses.KEY_ENTER or UserKey in [10, 13])
+        elif ((UserKey in ConnectionsList.KeyboardBindings['nccm_key_enter'])
             and ConnectionsList.SelectedEntry):
                 LogWrite.debug('Handle Enter key in FilterBox ...')
                     # ^ Well, it has to be FilterBox because we explicitly checked
@@ -1801,19 +1860,24 @@ def MainCursesFunction(stdscr):
                     ConnectionsList.SelectedEntryVal)
                 break
 
-        elif UserKey == 8:      # Ctrl-h key (help)
+        elif UserKey in ConnectionsList.KeyboardBindings['nccm_key_ctrl_h']:
+            # ^ Ctrl-h key (help)
             curses.endwin()     # De-initialize and return terminal to normal status
             DisplayHelp()
 
-        elif UserKey == 11:     # Ctrl-k key (toggle cursor mode)
+        elif UserKey in ConnectionsList.KeyboardBindings['nccm_key_ctrl_k']:
+            # ^ Ctrl-k key (toggle cursor mode)
             if ConnectionsList.ControlMode == 'std':
                 ConnectionsList.ControlMode = 'focus'
             else:
                 ConnectionsList.ControlMode = 'std'
 
-        elif UserKey == 17 or UserKey == 3 or UserKey == 4:
-            # ^ ctrl-q (17) / ctrl-c (3) / ctrl-d (4)
-            LogWrite.debug('Setting: GlobalConfig.LoopNccm = False  so that we '
+        elif ( UserKey in ConnectionsList.KeyboardBindings['nccm_key_ctrl_q']
+            or UserKey in ConnectionsList.KeyboardBindings['nccm_key_ctrl_c']
+            or UserKey in ConnectionsList.KeyboardBindings['nccm_key_ctrl_d'] ):
+            # ^ ctrl-q / ctrl-c / ctrl-d
+            LogWrite.debug('User wants to quit. '
+                'Setting: GlobalConfig.LoopNccm = False  so that we '
                 'can exit properly...')
             GlobalConfig.LoopNccm = False
                 # ^ Otherwise we will be stuck in the loop if nccm was started
