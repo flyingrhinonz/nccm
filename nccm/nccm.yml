@@ -74,24 +74,28 @@
 
 # nccm internal configs:
 
-nccm_config_controlmode: std    # Supported values: std, focus
+nccm_config_controlmode: std
+# ^ Supported values: std, focus
 
 nccm_config_loglevel: info
 # ^ Supported values: debug, info, warning, error, critical
 
 nccm_config_keepalive: 30
 # ^ Send keepalive every n seconds (0 to disable) to prevent disconnection
+#   Supported values: 0 to any integer
 
 nccm_config_identity: false
 # ^ For public key authentication, normally ssh will load your private key
 #   from the default locations. You can force ssh to use your own file by
 #   putting it's path here. Or set to false to let ssh do it's own thing.
 #   Use lowercase false - otherwise yamllint will complain.
+#   Supported values: true, false
 
 nccm_config_sshprogram: ssh
 # ^ The name or path to your ssh command. You can use this to explicitly
 #   state the path of your ssh program, or even use a different program that
 #   does the ssh (maybe you have a script or wrapper...).
+#   Supported values: ssh or any valid path
 
 nccm_config_promptuser: false
 # ^ Prompt user to press Enter before nccm makes the ssh connection to
@@ -119,12 +123,14 @@ nccm_config_logpath: false
 #   If nccm cant find this path it will exit with an exception. The reason
 #   being that it's bad if you're expecting logging to occur and it doesn't
 #   happen - either fix the path or disable logging.
+#   Supported values: false or any valid path
 
 nccm_loop_nccm: false
 # ^ Run nccm in a loop - when you exit out of your ssh session nccm menu
 #   will reappear. You are allowed to resize your window outside nccm and
 #   the new window size will apply when nccm menu reappears after you exit
 #   from your ssh session.
+#   Supported values: true, false
 
 nccm_keybindings:
   # ^ nccm is configured for US keyboard mapping. If you have something else
@@ -136,69 +142,70 @@ nccm_keybindings:
   #   in your logs.
   #   You can even map other keys to nccm keys - for example instead of F1 you
   #   want to use F12 - just put the code for F12 in the F1 key position.
+  #   Supported values: list of one or more keyboard codes per item.
   #   Individual key bindings follow:
-  nccm_key_tab:         # Tab key
+  nccm_key_tab:             # Tab key
     - 9
-  nccm_key_space:       # Space bar
+  nccm_key_space:           # Space bar
     - 32
-  nccm_key_enter:       # Enter key
+  nccm_key_enter:           # Enter key
     - 10
     - 13
-  nccm_key_backspace:   # Backspace key to delete one char backwards
+  nccm_key_backspace:       # Backspace key to delete one char backwards
     - 263
-  nccm_key_ctrl_c:      # Ctrl-c (break - also quits nccm)
+  nccm_key_ctrl_c:          # Ctrl-c (break - also quits nccm)
     - 3
-  nccm_key_ctrl_d:      # Ctrl-d (exit - also quits nccm)
+  nccm_key_ctrl_d:          # Ctrl-d (exit - also quits nccm)
     - 4
-  nccm_key_ctrl_h:      # Ctrl-h (for displaying help)
+  nccm_key_ctrl_h:          # Ctrl-h (for displaying help)
     - 8
-  nccm_key_ctrl_k:      # Ctrl-k (toggle cursor mode)
+  nccm_key_ctrl_k:          # Ctrl-k (toggle cursor mode)
     - 11
-  nccm_key_ctrl_q:      # Ctrl-q (quits nccm)
+  nccm_key_ctrl_q:          # Ctrl-q (quits nccm)
     - 17
-  nccm_key_exc:         # ! key
+  nccm_key_exc:             # ! key
     - 33
-  nccm_key_at:          # @ key
+  nccm_key_at:              # @ key
     - 64
-  nccm_key_hash:        # # key
+  nccm_key_hash:            # # key
     - 35
-  nccm_key_dollar:      # $ key
+  nccm_key_dollar:          # $ key
     - 36
-  nccm_key_percent:     # % key
+  nccm_key_percent:         # % key
     - 37
-  nccm_key_shift_up:    # Shift up arrow
+  nccm_key_shift_up:        # Shift up arrow
     - 337
-  nccm_key_shift_down:  # Shift down arrow
+  nccm_key_shift_down:      # Shift down arrow
     - 336
-  nccm_key_shift_left:  # Shift left arrow
+  nccm_key_shift_left:      # Shift left arrow
     - 393
-  nccm_key_shift_right: # Shift right arrow
+  nccm_key_shift_right:     # Shift right arrow
     - 402
-  nccm_key_up:          # Up arrow
+  nccm_key_up:              # Up arrow
     - 259
-  nccm_key_down:        # Down arrow
+  nccm_key_down:            # Down arrow
     - 258
-  nccm_key_left:        # Left arrow
+  nccm_key_left:            # Left arrow
     - 260
-  nccm_key_right:       # Right arrow
+  nccm_key_right:           # Right arrow
     - 261
-  nccm_key_pgup:        # Pgup key
+  nccm_key_pgup:            # Pgup key
     - 339
-  nccm_key_pgdn:        # Pgdn key
+  nccm_key_pgdn:            # Pgdn key
     - 338
-  nccm_key_home:        # Home key
+  nccm_key_home:            # Home key
     - 262
-  nccm_key_end:         # End key
+  nccm_key_end:             # End key
     - 360
-  nccm_key_f1:          # F1 key
+  nccm_key_f1:              # F1 key
     - 265
-  nccm_key_f2:          # F2 key
+  nccm_key_f2:              # F2 key
     - 266
-  nccm_key_f3:          # F3 key
+  nccm_key_f3:              # F3 key
     - 267
-  nccm_key_f4:          # F4 key
+  nccm_key_f4:              # F4 key
     - 268
-  nccm_key_f5:          # F5 key
+  nccm_key_f5:              # F5 key
     - 269
 
 
