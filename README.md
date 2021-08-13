@@ -162,7 +162,7 @@ This setting defines whether nccm should try to import any
 yml files it finds in /etc/nccm.d/ . Useful in a multiuser
 env where each user can have their own nccm.yml as well as
 shared connection details files. These files should be
-called <name>.yml and can only contain connection details
+called {name}.yml and can only contain connection details
 without any program settings.
 As files are imported - older data will be updated with
 newer data/values.
