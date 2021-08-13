@@ -513,7 +513,8 @@ import yaml         # Requires: 'pip3 install --user PyYAML'
 # Beginning of logging setup section:
 
 # Variables that control logging:
-LogLevel = logging.WARNING  # Initial log level of this program
+LogLevel = logging.WARNING  # Initial log level of this program.
+                            # Edit this if you want to change the initial log level.
 MaxLogLineLength = 700      # Wrap log lines longer than this many chars.
                             # Keep a sensible and usable limit.
 SysLogProgName = 'nccm'     # This is how our program is identified in syslog
@@ -626,11 +627,14 @@ LogWrite = logging.getLogger(SysLogProgName)
 LogWrite.setLevel(LogLevel)
     # ^ Set this to logging.DEBUG or logging.WARNING for your INITIAL desired log level.
     #   Config file (nccm.yml) log level takes over from when it is loaded,
-    #   this value controls logging verbosity until then.
+    #   This value controls logging verbosity until then so if you really want
+    #       debug level logging throughout your session, use 'nccm -d' .
     #   If you need to see verbose logging BEFORE the nccm.yml is loaded (which
-    #   overrides this setting), make it DEBUG here. This will also let you
-    #   troubleshoot problems that occur in the initial stages of nccm run - before
-    #   the nccm.yml file is loaded.
+    #       overrides this setting), make it DEBUG here. Well - don't actually edit it
+    #       here, but edit it in the earlier section 'Variables that control logging'
+    #       where the variable 'LogLevel' is configured.
+    #   This will also let you troubleshoot problems that occur in the initial stages
+    #       of nccm run - before the nccm.yml file is loaded.
 
 LogWrite.propagate = False
     # ^ Prevents duplicate logging by ancestor loggers (if any)
@@ -682,7 +686,7 @@ LogWrite.debug('nccm started with log level = {} as set by '
 
 # Beginning of global variables section:
 
-__version__ = '1.5.4'      # nccm version string
+__version__ = '1.6.0'      # nccm version string
 
 class GlobalConfig:
     ''' This is used as a simple global variable storage because GlobalConfig only
@@ -863,10 +867,14 @@ class Connections:
             #   This is both the ssh connections details as well as the
             #   nccm_config_* items - all in the same dict.
 
-        LogWrite.debug('self.LoadedServersDict (contains prog settings + conn details) = {}'
-            .format(self.LoadedServersDict))
-            # ^ This dump will have program config + connection config details.
-            #   Soon we will pop out the program config items.
+        if GlobalConfig.InsecureLogging:
+            LogWrite.debug('self.LoadedServersDict (contains prog settings + conn details) = {}'
+                .format(self.LoadedServersDict))
+                # ^ This dump will have program config + connection config details.
+                #   Soon we will pop out the program config items.
+        else:
+            LogWrite.debug('self.LoadedServersDict (contains prog settings + conn details) = {}'
+                .format('CENSORED'))
 
         # First we extract config items from self.LoadedServersDict
         # to prevent them from being read as conns later on.
@@ -1024,10 +1032,14 @@ class Connections:
             if self.LoadedServersDict[Looper] == None:
                 self.LoadedServersDict[Looper] = {}
 
-        LogWrite.debug('self.LoadedServersDict (by now it contains only conn details) = {}'
-            .format(self.LoadedServersDict))
-            # ^ Now we have all the imported connection details too, and the
-            #   program configs are gone because we pop'ed them out earlier.
+        if GlobalConfig.InsecureLogging:
+            LogWrite.debug('self.LoadedServersDict (by now it contains only conn details) = {}'
+                .format(self.LoadedServersDict))
+                # ^ Now we have all the imported connection details too, and the
+                #   program configs are gone because we pop'ed them out earlier.
+        else:
+            LogWrite.debug('self.LoadedServersDict (by now it contains only conn details) = {}'
+                .format('CENSORED'))
 
         LogWrite.debug('Next we load the connections details ...')
 
@@ -1084,7 +1096,7 @@ class Connections:
                         SshUserFromLogin = True
 
                     else:
-                        LogWrite.warn('Something wrong with config: '
+                        LogWrite.warning('Something wrong with config: '
                             'TempSplit = {}'.format(TempSplit))
                             # ^ Probably will crash soon...
 
@@ -1241,17 +1253,30 @@ class Connections:
                     GlobalConfig.ScreenWidth,
                     GlobalConfig.ScreenHeight,
                     '.nccm.log'))
-            LogWrite.debug('self.LogFileName = {} , of type: {}'
-                .format(self.LogFileName, type(self.LogFileName)))
+
+            if GlobalConfig.InsecureLogging:
+                LogWrite.debug('self.LogFileName = {} , of type: {}'
+                    .format(self.LogFileName, type(self.LogFileName)))
+            else:
+                LogWrite.debug('self.LogFileName = {} , of type: {}'
+                    .format('CENSORED', type(self.LogFileName)))
+
             CommandLine += ('|', 'tee', '--append', str(self.LogFileName))
             self.WriteLogFileHeader()   # Write info intro to the log file
 
         CommandLine = ' '.join(CommandLine)
         # ^ CommandLine was a list. Let's make it a string. Now looks like:
         # ssh user@192.168.1.1 -o ServerAliveInterval=40 | tee /logs/2021-03-07_16:45:18_user_AT_192.168.1.1
-        LogWrite.debug('ServerXSNum (this is the connection list '
-            'line number) = {} , CommandLine = {}'
-                .format(ServerXSNum, CommandLine))
+
+        if GlobalConfig.InsecureLogging:
+            LogWrite.debug('ServerXSNum (this is the connection list '
+                'line number) = {} , CommandLine = {}'
+                    .format(ServerXSNum, CommandLine))
+        else:
+            LogWrite.debug('ServerXSNum (this is the connection list '
+                'line number) = {} , CommandLine = {}'
+                    .format(ServerXSNum, 'CENSORED'))
+
         return CommandLine
 
 
@@ -2009,7 +2034,7 @@ def ParseArgs():
 
     if args.insecure:
         GlobalConfig.InsecureLogging = True
-        LogWrite.warn('Insecure option enabled - stuff like usernames will be logged')
+        LogWrite.warning('Insecure option enabled - stuff like usernames will be logged')
 
     if args.man:
         DisplayHelp()
@@ -2033,8 +2058,14 @@ def main(*args):
         if CommandLine:
             PressEnterToCont()
             print('\nnccm: About to ssh using:\n{}\n'.format(CommandLine))
-            LogWrite.info('About to subprocess.run ExtCommand = {} ...'
-                .format(CommandLine))
+
+            if GlobalConfig.InsecureLogging:
+                LogWrite.info('About to subprocess.run ExtCommand = {} ...'
+                    .format(CommandLine))
+            else:
+                LogWrite.info('About to subprocess.run ExtCommand = {} ...'
+                    .format('CENSORED'))
+
             StartTime = time.time()
 
             try:
@@ -2055,8 +2086,13 @@ def main(*args):
                     '{} ({} seconds)\n'
                         .format(CommandLine, datetime.timedelta(seconds=SessionTime),
                             SessionTime))
-                LogWrite.info('Completed ssh using: {} . SessionTime was: {} seconds'
-                    .format(CommandLine, SessionTime))
+
+                if GlobalConfig.InsecureLogging:
+                    LogWrite.info('Completed ssh using: {} . SessionTime was: {} seconds'
+                        .format(CommandLine, SessionTime))
+                else:
+                    LogWrite.info('Completed ssh using: {} . SessionTime was: {} seconds'
+                        .format('CENSORED', SessionTime))
 
         if GlobalConfig.LoopNccm:
             LogWrite.debug('GlobalConfig.LoopNccm = {} -> looping nccm'
