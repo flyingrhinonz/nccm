@@ -305,6 +305,10 @@ Command line arguments
     Force debug verbosity logging, ignoring any other
     logging settings everywhere else.
 
+* --insecure :
+    Force nccm to expose private information in the log
+    file (secure by default - logs 'CENSORED' instead).
+
 * -m  or --man :
     Display the man page.
 
@@ -437,6 +441,13 @@ the code due to too much logging. Enable them as required.
 
 To completely disable logging - uncomment this line:
 `logging.disable(level=logging.CRITICAL)`  .
+
+By default nccm protects your privacy and security by
+replacing items such as username and hostname with
+'CENSORED' in the logs. Supply the argument '--insecure'
+if you wish to expose private information to your log file.
+Warning - any user who has access to the log file will
+be able to see this information.
 
 When you use ssh (either directly from the shell or wrapped
 by nccm - ssh always exits with an exit code. Exit code 0
@@ -686,7 +697,7 @@ LogWrite.debug('nccm started with log level = {} as set by '
 
 # Beginning of global variables section:
 
-__version__ = '1.6.0'      # nccm version string
+__version__ = '1.6.1'      # nccm version string
 
 class GlobalConfig:
     ''' This is used as a simple global variable storage because GlobalConfig only
@@ -909,6 +920,8 @@ class Connections:
             LogWrite.info('Fields explained: PN: Process Name , MN: Module Name , '
                 'FN: Function Name , LI: LIne number , '
                 'TN: Thread Name')
+                # ^ Don't move this logging command to any earlier place in the program -
+                #       it will not be displayed due to default WARNING log level.
 
         # Handle loading of the default keepalive value from nccm_config_keepalive:
         self.DefaultKeepAlive = int(self.LoadedServersDict.pop(
@@ -1983,7 +1996,7 @@ def ParseArgs():
     ''' Handle any command line arguments supplied '''
 
     parser = argparse.ArgumentParser(
-        description = 'NCurses Connection Manager',
+        description = 'NCurses Connection Manager by Kenneth Aaron',
         epilog = 'Thank you for using nccm',
         #add_help = False )
             # ^ Bypass the built in argparse help generator and release
@@ -2003,7 +2016,7 @@ def ParseArgs():
         action='store_true' )
 
     parser.add_argument('--insecure',
-        help='log usernames',
+        help='log uncensored usernames, hostnames, etc',
         action='store_true' )
 
     parser.add_argument('filter_text',
@@ -2034,7 +2047,8 @@ def ParseArgs():
 
     if args.insecure:
         GlobalConfig.InsecureLogging = True
-        LogWrite.warning('Insecure option enabled - stuff like usernames will be logged')
+        LogWrite.warning('--insecure argument supplied - stuff like usernames '
+            'and hostnames will be logged')
 
     if args.man:
         DisplayHelp()
