@@ -43,7 +43,7 @@ install and use nccm in any way you wish.
 
 The ssh connections/config file `nccm.yml` should be
 copied to any one of the following locations, and is
-loaded from the first location found:
+loaded from the first location found in the following order:
 - `~/.config/nccm/nccm.yml`
 - `~/.nccm.yml`
 - `~/nccm.yml`
@@ -57,6 +57,9 @@ In a multiuser system, placing nccm.yml in each user's
 home dir will allow each user to use their personalized
 settings if nccm.yml is present, and if not present then
 fallback to default settings from /etc/nccm.yml.
+It is also possible to put your real nccm.yml anywhere
+you wish and make a symlink to it from one of the paths
+mentioned above.
 Also refer to  `nccm_config_importnccmd` setting which
 allows you to import and merge connection details from
 /etc/nccm.d/ .
@@ -162,7 +165,7 @@ This setting defines whether nccm should try to import any
 yml files it finds in /etc/nccm.d/ . Useful in a multiuser
 env where each user can have their own nccm.yml as well as
 shared connection details files. These files should be
-called {name}.yml and can only contain connection details
+called <name>.yml and can only contain connection details
 without any program settings.
 As files are imported - older data will be updated with
 newer data/values.
@@ -201,8 +204,9 @@ nccm menu reappears after you exit from your ssh session.
 nccm is configured for US keyboard mapping. If you have
 something else and certain keys don't behave as you'd
 expect - change their codes here.
-Each of the keyboard codes is a list, you can map a
-keypress to as many codes as you wish.
+Each of the keyboard codes is a list (even if it contains
+only one item), you can map a keypress to as many codes as
+you wish by adding more codes to it.
 If you want to figure out what code results from a
 keypress - run 'nccm -d' , press a key and look for
 'Keyboard entry: UserKey = nnn' in your logs.
@@ -297,6 +301,10 @@ Command line arguments
 * -d  or --debug :
     Force debug verbosity logging, ignoring any other
     logging settings everywhere else.
+
+* --insecure :
+    Force nccm to expose private information in the log
+    file (secure by default - logs 'CENSORED' instead).
 
 * -m  or --man :
     Display the man page.
@@ -431,6 +439,13 @@ the code due to too much logging. Enable them as required.
 To completely disable logging - uncomment this line:
 `logging.disable(level=logging.CRITICAL)`  .
 
+By default nccm protects your privacy and security by
+replacing items such as username and hostname with
+'CENSORED' in the logs. Supply the argument '--insecure'
+if you wish to expose private information to your log file.
+Warning - any user who has access to the log file will
+be able to see this information.
+
 When you use ssh (either directly from the shell or wrapped
 by nccm - ssh always exits with an exit code. Exit code 0
 means normal exit and non zero for other scenarios.
@@ -474,4 +489,5 @@ Credits
 
 Big thanks goes to Andrew P. for suggesting features and
 submitting improvements.
+
 
