@@ -29,6 +29,15 @@ PURPOSE.
 See the GNU General Public License for more details.
 
 
+About nccm
+----------
+
+* Simple yet powerful ncurses ssh connection manager.
+* Well documented.
+* Logs are in English - you don't need to be a developer to
+  read the majority of the logs.
+
+
 Manual install instructions
 ---------------------------
 
@@ -132,7 +141,15 @@ If you are using systemd it usually captures syslog
 messages which you can read in `journalctl`. I will use
 the word syslog in this documentation as referral to both.
 Use this for debugging. Default level is warning.
-Supported levels: debug, info, warning, error, critical
+Supported levels: debug, info, warning, error, critical .
+
+`nccm_config_logprivateinfo`:
+Controls whether you want syslog/journal to include private
+information such as usernames & hostnames. By default this
+is set to False which results in the data being replaced
+with 'CENSORED' in the logs.
+You can also force this temporarily by supplying the
+command line argument:  --logprivateinfo .
 
 `nccm_config_keepalive`:
 Sends a message through the encrypted channel every
@@ -302,9 +319,9 @@ Command line arguments
     Force debug verbosity logging, ignoring any other
     logging settings everywhere else.
 
-* --insecure :
-    Force nccm to expose private information in the log
-    file (secure by default - logs 'CENSORED' instead).
+* --logprivateinfo :
+    Force nccm to expose private information in syslog
+    (secure by default - logs 'CENSORED' instead).
 
 * -m  or --man :
     Display the man page.
@@ -441,9 +458,12 @@ To completely disable logging - uncomment this line:
 
 By default nccm protects your privacy and security by
 replacing items such as username and hostname with
-'CENSORED' in the logs. Supply the argument '--insecure'
-if you wish to expose private information to your log file.
-Warning - any user who has access to the log file will
+`CENSORED` in syslog/journal. Supply the argument
+`--logprivateinfo` if you wish to expose private
+information to these logs.
+You can also enable this permanently via the nccm.yml
+config file (disabled by default).
+Warning - any user who has access to the log files will
 be able to see this information.
 
 When you use ssh (either directly from the shell or wrapped
@@ -489,5 +509,4 @@ Credits
 
 Big thanks goes to Andrew P. for suggesting features and
 submitting improvements.
-
 

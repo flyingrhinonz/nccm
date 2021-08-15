@@ -80,6 +80,13 @@ nccm_config_controlmode: std
 nccm_config_loglevel: info
 # ^ Supported values: debug, info, warning, error, critical
 
+nccm_config_logprivateinfo: false
+# ^ Do you want syslog to include private information such as usernames
+#   and hostnames?
+#   Setting this to false results in these items being replaced
+#   with "CENSORED" in syslog/journal.
+#   Supported values: true, false
+
 nccm_config_keepalive: 30
 # ^ Send keepalive every n seconds (0 to disable) to prevent disconnection
 #   Supported values: 0 to any integer
