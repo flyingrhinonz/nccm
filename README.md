@@ -146,10 +146,10 @@ Supported levels: debug, info, warning, error, critical .
 `nccm_config_logprivateinfo`:
 Controls whether you want syslog/journal to include private
 information such as usernames & hostnames. By default this
-is set to False which results in the data being replaced
-with 'CENSORED' in the logs.
+is set to `False` which results in the data being replaced
+with `CENSORED` in the logs.
 You can also force this temporarily by supplying the
-command line argument:  --logprivateinfo .
+command line argument:  `--logprivateinfo` .
 
 `nccm_config_keepalive`:
 Sends a message through the encrypted channel every
@@ -321,7 +321,7 @@ Command line arguments
 
 * --logprivateinfo :
     Force nccm to expose private information in syslog
-    (secure by default - logs 'CENSORED' instead).
+    (secure by default - logs `CENSORED` instead).
 
 * -m  or --man :
     Display the man page.
