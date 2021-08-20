@@ -83,15 +83,15 @@ present in which case you need to install them manually.
 
 On Debian or similar use apt:
 If you want to only use the distro's packages you can do:
-`sudo apt install python3-yaml yamllint`
+* `sudo apt install python3-yaml yamllint`
 
 Or if you prefer to install PyYAML from pip3:
-`sudo apt install python3-pip yamllint`
-`pip3 install --user PyYAML`
+* `sudo apt install python3-pip yamllint`
+* `pip3 install --user PyYAML`
 
 On Fedora or similar use dnf:
-`sudo dnf install python3-pip yamllint`
-`pip3 install --user PyYAML`
+* `sudo dnf install python3-pip yamllint`
+* `pip3 install --user PyYAML`
 
 Before starting, edit the `nccm.yml` file and add your
 own ssh connections. Formatting YAML is easy and the file
@@ -107,7 +107,7 @@ specific way because nccm gives you "sort by" options
 within the program.
 
 Once you've finished editing, check your work with yamllint:
-`yamllint nccm.yml`
+* `yamllint nccm.yml`
 
 If no errors are returned, then you've formatted your file
 correctly, and it's safe to continue.
@@ -266,7 +266,7 @@ Usage
 -----
 
 `Conn` textbox:
-Accepts integer values only (and !@#$% for sorting).
+Accepts integer values only (and:  `!@#$%`  for sorting).
 Pressing Enter here will connect to this connection ID,
 as corresponding to a valid value in the full
 unfiltered list (even if that particular connection
@@ -333,13 +333,13 @@ Command line arguments
 Sorting
 -------
 
-F1-F5 keys sort by the respective fields 1-5.
+`F1-F5` keys sort by the respective fields 1-5.
 The display shows 4 visible columms but we treat
 username and server address as separate columns for
 sorting purposes.
 The Fn keys may be captured by certain GUIs so we have
 an alternative - when focused on `Conn` window, press
-Shift-1 through 5 (!@#$%) to toggle sorting by the
+Shift-1 through 5 (`!@#$%`) to toggle sorting by the
 respective field number. Pressing the same key again
 reverses the sort order. If you type these special
 characters in the `Filter` textbox they become standard
