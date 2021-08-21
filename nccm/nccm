@@ -102,12 +102,13 @@ you downloaded from the project page is well documented
 and has examples of every supported scenario.
 Follow the structure in the file - provide the connection
 name at the beginning of a line and sub config items
-indented by two spaces. Don't forget the colons - these
-are part of the YAML language.
+indented by two spaces. Every subsequent nesting level
+gets a further indent of two spaces. Don't forget the
+colons - these are part of the YAML language.
 
 Don't worry about ordering your SSH session blocks in any
 specific way because nccm gives you "sort by" options
-within the program.
+within the program as well as filtering.
 
 Once you've finished editing, check your work with yamllint:
 * `yamllint nccm.yml`
@@ -149,7 +150,7 @@ Supported levels: debug, info, warning, error, critical .
 `nccm_config_logprivateinfo`:
 Controls whether you want syslog/journal to include private
 information such as usernames & hostnames. By default this
-is set to `False` which results in the data being replaced
+is set to `false` which results in the data being replaced
 with `CENSORED` in the logs.
 You can also force this temporarily by supplying the
 command line argument:  `--logprivateinfo` .
@@ -176,17 +177,18 @@ you want to use a different program - set it here.
 This is a global setting that affects all your connections.
 
 `nccm_config_promptuser`
-By default nccm will connect immediately to the selected
-server. Set this value to `true` if you want nccm to
-prompt the user to press Enter before a connection is made.
+By default set to `false` and nccm will connect immediately
+to the selected server. Set this value to `true`
+if you want nccm to prompt the user to press Enter before
+a connection is made.
 
 `nccm_config_importnccmd:`
 This setting defines whether nccm should try to import any
 yml files it finds in /etc/nccm.d/ . Useful in a multiuser
 env where each user can have their own nccm.yml as well as
-shared connection details files. These files should be
-called <name>.yml and can only contain connection details
-without any program settings.
+shared connection details files. These filenames should end
+in .yml and can only contain connection details without any
+program settings.
 As files are imported - older data will be updated with
 newer data/values.
 Note - nccm.yml from one of the supported directories is
@@ -229,7 +231,7 @@ only one item), you can map a keypress to as many codes as
 you wish by adding more codes to it.
 If you want to figure out what code results from a
 keypress - run 'nccm -d' , press a key and look for
-'Keyboard entry: UserKey = nnn' in your logs.
+'Keyboard entry: UserKey = nnn' in syslog/journal.
 You can even map other keys to nccm keys - for example
 instead of F1 you want to use F12 - just put the code for
 F12 in the F1 key position.
@@ -274,7 +276,7 @@ Pressing Enter here will connect to this connection ID,
 as corresponding to a valid value in the full
 unfiltered list (even if that particular connection
 is hidden by unmatching text in the `Filter` textbox),
-ignoring everything else (`Filter` textbox, highlighted
+ignoring everything else (Filter textbox, highlighted
 line) - even if they don't match.
 If this textbox is empty, it will connect to the
 connection marked by the highlighted line.
@@ -386,6 +388,8 @@ your server.
 Does not support highlighting filter keywords in search
 results because this results in a messy and confusing
 display once more than a couple keywords are used.
+This is not even required because you can use filtering
+to narrow down the search results to what you need.
 
 Text entry is limited to the length of the textboxes
 which in turn are dictated by the width of your window.
@@ -415,7 +419,7 @@ a newer nccm version and use your existing and older
 nccm.yml file although the reverse is true too. The error
 will normally be in the `Load` method and the resulting
 exception will resemble something like this (the line
-number will most probably be different):
+number will be different):
 `File "/usr/local/bin/nccm", line 481, in Load`.
 If this happens, best is to backup your nccm.yml then
 download both nccm and nccm.yml, verify that nccm now
@@ -429,15 +433,17 @@ much if at all anything.
 By default the production level of the script logs WARNING
 and above which results in syslog silence until something
 bad happens.
-Very long log lines are split into multiple lines, with
-subsequent lines (not including the first) being prepended
-by `    ....!!LINEWRAPPED!!`.
+Different syslog implementations have their own tolerance
+for line length, and to handle all scenarios - very long
+log lines are split into multiple lines, with wrapped
+lines being marked with:
+`    ....!!LINEWRAPPED!!`.
 
-Increase logging verbosity level to debug using the
+Increase logging verbosity level to `debug` using the
 `-d` or `--debug` command line arguments.
 This is by far the easiest way to debug and covers most
-scenarios except for faults that occur before reading
-the `-d` command line argument.
+scenarios except for faults that occur before the code
+actually reads the `-d` command line argument.
 
 To permanently increase logging verbosity change this line
 in the `nccm.yml` config file to debug:
@@ -470,7 +476,7 @@ Warning - any user who has access to the log files will
 be able to see this information.
 
 When you use ssh (either directly from the shell or wrapped
-by nccm - ssh always exits with an exit code. Exit code 0
+by nccm) - ssh always exits with an exit code. Exit code 0
 means normal exit and non zero for other scenarios.
 If you're getting messages from nccm saying ssh exited
 non-zero - try running ssh directly from the shell and
@@ -717,7 +723,7 @@ LogWrite.debug('nccm started with log level = {} as set by '
 
 # Beginning of global variables section:
 
-__version__ = '1.6.5'      # nccm version string
+__version__ = '1.6.6'      # nccm version string
 
 class GlobalConfig:
     ''' This is used as a simple global variable storage because GlobalConfig only
