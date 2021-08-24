@@ -154,6 +154,8 @@ is set to `false` which results in the data being replaced
 with `CENSORED` in the logs.
 You can also force this temporarily by supplying the
 command line argument:  `--logprivateinfo` .
+When this is enabled you will see:  `LP` in red in the
+help line at the bottom of the screen.
 
 `nccm_config_keepalive`:
 Sends a message through the encrypted channel every
@@ -474,6 +476,8 @@ You can also enable this permanently via the nccm.yml
 config file (disabled by default).
 Warning - any user who has access to the log files will
 be able to see this information.
+When this is enabled you will see:  `LP` in red in the
+help line at the bottom of the screen.
 
 When you use ssh (either directly from the shell or wrapped
 by nccm) - ssh always exits with an exit code. Exit code 0
@@ -679,21 +683,24 @@ LogWrite.propagate = False
 LogHandler = CustomHandler()
 LogWrite.addHandler(LogHandler)
 
-LogWriteFormatter = logging.Formatter('{}[%(process)d]: <%(levelname)s> '
-    '({} , PN: %(processName)s , MN: %(module)s , '
+LogWriteFormatter = logging.Formatter(
+    '{}[%(process)d]: <%(levelname)s> '
+    '(%(asctime)s , PN: %(processName)s , MN: %(module)s , '
     'FN: %(funcName)s , '
     'LI: %(lineno)d , TN: %(threadName)s):    '
     '%(message)s'
-        .format(SysLogProgName,
-            datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]))
+        .format(SysLogProgName))
+
     # ^ Select the attributes to include in the log lines
     #   Documented here: https://docs.python.org/3/library/logging.html
     #     (LogRecord attributes)
     #
-    #   I'm not using:  LN: %(lineno)d  because it's the same as var: SysLogProgName
-    #
     #   Note: On Python 3.6+ we can get millisecond date using:
     #       datetime.datetime.now().isoformat(sep=' ', timespec='milliseconds')
+    #
+    #   Note: Any variables passed in the:  format(...)  section are fixed for the
+    #   duration of the run - don't use it to pass in a timestamp because it will
+    #   not change - ever.
 
     # Fields explained:
     #   PN: Process Name
@@ -723,7 +730,7 @@ LogWrite.debug('nccm started with log level = {} as set by '
 
 # Beginning of global variables section:
 
-__version__ = '1.6.6'      # nccm version string
+__version__ = '1.6.7'      # nccm version string
 
 class GlobalConfig:
     ''' This is used as a simple global variable storage because GlobalConfig only
@@ -789,8 +796,6 @@ class HelpTextDisplay:
 
         # This is the list of items displayed in the help menu:
         self.HelpMenuItems = collections.OrderedDict((
-            ( 'Arrows',     'Scroll' ),
-            ( 'Enter',      'Select' ),
             ( 'ctrl-h',     'Help' ),
             ( 'ctrl-q',     'Quit' ),
         ))
@@ -798,6 +803,14 @@ class HelpTextDisplay:
         for Looper in self.HelpMenuItems:
             self.Window.addstr('  '+Looper, curses.color_pair(1))
             self.Window.addstr('-'+self.HelpMenuItems[Looper], curses.color_pair(2))
+
+        # This block shows 'LP' (Logging Private data) in red background
+        #   if this option has been enabled:
+        if GlobalConfig.LogPrivateInfo:
+            LogWrite.debug('GlobalConfig.LogPrivateInfo is True - setting up '
+                'to display the red LP in the help window')
+            self.Window.addstr('  ', curses.color_pair(1))
+            self.Window.addstr('LP', curses.color_pair(5))
 
 
     def Display(self):
@@ -993,9 +1006,23 @@ class Connections:
             LogWrite.debug('Loaded {} config item:  GlobalConfig.LogPrivateInfo = {} '
                 '(or defaulted it to:  False  if not found in nccm.yml)'
                     .format(GlobalConfig.ConfigFile, GlobalConfig.LogPrivateInfo))
+
             if GlobalConfig.LogPrivateInfo:
                 LogWrite.warning('GlobalConfig.LogPrivateInfo == True . '
                     'Stuff like usernames and hostnames will be logged to syslog/journal !')
+
+        if GlobalConfig.LogPrivateInfo:
+            # ^ Since we loaded LogPrivateInfo from nccm.yml (or got it earlier
+            #       from the command line arg:  --logprivateinfo)  we need to build
+            #       the help text display window and include the red 'LP' in it.
+            #   In earier nccm versions before we had LogPrivateInfo - this window
+            #       was built along with the other windows in the function SetupWindows,
+            #       but we can't built it so early anymore.
+            HelpBox = HelpTextDisplay(LinesCount=1, ColsCount=GlobalConfig.ScreenWidth,
+                BeginY=GlobalConfig.ScreenHeight-1, BeginX=0)
+            GlobalConfig.DisplayObjects.append(HelpBox)
+                # ^ Add this window to the displayable windows
+            LogWrite.debug('HelpBox window built (the line that displays help text)')
 
         # Handle loading of the importnccmd value from nccm_config_importnccmd:
         ImportNccmD = self.LoadedServersDict.pop(
@@ -1615,6 +1642,7 @@ def SetupCurses(stdscr):
     curses.init_pair(2, curses.COLOR_CYAN, curses.COLOR_BLACK)
     curses.init_pair(3, curses.COLOR_WHITE, curses.COLOR_BLUE)
     curses.init_pair(4, curses.COLOR_WHITE, curses.COLOR_RED)
+    curses.init_pair(5, curses.COLOR_WHITE, curses.COLOR_RED)
 
     if not curses.has_colors(): # Color not supported
         RestoreTerminal(stdscr)
@@ -1663,12 +1691,17 @@ def SetupWindows(stdscr):
     GlobalConfig.TextboxObjects = []
         # ^ Same comment as above in regards to the list needing to be reset...
 
-    # Help text display window:
-    HelpBox = HelpTextDisplay(LinesCount=1, ColsCount=GlobalConfig.ScreenWidth,
-        BeginY=GlobalConfig.ScreenHeight-1, BeginX=0)
-    GlobalConfig.DisplayObjects.append(HelpBox)
-        # ^ Add this window to the displayable windows
-    LogWrite.debug('HelpBox window built (the line that displays help text)')
+    ## Help text display window:
+    ##   This window is special - it contains status of stuff like
+    ##   logging private data and at this stage we don't know if this setting
+    ##   was loaded from the config file. In earlier nccm we setup this
+    ##   window here, but since we now support LogPrivateInfo we will setup
+    ##   this window after we load nccm.yml .
+    #HelpBox = HelpTextDisplay(LinesCount=1, ColsCount=GlobalConfig.ScreenWidth,
+    #    BeginY=GlobalConfig.ScreenHeight-1, BeginX=0)
+    #GlobalConfig.DisplayObjects.append(HelpBox)
+    #    # ^ Add this window to the displayable windows
+    #LogWrite.debug('HelpBox window built (the line that displays help text)')
 
     # Connection text display window:
     ConnText = BasicTextDisplay(LinesCount=1, ColsCount=10,
