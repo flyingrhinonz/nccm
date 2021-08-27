@@ -151,6 +151,8 @@ is set to `false` which results in the data being replaced
 with `CENSORED` in the logs.
 You can also force this temporarily by supplying the
 command line argument:  `--logprivateinfo` .
+When this is enabled you will see:  `LP` in red in the
+help line at the bottom of the screen.
 
 `nccm_config_keepalive`:
 Sends a message through the encrypted channel every
@@ -205,6 +207,8 @@ The log filename format is:
 Note - the screen dimensions are those when nccm started
 the connection - they might have changed later on during
 your session.
+When tee logging is enabled you will see:  `LT`  in white
+in the help line at the botton of the screen.
 
 To view the resulting file I recommend using `catstep`
 which can replay the file slowly and also let you step
@@ -471,6 +475,8 @@ You can also enable this permanently via the nccm.yml
 config file (disabled by default).
 Warning - any user who has access to the log files will
 be able to see this information.
+When this is enabled you will see:  `LP` in red in the
+help line at the bottom of the screen.
 
 When you use ssh (either directly from the shell or wrapped
 by nccm) - ssh always exits with an exit code. Exit code 0
