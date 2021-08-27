@@ -210,6 +210,8 @@ The log filename format is:
 Note - the screen dimensions are those when nccm started
 the connection - they might have changed later on during
 your session.
+When tee logging is enabled you will see:  `LT`  in white
+in the help line at the botton of the screen.
 
 To view the resulting file I recommend using `catstep`
 which can replay the file slowly and also let you step
@@ -683,14 +685,22 @@ LogWrite.propagate = False
 LogHandler = CustomHandler()
 LogWrite.addHandler(LogHandler)
 
-LogWriteFormatter = logging.Formatter(
-    '{}[%(process)d]: <%(levelname)s> '
-    '(%(asctime)s , PN: %(processName)s , MN: %(module)s , '
-    'FN: %(funcName)s , '
-    'LI: %(lineno)d , TN: %(threadName)s):    '
-    '%(message)s'
-        .format(SysLogProgName))
+#LogWriteFormatter = logging.Formatter(
+#    '{}[%(process)d]: <%(levelname)s> '
+#    '(%(asctime)s , PN: %(processName)s , MN: %(module)s , '
+#    'FN: %(funcName)s , '
+#    'LI: %(lineno)d , TN: %(threadName)s):    '
+#    '%(message)s'
+#        .format(SysLogProgName))
+    # ^ Works but uses comma milliseconds and I prefer dot milliseconds.
 
+LogWriteFormatter = logging.Formatter(
+    fmt = '{}[%(process)d]: <%(levelname)s> '
+        '(%(asctime)s.%(msecs)03d , PN: %(processName)s , MN: %(module)s , '
+        'FN: %(funcName)s , '
+        'LI: %(lineno)d , TN: %(threadName)s):    '
+        '%(message)s'.format(SysLogProgName),
+    datefmt = '%Y-%m-%d %H:%M:%S' )
     # ^ Select the attributes to include in the log lines
     #   Documented here: https://docs.python.org/3/library/logging.html
     #     (LogRecord attributes)
@@ -699,8 +709,11 @@ LogWriteFormatter = logging.Formatter(
     #       datetime.datetime.now().isoformat(sep=' ', timespec='milliseconds')
     #
     #   Note: Any variables passed in the:  format(...)  section are fixed for the
-    #   duration of the run - don't use it to pass in a timestamp because it will
-    #   not change - ever.
+    #       duration of the run - don't use it to pass in a timestamp because it will
+    #       not change - ever.
+    #   This version gives dot milliseconds rather than the default comma as in
+    #       the builtin python function.
+    #       See here: https://stackoverflow.com/questions/6290739/python-logging-use-milliseconds-in-time-format
 
     # Fields explained:
     #   PN: Process Name
@@ -730,7 +743,7 @@ LogWrite.debug('nccm started with log level = {} as set by '
 
 # Beginning of global variables section:
 
-__version__ = '1.6.7'      # nccm version string
+__version__ = '1.6.9'      # nccm version string
 
 class GlobalConfig:
     ''' This is used as a simple global variable storage because GlobalConfig only
@@ -739,6 +752,10 @@ class GlobalConfig:
     LogPrivateInfo = False
         # ^ Log stuff like usernames to aid debugging.
         #   This is set explicitly via command line, default is to be safe.
+    LogUsingTee = False
+        # ^ This var is set after reading the nccm_config_logpath setting
+        #   from nccm so that I can check it later in HelpTextDisplay due
+        #   to it being globally accessible.
     PromptToContinue = False
         # ^ Prompt user to press Enter before connecting
     LoopNccm = False
@@ -811,6 +828,13 @@ class HelpTextDisplay:
                 'to display the red LP in the help window')
             self.Window.addstr('  ', curses.color_pair(1))
             self.Window.addstr('LP', curses.color_pair(5))
+
+        if GlobalConfig.LogUsingTee:
+            LogWrite.debug('GlobalConfig.LogUsingTee is True - setting up '
+                'to display the white LT in the help window')
+            self.Window.addstr('  ', curses.color_pair(1))
+            self.Window.addstr('LT', curses.color_pair(6))
+
 
 
     def Display(self):
@@ -1011,19 +1035,6 @@ class Connections:
                 LogWrite.warning('GlobalConfig.LogPrivateInfo == True . '
                     'Stuff like usernames and hostnames will be logged to syslog/journal !')
 
-        if GlobalConfig.LogPrivateInfo:
-            # ^ Since we loaded LogPrivateInfo from nccm.yml (or got it earlier
-            #       from the command line arg:  --logprivateinfo)  we need to build
-            #       the help text display window and include the red 'LP' in it.
-            #   In earier nccm versions before we had LogPrivateInfo - this window
-            #       was built along with the other windows in the function SetupWindows,
-            #       but we can't built it so early anymore.
-            HelpBox = HelpTextDisplay(LinesCount=1, ColsCount=GlobalConfig.ScreenWidth,
-                BeginY=GlobalConfig.ScreenHeight-1, BeginX=0)
-            GlobalConfig.DisplayObjects.append(HelpBox)
-                # ^ Add this window to the displayable windows
-            LogWrite.debug('HelpBox window built (the line that displays help text)')
-
         # Handle loading of the importnccmd value from nccm_config_importnccmd:
         ImportNccmD = self.LoadedServersDict.pop(
             'nccm_config_importnccmd', False)
@@ -1062,6 +1073,22 @@ class Connections:
                 #   replay the log with catstep and needs to know the minimum
                 #   window dimensions. Note - if the user changed window size
                 #   later - we won't know of it.
+
+            GlobalConfig.LogUsingTee = True
+                # ^ And set this global variable too.
+
+        # Since we loaded LogPrivateInfo from nccm.yml (or got it earlier
+        #   from the command line arg:  --logprivateinfo)  and also the
+        #   nccm_config_logpath setting, we need to build
+        #   the help text display window and include the red 'LP' in it.
+        # In earier nccm versions before we had LogPrivateInfo - this window
+        #   was built along with the other windows in the function SetupWindows,
+        #   but we can't built it so early anymore :
+        HelpBox = HelpTextDisplay(LinesCount=1, ColsCount=GlobalConfig.ScreenWidth,
+            BeginY=GlobalConfig.ScreenHeight-1, BeginX=0)
+        GlobalConfig.DisplayObjects.append(HelpBox)
+            # ^ Add this window to the displayable windows
+        LogWrite.debug('HelpBox window built (the line that displays help text)')
 
         # Handle loading of the keyboard bindings:
         self.KeyboardBindings = self.LoadedServersDict.pop(
@@ -1638,11 +1665,19 @@ def SetupCurses(stdscr):
         # ^ Get special keys support in stdscr. Per window setting also required
     curses.raw()                # Disable control codes
 
+    # Set up the vars for use later by:  curses.color_pair :
     curses.init_pair(1, curses.COLOR_YELLOW, curses.COLOR_BLACK)
+        # ^ Used by the help menu shortcut key display
     curses.init_pair(2, curses.COLOR_CYAN, curses.COLOR_BLACK)
+        # ^ Used by the help menu shortcut key help test
     curses.init_pair(3, curses.COLOR_WHITE, curses.COLOR_BLUE)
+        # Used by the text box as supplied to:  class TextBox
     curses.init_pair(4, curses.COLOR_WHITE, curses.COLOR_RED)
+        # ^ Used by the marker line controlled by the arrows
     curses.init_pair(5, curses.COLOR_WHITE, curses.COLOR_RED)
+        # ^ Used for setting alerts such as 'LP'
+    curses.init_pair(6, curses.COLOR_WHITE, curses.COLOR_BLACK)
+        # ^ Used for setting alerts such as 'LT'
 
     if not curses.has_colors(): # Color not supported
         RestoreTerminal(stdscr)
