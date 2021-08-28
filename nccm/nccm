@@ -154,7 +154,7 @@ is set to `false` which results in the data being replaced
 with `CENSORED` in the logs.
 You can also force this temporarily by supplying the
 command line argument:  `--logprivateinfo` .
-When this is enabled you will see:  `LP` in red in the
+When this is enabled you will see:  `LogPrv` in red in the
 help line at the bottom of the screen.
 
 `nccm_config_keepalive`:
@@ -210,8 +210,8 @@ The log filename format is:
 Note - the screen dimensions are those when nccm started
 the connection - they might have changed later on during
 your session.
-When tee logging is enabled you will see:  `LT`  in white
-in the help line at the botton of the screen.
+When tee logging is enabled you will see:  `LogTee`  in
+white in the help line at the botton of the screen.
 
 To view the resulting file I recommend using `catstep`
 which can replay the file slowly and also let you step
@@ -478,7 +478,7 @@ You can also enable this permanently via the nccm.yml
 config file (disabled by default).
 Warning - any user who has access to the log files will
 be able to see this information.
-When this is enabled you will see:  `LP` in red in the
+When this is enabled you will see:  `LogPrv` in red in the
 help line at the bottom of the screen.
 
 When you use ssh (either directly from the shell or wrapped
@@ -743,7 +743,7 @@ LogWrite.debug('nccm started with log level = {} as set by '
 
 # Beginning of global variables section:
 
-__version__ = '1.6.9'      # nccm version string
+__version__ = '1.6.10'      # nccm version string
 
 class GlobalConfig:
     ''' This is used as a simple global variable storage because GlobalConfig only
@@ -821,19 +821,19 @@ class HelpTextDisplay:
             self.Window.addstr('  '+Looper, curses.color_pair(1))
             self.Window.addstr('-'+self.HelpMenuItems[Looper], curses.color_pair(2))
 
-        # This block shows 'LP' (Logging Private data) in red background
+        # This block shows 'LogPrv' (Logging Private data) in red background
         #   if this option has been enabled:
         if GlobalConfig.LogPrivateInfo:
             LogWrite.debug('GlobalConfig.LogPrivateInfo is True - setting up '
-                'to display the red LP in the help window')
+                'to display the red LogPrv in the help window')
             self.Window.addstr('  ', curses.color_pair(1))
-            self.Window.addstr('LP', curses.color_pair(5))
+            self.Window.addstr('LogPrv', curses.color_pair(5))
 
         if GlobalConfig.LogUsingTee:
             LogWrite.debug('GlobalConfig.LogUsingTee is True - setting up '
-                'to display the white LT in the help window')
+                'to display the white LogTee in the help window')
             self.Window.addstr('  ', curses.color_pair(1))
-            self.Window.addstr('LT', curses.color_pair(6))
+            self.Window.addstr('LogTee', curses.color_pair(6))
 
 
 
@@ -1080,7 +1080,7 @@ class Connections:
         # Since we loaded LogPrivateInfo from nccm.yml (or got it earlier
         #   from the command line arg:  --logprivateinfo)  and also the
         #   nccm_config_logpath setting, we need to build
-        #   the help text display window and include the red 'LP' in it.
+        #   the help text display window and include the red 'LogPrv' in it.
         # In earier nccm versions before we had LogPrivateInfo - this window
         #   was built along with the other windows in the function SetupWindows,
         #   but we can't built it so early anymore :
@@ -1675,9 +1675,9 @@ def SetupCurses(stdscr):
     curses.init_pair(4, curses.COLOR_WHITE, curses.COLOR_RED)
         # ^ Used by the marker line controlled by the arrows
     curses.init_pair(5, curses.COLOR_WHITE, curses.COLOR_RED)
-        # ^ Used for setting alerts such as 'LP'
+        # ^ Used for setting alerts such as 'LogPrv'
     curses.init_pair(6, curses.COLOR_WHITE, curses.COLOR_BLACK)
-        # ^ Used for setting alerts such as 'LT'
+        # ^ Used for setting alerts such as 'LogTee'
 
     if not curses.has_colors(): # Color not supported
         RestoreTerminal(stdscr)
