@@ -986,9 +986,9 @@ class Connections:
             #   nccm_config_* items - all in the same dict.
 
         LogWrite.debug( {
-            'unsafe' :  'self.LoadedServersDict (contains prog settings + conn details) = {}'
+            'unsafe':   'self.LoadedServersDict (contains prog settings + conn details) = {}'
                 .format(self.LoadedServersDict),
-            'safe' :    'self.LoadedServersDict (contains prog settings + conn details) = {}'
+            'safe':     'self.LoadedServersDict (contains prog settings + conn details) = {}'
                 .format('CENSORED') } )
             # ^ This dump will have program config + connection config details.
             #   Soon we will pop out the program config items.
@@ -1191,9 +1191,9 @@ class Connections:
                 self.LoadedServersDict[Looper] = {}
 
         LogWrite.debug( {
-            'unsafe' :  'self.LoadedServersDict (by now it contains only conn details) = {}'
+            'unsafe':   'self.LoadedServersDict (by now it contains only conn details) = {}'
                 .format(self.LoadedServersDict),
-            'safe' :    'self.LoadedServersDict (by now it contains only conn details) = {}'
+            'safe':     'self.LoadedServersDict (by now it contains only conn details) = {}'
                 .format('CENSORED') } )
             # ^ Now we have all the imported connection details too, and the
             #   program configs are gone because we pop'ed them out earlier.
@@ -1229,8 +1229,8 @@ class Connections:
                     #   Same comment for FSL.Address .
 
                 LogWrite.debug( {
-                    'unsafe' :  'FSL.UserName = {}'.format(FSL.UserName),
-                    'safe' :    'FSL.UserName = {}'.format('CENSORED') } )
+                    'unsafe':   'FSL.UserName = {}'.format(FSL.UserName),
+                    'safe':     'FSL.UserName = {}'.format('CENSORED') } )
 
                 # 'user:' not present, extract username from friendly name:
                 if not FSL.UserName:
@@ -1257,18 +1257,16 @@ class Connections:
                             'TempSplit = {}'.format(TempSplit))
                             # ^ Probably will crash soon...
 
-                    if GlobalConfig.LogPrivateInfo:
-                        LogWrite.debug('FSL.UserName = {}'.format(FSL.UserName))
-                    else:
-                        LogWrite.debug('FSL.UserName = {}'.format('CENSORED'))
+                    LogWrite.debug( {
+                        'unsafe':   'FSL.UserName = {}'.format(FSL.UserName),
+                        'safe':     'FSL.UserName = {}'.format('CENSORED') } )
 
                 # Get FSL.Address:
                 FSL.Address = self.LoadedServersDict[FriendlyName].get('address', False)
 
-                if GlobalConfig.LogPrivateInfo:
-                    LogWrite.debug('FSL.Address = {}'.format(FSL.Address))
-                else:
-                    LogWrite.debug('FSL.Address = {}'.format('CENSORED'))
+                LogWrite.debug( {
+                    'unsafe':   'FSL.Address = {}'.format(FSL.Address),
+                    'safe':     'FSL.Address = {}'.format('CENSORED') } )
 
                 # 'address:' not present, extract address from friendly name:
                 if not FSL.Address:
@@ -1279,10 +1277,9 @@ class Connections:
                         #   When user@ is not supplied this will work too - because
                         #   we will have a list length of 1.
 
-                    if GlobalConfig.LogPrivateInfo:
-                        LogWrite.debug('FSL.Address = {}'.format(FSL.Address))
-                    else:
-                        LogWrite.debug('FSL.Address = {}'.format('CENSORED'))
+                    LogWrite.debug( {
+                        'unsafe':   'FSL.Address = {}'.format(FSL.Address),
+                        'safe':     'FSL.Address = {}'.format('CENSORED') } )
 
                 FSL.UserAddr = '{}@{}'.format(FSL.UserName, FSL.Address) # for convenience
 
@@ -1321,22 +1318,21 @@ class Connections:
                 if isinstance(FSL.CustomArgs, str):
                     FSL.CustomArgs = shlex.split(FSL.CustomArgs)
 
-                if GlobalConfig.LogPrivateInfo:
-                    LogWrite.debug('ServerXSNum = {} , FriendlyName = {} , UserName = {} , '
+                LogWrite.debug( {
+                    'unsafe':   'ServerXSNum = {} , FriendlyName = {} , UserName = {} , '
                         'Address = {} , UserAddr = {} , Comment = {} , KeepAlive = {} , '
                         'Identity = {} , CustomArgs = {}'
                             .format(FSL.ServerXSNum, FSL.FriendlyName,
                                 FSL.UserName, FSL.Address, FSL.UserAddr,
                                 FSL.Comment,
-                                FSL.KeepAlive, FSL.Identity, ' '.join(FSL.CustomArgs)))
-                else:
-                    LogWrite.debug('ServerXSNum = {} , FriendlyName = {} , UserName = {} , '
+                                FSL.KeepAlive, FSL.Identity, ' '.join(FSL.CustomArgs)),
+                    'safe':     'ServerXSNum = {} , FriendlyName = {} , UserName = {} , '
                         'Address = {} , UserAddr = {} , Comment = {} , KeepAlive = {} , '
                         'Identity = {} , CustomArgs = {}'
                             .format(FSL.ServerXSNum, FSL.FriendlyName,
                                 'CENSORED', 'CENSORED', 'CENSORED',
                                 FSL.Comment,
-                                FSL.KeepAlive, FSL.Identity, ' '.join(FSL.CustomArgs)))
+                                FSL.KeepAlive, FSL.Identity, ' '.join(FSL.CustomArgs)) } )
 
             LogWrite.debug('Completed loading all connections successfully')
 
@@ -1411,12 +1407,11 @@ class Connections:
                     GlobalConfig.ScreenHeight,
                     '.nccm.log'))
 
-            if GlobalConfig.LogPrivateInfo:
-                LogWrite.debug('self.LogFileName = {} , of type: {}'
-                    .format(self.LogFileName, type(self.LogFileName)))
-            else:
-                LogWrite.debug('self.LogFileName = {} , of type: {}'
-                    .format('CENSORED', type(self.LogFileName)))
+            LogWrite.debug( {
+                'unsafe':   'self.LogFileName = {} , of type: {}'
+                    .format(self.LogFileName, type(self.LogFileName)),
+                'safe':     'self.LogFileName = {} , of type: {}'
+                    .format('CENSORED', type(self.LogFileName)) } )
 
             CommandLine += ('|', 'tee', '--append', str(self.LogFileName))
             self.WriteLogFileHeader()   # Write info intro to the log file
@@ -1425,14 +1420,13 @@ class Connections:
         # ^ CommandLine was a list. Let's make it a string. Now looks like:
         # ssh user@192.168.1.1 -o ServerAliveInterval=40 | tee /logs/2021-03-07_16:45:18_user_AT_192.168.1.1
 
-        if GlobalConfig.LogPrivateInfo:
-            LogWrite.debug('ServerXSNum (this is the connection list '
+        LogWrite.debug( {
+            'unsafe':   'ServerXSNum (this is the connection list '
                 'line number) = {} , CommandLine = {}'
-                    .format(ServerXSNum, CommandLine))
-        else:
-            LogWrite.debug('ServerXSNum (this is the connection list '
+                    .format(ServerXSNum, CommandLine),
+            'safe': 'ServerXSNum (this is the connection list '
                 'line number) = {} , CommandLine = {}'
-                    .format(ServerXSNum, 'CENSORED'))
+                    .format(ServerXSNum, 'CENSORED') } )
 
         return CommandLine
 
@@ -1514,12 +1508,11 @@ class Connections:
                 x for x in FilterTextList if x in Line.lower()):
                     self.ResultsList.append(Line)
 
-                    if GlobalConfig.LogPrivateInfo:
-                        LogWrite.debug('Added Line = "{}" to self.ResultsList'
-                            .format(Line))
-                    else:
-                        LogWrite.debug('Added Line = "{}" to self.ResultsList'
-                            .format('CENSORED'))
+                    LogWrite.debug( {
+                        'unsafe':   'Added Line = "{}" to self.ResultsList'
+                            .format(Line),
+                        'safe': 'Added Line = "{}" to self.ResultsList'
+                            .format('CENSORED') } )
 
         self.ResultsList = [x.ljust(self.MaxLineLength, ' ') for x in self.ResultsList]
         self.DisplayResultsCount = 0
@@ -2239,12 +2232,11 @@ def main(*args):
             PressEnterToCont()
             print('\nnccm: About to ssh using:\n{}\n'.format(CommandLine))
 
-            if GlobalConfig.LogPrivateInfo:
-                LogWrite.info('About to subprocess.run ExtCommand = {} ...'
-                    .format(CommandLine))
-            else:
-                LogWrite.info('About to subprocess.run ExtCommand = {} ...'
-                    .format('CENSORED'))
+            LogWrite.info( {
+                'unsafe':   'About to subprocess.run ExtCommand = {} ...'
+                    .format(CommandLine),
+                'safe':     'About to subprocess.run ExtCommand = {} ...'
+                    .format('CENSORED') } )
 
             StartTime = time.time()
 
@@ -2267,12 +2259,11 @@ def main(*args):
                         .format(CommandLine, datetime.timedelta(seconds=SessionTime),
                             SessionTime))
 
-                if GlobalConfig.LogPrivateInfo:
-                    LogWrite.info('Completed ssh using: {} . SessionTime was: {} seconds'
-                        .format(CommandLine, SessionTime))
-                else:
-                    LogWrite.info('Completed ssh using: {} . SessionTime was: {} seconds'
-                        .format('CENSORED', SessionTime))
+                LogWrite.info( {
+                    'unsafe':   'Completed ssh using: {} . SessionTime was: {} seconds'
+                        .format(CommandLine, SessionTime),
+                    'safe':     'Completed ssh using: {} . SessionTime was: {} seconds'
+                        .format('CENSORED', SessionTime) } )
 
         if GlobalConfig.LoopNccm:
             LogWrite.debug('GlobalConfig.LoopNccm == {} - we are looping nccm instead of exiting at this point'
