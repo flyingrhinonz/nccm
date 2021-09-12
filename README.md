@@ -4,7 +4,7 @@ NCurses ssh Connection Manager (nccm)
 
 ![](images/program_screenshot.png)
 
-Copyright (C) 2020 Kenneth Aaron.
+Copyright (C) 2020-2021 Kenneth Aaron.
 
 flyingrhino AT orcon DOT net DOT nz
 
@@ -224,15 +224,20 @@ window outside nccm and the new window size will apply when
 nccm menu reappears after you exit from your ssh session.
 
 `nccm_keybindings`
-nccm is configured for US keyboard mapping. If you have
-something else and certain keys don't behave as you'd
-expect - change their codes here.
+nccm is configured for US keyboard mapping as entered into
+a standard linux xterm. If you have something else and
+certain keys don't behave as you'd expect - change their
+codes here.
+I have experienced putty sending Home / End / Fn keys
+differently to xterm - and other programs may have similar
+behavior. You have the option of fixing your terminal
+program or modifying the key codes within nccm.
 Each of the keyboard codes is a list (even if it contains
 only one item), you can map a keypress to as many codes as
 you wish by adding more codes to it.
 If you want to figure out what code results from a
-keypress - run 'nccm -d' , press a key and look for
-'Keyboard entry: UserKey = nnn' in syslog/journal.
+keypress - run 'nccm -d' , press a key and look for:
+'Keyboard entry: UserKey = nnn'  in syslog/journal.
 You can even map other keys to nccm keys - for example
 instead of F1 you want to use F12 - just put the code for
 F12 in the F1 key position.
@@ -343,11 +348,12 @@ Sorting
 The display shows 4 visible columms but we treat
 username and server address as separate columns for
 sorting purposes.
-The Fn keys may be captured by certain GUIs so we have
-an alternative - when focused on `Conn` window, press
-Shift-1 through 5 (`!@#$%`) to toggle sorting by the
-respective field number. Pressing the same key again
-reverses the sort order. If you type these special
+The Fn keys may be captured by certain GUIs or some
+terminals send the Fn keys using different codes -
+so we have an alternative - when focused on `Conn`
+window, press Shift-1 through 5 (`!@#$%`) to toggle
+sorting by the respective field number. Pressing the same
+key again reverses the sort order. If you type these special
 characters in the `Filter` textbox they become standard
 filters just like any printable character.
 

@@ -7,7 +7,7 @@ NCurses ssh Connection Manager (nccm)
 
 ![](images/program_screenshot.png)
 
-Copyright (C) 2020 Kenneth Aaron.
+Copyright (C) 2020-2021 Kenneth Aaron.
 
 flyingrhino AT orcon DOT net DOT nz
 
@@ -227,15 +227,20 @@ window outside nccm and the new window size will apply when
 nccm menu reappears after you exit from your ssh session.
 
 `nccm_keybindings`
-nccm is configured for US keyboard mapping. If you have
-something else and certain keys don't behave as you'd
-expect - change their codes here.
+nccm is configured for US keyboard mapping as entered into
+a standard linux xterm. If you have something else and
+certain keys don't behave as you'd expect - change their
+codes here.
+I have experienced putty sending Home / End / Fn keys
+differently to xterm - and other programs may have similar
+behavior. You have the option of fixing your terminal
+program or modifying the key codes within nccm.
 Each of the keyboard codes is a list (even if it contains
 only one item), you can map a keypress to as many codes as
 you wish by adding more codes to it.
 If you want to figure out what code results from a
-keypress - run 'nccm -d' , press a key and look for
-'Keyboard entry: UserKey = nnn' in syslog/journal.
+keypress - run 'nccm -d' , press a key and look for:
+'Keyboard entry: UserKey = nnn'  in syslog/journal.
 You can even map other keys to nccm keys - for example
 instead of F1 you want to use F12 - just put the code for
 F12 in the F1 key position.
@@ -346,11 +351,12 @@ Sorting
 The display shows 4 visible columms but we treat
 username and server address as separate columns for
 sorting purposes.
-The Fn keys may be captured by certain GUIs so we have
-an alternative - when focused on `Conn` window, press
-Shift-1 through 5 (`!@#$%`) to toggle sorting by the
-respective field number. Pressing the same key again
-reverses the sort order. If you type these special
+The Fn keys may be captured by certain GUIs or some
+terminals send the Fn keys using different codes -
+so we have an alternative - when focused on `Conn`
+window, press Shift-1 through 5 (`!@#$%`) to toggle
+sorting by the respective field number. Pressing the same
+key again reverses the sort order. If you type these special
 characters in the `Filter` textbox they become standard
 filters just like any printable character.
 
@@ -577,7 +583,7 @@ EnhancedLogging = True
     #       any \n newline marks.
     #   Send log line as-is to syslog (set to False) -
     #       you are responsible for line length constraints.
-SecureLogging = False
+SecureLogging = True
     # ^ LogWrite supports safe logging if called in a particular way.
     #       This allows you to code two versions of your log line and
     #       depending upon this variable - one of the two will be logged.
@@ -594,8 +600,8 @@ SecureLogging = False
 
 
 # Program identification strings:
-__version__     = '1.6.11'
-VersionDate     = '2021-09-09'
+__version__     = '1.6.12'
+VersionDate     = '2021-09-12'
 ProgramName     = 'NCurses ssh Connection Manager'
 AuthorName      = 'Kenneth Aaron'
 AuthorEmail     = 'flyingrhino AT orcon DOT net DOT nz'
@@ -793,9 +799,6 @@ class GlobalConfig:
     ''' This is used as a simple global variable storage because GlobalConfig only
         exists in the global scope, all references to it will escalate here. '''
 
-    LogPrivateInfo = False
-        # ^ Log stuff like usernames to aid debugging.
-        #   This is set explicitly via command line, default is to be safe.
     LogUsingTee = False
         # ^ This var is set after reading the nccm_config_logpath setting
         #   from nccm so that I can check it later in HelpTextDisplay due
@@ -971,6 +974,7 @@ class Connections:
     def Load(self):
         ''' Loads the connections file '''
 
+        global SecureLogging
         ImportNccmD = False     # Whether to import yml files from /etc/nccm.d/
 
         for FileLooper in GlobalConfig.ConfigFilePath:
@@ -1055,27 +1059,30 @@ class Connections:
         LogWrite.debug('Loaded {} config item:  GlobalConfig.PromptToContinue = {}'
             .format(GlobalConfig.ConfigFile, GlobalConfig.PromptToContinue))
 
-        # Handle loading of the GlobalConfig.LogPrivateInfo value from nccm_config_logprivateinfo:
-        if GlobalConfig.LogPrivateInfo:
-            # ^ It was forced to True via command line arg so ignore whatever setting
-            #       is present in nccm.yml (user's desire overrides config).
-            #   This also triggers if it is forced to True via nccm.yml and nccm is running
+        # Handle updating the SecureLogging value from nccm_config_logprivateinfo:
+        if not SecureLogging:
+            # ^ It was forced to insecure logging via command line arg so ignore whatever
+            #       setting is present in nccm.yml (user's desire overrides config).
+            #   This also triggers if it is forced via nccm.yml and nccm is running
             #       in loop mode and this is not cycle #1 (so the setting was already made).
-            LogWrite.warning('GlobalConfig.LogPrivateInfo (was already) == {}  . '
+            LogWrite.warning('SecureLogging (was already) == {}  . '
                 'Ignoring nccm.yml config file setting (if at all present)'
-                    .format(GlobalConfig.LogPrivateInfo))
+                    .format(SecureLogging))
             self.LoadedServersDict.pop('nccm_config_logprivateinfo', False)
                 # ^ Need to clear it otherwise it remains there and gets read
                 #   as a connection type entry.
         else:
-            GlobalConfig.LogPrivateInfo = self.LoadedServersDict.pop(
-                'nccm_config_logprivateinfo', False)
-            LogWrite.debug('Loaded {} config item:  GlobalConfig.LogPrivateInfo = {} '
-                '(or defaulted it to:  False  if not found in nccm.yml)'
-                    .format(GlobalConfig.ConfigFile, GlobalConfig.LogPrivateInfo))
+            SecureLogging = not(self.LoadedServersDict.pop(
+                'nccm_config_logprivateinfo', False))
+                # ^ Need to toggle the true/false nature of it because:
+                #       nccm_config_logprivateinfo == True  means:  SecureLogging == False
+            LogWrite.debug('Loaded nccm.yml config item:  nccm_config_logprivateinfo  '
+                'into:  SecureLogging == {}  '
+                '(or defaulted it to:  True  if not found in nccm.yml)'
+                    .format(SecureLogging))
 
-            if GlobalConfig.LogPrivateInfo:
-                LogWrite.warning('Attention:  GlobalConfig.LogPrivateInfo == True  -->  '
+            if not SecureLogging:
+                LogWrite.warning('Attention:  SecureLogging == False  -->  '
                     'stuff like usernames and hostnames will be logged to syslog/journal !')
 
         # Handle loading of the importnccmd value from nccm_config_importnccmd:
@@ -1120,11 +1127,11 @@ class Connections:
             GlobalConfig.LogUsingTee = True
                 # ^ And set this global variable too.
 
-        # Since we loaded LogPrivateInfo from nccm.yml (or got it earlier
+        # Since we loaded SecureLogging from nccm.yml (or got it earlier
         #   from the command line arg:  --logprivateinfo)  and also the
         #   nccm_config_logpath setting, we need to build
         #   the help text display window and include the red 'LogPrv' in it.
-        # In earier nccm versions before we had LogPrivateInfo - this window
+        # In earier nccm versions before we had SecureLogging - this window
         #   was built along with the other windows in the function SetupWindows,
         #   but we can't built it so early anymore :
         HelpBox = HelpTextDisplay(LinesCount=1, ColsCount=GlobalConfig.ScreenWidth,
@@ -1627,7 +1634,6 @@ def LogGlobalConfig():
     ''' Log all the GlobalConfig vars for debugging purposes '''
 
     LogWrite.debug('All variables of class GlobalConfig:\n'
-        'GlobalConfig.LogPrivateInfo = {}\n'
         'GlobalConfig.PromptToContinue = {}\n'
         'GlobalConfig.LoopNccm = {}\n'
         'GlobalConfig.FilterTextArg = {}\n'
@@ -1636,7 +1642,7 @@ def LogGlobalConfig():
         'GlobalConfig.ScreenWidth = {}\n'
         'GlobalConfig.DisplayObjects: total = {} , details = {}\n'
         'GlobalConfig.TextboxObjects: total = {} , details = {}\n'
-            .format(GlobalConfig.LogPrivateInfo,
+            .format(
                 GlobalConfig.PromptToContinue,
                 GlobalConfig.LoopNccm,
                 GlobalConfig.FilterTextArg,
@@ -1765,7 +1771,7 @@ def SetupWindows(stdscr):
     ##   This window is special - it contains status of stuff like
     ##   logging private data and at this stage we don't know if this setting
     ##   was loaded from the config file. In earlier nccm we setup this
-    ##   window here, but since we now support LogPrivateInfo we will setup
+    ##   window here, but since we now support SecureLogging we will setup
     ##   this window after we load nccm.yml .
     #HelpBox = HelpTextDisplay(LinesCount=1, ColsCount=GlobalConfig.ScreenWidth,
     #    BeginY=GlobalConfig.ScreenHeight-1, BeginX=0)
@@ -2154,6 +2160,8 @@ def InitialLogging():
 def ParseArgs():
     ''' Handle any command line arguments supplied '''
 
+    global SecureLogging
+
     parser = argparse.ArgumentParser(
         description = 'NCurses Connection Manager by Kenneth Aaron',
         epilog = 'Thank you for using nccm',
@@ -2205,7 +2213,7 @@ def ParseArgs():
             .format(GlobalConfig.FilterTextArg))
 
     if args.logprivateinfo:
-        GlobalConfig.LogPrivateInfo = True
+        SecureLogging = False
         LogWrite.warning('--logprivateinfo command line argument supplied - '
             'stuff like usernames and hostnames will be logged to syslog/journal !')
 
