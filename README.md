@@ -34,6 +34,7 @@ About nccm
 
 * Simple yet powerful ncurses ssh connection manager.
 * Well documented.
+* Secure.
 * Logs are in English - you don't need to be a developer to
   read the majority of the logs.
 
@@ -237,7 +238,7 @@ only one item), you can map a keypress to as many codes as
 you wish by adding more codes to it.
 If you want to figure out what code results from a
 keypress - run 'nccm -d' , press a key and look for:
-'Keyboard entry: UserKey = nnn'  in syslog/journal.
+'Keyboard entry: UserKey == nnn'  in syslog/journal.
 You can even map other keys to nccm keys - for example
 instead of F1 you want to use F12 - just put the code for
 F12 in the F1 key position.

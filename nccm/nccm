@@ -241,7 +241,7 @@ only one item), you can map a keypress to as many codes as
 you wish by adding more codes to it.
 If you want to figure out what code results from a
 keypress - run 'nccm -d' , press a key and look for:
-'Keyboard entry: UserKey = nnn'  in syslog/journal.
+'Keyboard entry: UserKey == nnn'  in syslog/journal.
 You can even map other keys to nccm keys - for example
 instead of F1 you want to use F12 - just put the code for
 F12 in the F1 key position.
@@ -605,7 +605,7 @@ SecureLogging = True
 
 
 # Program identification strings:
-__version__     = '1.6.14'
+__version__     = '1.6.15'
 VersionDate     = '2021-09-26'
 ProgramName     = 'NCurses ssh Connection Manager'
 AuthorName      = 'Kenneth Aaron'
@@ -789,7 +789,7 @@ LogWriteFormatter = logging.Formatter(
     #   ConnectionsList window built
 
 LogHandler.setFormatter(LogWriteFormatter)
-LogWrite.debug('nccm started with log level = {} as set by '
+LogWrite.debug('nccm started with log level == {} as set by '
     'LogWrite.setLevel (hardcoded in the script)'
         .format(LogWrite.getEffectiveLevel()))
     # ^ Note - this only gets logged if debug level is set in the script
@@ -939,9 +939,9 @@ class Connections:
         BeginX=None, ColorPair=0, TextFilters=None, stdscr=None, Name=False):
 
         LogWrite.debug('Class Connections method __init__ started with: '
-            'Name = {} , LinesCount = {} , ColsCount = {} , '
-            'BeginY = {} , BeginX = {} , ColorPair = {} , '
-            'TextFilters = {}, stdscr = {}'
+            'Name == {} , LinesCount == {} , ColsCount == {} , '
+            'BeginY == {} , BeginX == {} , ColorPair == {} , '
+            'TextFilters == {}, stdscr == {}'
                 .format(Name, LinesCount , ColsCount, BeginY, BeginX,
                     ColorPair, TextFilters, stdscr))
 
@@ -990,7 +990,7 @@ class Connections:
         for FileLooper in GlobalConfig.ConfigFilePath:
             if pathlib.Path(FileLooper).exists():
                 break
-        LogWrite.debug('Found config file: FileLooper = {}'.format(FileLooper))
+        LogWrite.debug('Found config file: FileLooper == {}'.format(FileLooper))
 
         with open (FileLooper, 'r') as ConfigFileToRead:
             self.LoadedServersDict = yaml.safe_load(ConfigFileToRead)
@@ -1000,9 +1000,9 @@ class Connections:
             #   nccm_config_* items - all in the same dict.
 
         LogWrite.debug( {
-            'unsafe':   'self.LoadedServersDict (contains prog settings + conn details) = {}'
+            'unsafe':   'self.LoadedServersDict (contains prog settings + conn details) == {}'
                 .format(self.LoadedServersDict),
-            'safe':     'self.LoadedServersDict (contains prog settings + conn details) = {}'
+            'safe':     'self.LoadedServersDict (contains prog settings + conn details) == {}'
                 .format('CENSORED') } )
             # ^ This dump will have program config + connection config details.
             #   Soon we will pop out the program config items.
@@ -1019,7 +1019,7 @@ class Connections:
             'nccm_config_controlmode', 'std').lower()
                 # ^ Controls how arrow keys move the display & the marker.
                 #   Options are std, focus
-        LogWrite.debug('Loaded {} config item:  self.ControlMode = {}'
+        LogWrite.debug('Loaded {} config item:  self.ControlMode == {}'
             .format(GlobalConfig.ConfigFile, self.ControlMode))
 
         # Handle loading of the loglevel setting:
@@ -1033,7 +1033,7 @@ class Connections:
         else:
             LogWrite.setLevel(getattr(logging, self.LoadedServersDict.pop
                 ('nccm_config_loglevel', 'WARNING').upper()))
-            LogWrite.debug('Loaded {} config item:  log level. Log level now = {}'
+            LogWrite.debug('Loaded {} config item:  log level. Log level now == {}'
                 .format(GlobalConfig.ConfigFile, LogWrite.getEffectiveLevel()))
                 # ^ Values documented here:
                 #   https://docs.python.org/3/library/logging.html#levels
@@ -1042,26 +1042,26 @@ class Connections:
         self.DefaultKeepAlive = int(self.LoadedServersDict.pop(
             'nccm_config_keepalive', '0'))
                 # ^ Controls the keep alive message frequency
-        LogWrite.debug('Loaded {} config item:  self.DefaultKeepAlive = {}'
+        LogWrite.debug('Loaded {} config item:  self.DefaultKeepAlive == {}'
             .format(GlobalConfig.ConfigFile, self.DefaultKeepAlive))
 
         # Handle loading of the default identity value from nccm_config_identity:
         self.Identity = self.LoadedServersDict.pop(
             'nccm_config_identity', '')
             # This is the -i arg sent to ssh
-        LogWrite.debug('Loaded {} config item:  self.Identity = {}'
+        LogWrite.debug('Loaded {} config item:  self.Identity == {}'
             .format(GlobalConfig.ConfigFile, self.Identity))
 
         # Handle loading of the default ssh program from nccm_config_sshprogram:
         self.SshProgram = self.LoadedServersDict.pop(
             'nccm_config_sshprogram', 'ssh')
-        LogWrite.debug('Loaded {} config item:  self.SshProgram = {}'
+        LogWrite.debug('Loaded {} config item:  self.SshProgram == {}'
             .format(GlobalConfig.ConfigFile, self.SshProgram))
 
         # Handle loading of the GlobalConfig.PromptToContinue value from nccm_config_promptuser:
         GlobalConfig.PromptToContinue = self.LoadedServersDict.pop(
             'nccm_config_promptuser', False)
-        LogWrite.debug('Loaded {} config item:  GlobalConfig.PromptToContinue = {}'
+        LogWrite.debug('Loaded {} config item:  GlobalConfig.PromptToContinue == {}'
             .format(GlobalConfig.ConfigFile, GlobalConfig.PromptToContinue))
 
         # Handle updating the SecureLogging value from nccm_config_logprivateinfo:
@@ -1093,19 +1093,19 @@ class Connections:
         # Handle loading of the importnccmd value from nccm_config_importnccmd:
         ImportNccmD = self.LoadedServersDict.pop(
             'nccm_config_importnccmd', False)
-        LogWrite.debug('Loaded {} config item:  ImportNccmD = {}'
+        LogWrite.debug('Loaded {} config item:  ImportNccmD == {}'
             .format(GlobalConfig.ConfigFile, ImportNccmD))
 
         # Handle loading of the GlobalConfig.LoopNccm value from nccm_loop_nccm:
         GlobalConfig.LoopNccm = self.LoadedServersDict.pop(
             'nccm_loop_nccm', False)
-        LogWrite.debug('Loaded {} config item:  GlobalConfig.LoopNccm = {}'
+        LogWrite.debug('Loaded {} config item:  GlobalConfig.LoopNccm == {}'
             .format(GlobalConfig.ConfigFile, GlobalConfig.LoopNccm))
 
         # Handle loading of the LogPath value from nccm_config_logpath:
         self.LogPath = self.LoadedServersDict.pop(
             'nccm_config_logpath', False)
-        LogWrite.debug('Loaded {} config item:  self.LogPath = {}'
+        LogWrite.debug('Loaded {} config item:  self.LogPath == {}'
             .format(GlobalConfig.ConfigFile, self.LogPath))
 
         if self.LogPath:        # If supplied, validate this is a legitimate dir:
@@ -1148,7 +1148,7 @@ class Connections:
         # Handle loading of the keyboard bindings:
         self.KeyboardBindings = self.LoadedServersDict.pop(
             'nccm_keybindings', False)
-        LogWrite.debug('Loaded {} config item:  self.KeyboardBindings = {}'
+        LogWrite.debug('Loaded {} config item:  self.KeyboardBindings == {}'
             .format(GlobalConfig.ConfigFile, self.KeyboardBindings))
 
         # Check if self.KeyboardBindings exists. If it's False we can assume that
@@ -1178,10 +1178,10 @@ class Connections:
                 LogWrite.debug('Path: {} found. Proceeding to import yml files from it ...'
                     .format(GlobalConfig.ConfigFileIncDir))
                 NccmdFiles = sorted(pathlib.Path(GlobalConfig.ConfigFileIncDir).glob('*.yml'))
-                LogWrite.debug('NccmdFiles = {}'.format(NccmdFiles))
+                LogWrite.debug('NccmdFiles == {}'.format(NccmdFiles))
 
                 for NccmdLooper in NccmdFiles:
-                    LogWrite.debug('Importing NccmdLooper = {} ...'
+                    LogWrite.debug('Importing NccmdLooper == {} ...'
                         .format(NccmdLooper))
                     with open (NccmdLooper, 'r') as NccmdFileToRead:
                         self.LoadedServersDict.update(yaml.safe_load(NccmdFileToRead))
@@ -1191,7 +1191,7 @@ class Connections:
                     .format(GlobalConfig.ConfigFileIncDir))
 
         else:
-            LogWrite.debug('ImportNccmD = {} - not attempting to import connection details '
+            LogWrite.debug('ImportNccmD == {} - not attempting to import connection details '
                 'from {}'
                     .format(ImportNccmD, GlobalConfig.ConfigFileIncDir))
 
@@ -1203,9 +1203,9 @@ class Connections:
                 self.LoadedServersDict[Looper] = {}
 
         LogWrite.debug( {
-            'unsafe':   'self.LoadedServersDict (by now it contains only conn details) = {}'
+            'unsafe':   'self.LoadedServersDict (by now it contains only conn details) == {}'
                 .format(self.LoadedServersDict),
-            'safe':     'self.LoadedServersDict (by now it contains only conn details) = {}'
+            'safe':     'self.LoadedServersDict (by now it contains only conn details) == {}'
                 .format('CENSORED') } )
             # ^ Now we have all the imported connection details too, and the
             #   program configs are gone because we pop'ed them out earlier.
@@ -1244,8 +1244,8 @@ class Connections:
                     #   Same comment for FSL.Address .
 
                 LogWrite.debug( {
-                    'unsafe':   'FSL.UserName = {}'.format(FSL.UserName),
-                    'safe':     'FSL.UserName = {}'.format('CENSORED') } )
+                    'unsafe':   'FSL.UserName == {}'.format(FSL.UserName),
+                    'safe':     'FSL.UserName == {}'.format('CENSORED') } )
 
                 # 'user:' not present, extract username from friendly name:
                 if not FSL.UserName:
@@ -1273,15 +1273,15 @@ class Connections:
                             # ^ Probably will crash soon...
 
                     LogWrite.debug( {
-                        'unsafe':   'FSL.UserName = {}'.format(FSL.UserName),
-                        'safe':     'FSL.UserName = {}'.format('CENSORED') } )
+                        'unsafe':   'FSL.UserName == {}'.format(FSL.UserName),
+                        'safe':     'FSL.UserName == {}'.format('CENSORED') } )
 
                 # Get FSL.Address:
                 FSL.Address = self.LoadedServersDict[FriendlyName].get('address', False)
 
                 LogWrite.debug( {
-                    'unsafe':   'FSL.Address = {}'.format(FSL.Address),
-                    'safe':     'FSL.Address = {}'.format('CENSORED') } )
+                    'unsafe':   'FSL.Address == {}'.format(FSL.Address),
+                    'safe':     'FSL.Address == {}'.format('CENSORED') } )
 
                 # 'address:' not present, extract address from friendly name:
                 if not FSL.Address:
@@ -1293,8 +1293,8 @@ class Connections:
                         #   we will have a list length of 1.
 
                     LogWrite.debug( {
-                        'unsafe':   'FSL.Address = {}'.format(FSL.Address),
-                        'safe':     'FSL.Address = {}'.format('CENSORED') } )
+                        'unsafe':   'FSL.Address == {}'.format(FSL.Address),
+                        'safe':     'FSL.Address == {}'.format('CENSORED') } )
 
                 FSL.UserAddr = '{}@{}'.format(FSL.UserName, FSL.Address) # for convenience
 
@@ -1423,9 +1423,9 @@ class Connections:
                     '.nccm.log'))
 
             LogWrite.debug( {
-                'unsafe':   'self.LogFileName = {} , of type: {}'
+                'unsafe':   'self.LogFileName == {} , of type: {}'
                     .format(self.LogFileName, type(self.LogFileName)),
-                'safe':     'self.LogFileName = {} , of type: {}'
+                'safe':     'self.LogFileName == {} , of type: {}'
                     .format('CENSORED', type(self.LogFileName)) } )
 
             CommandLine += ('|', 'tee', '--append', str(self.LogFileName))
@@ -1437,10 +1437,10 @@ class Connections:
 
         LogWrite.debug( {
             'unsafe':   'ServerXSNum (this is the connection list '
-                'line number) = {} , CommandLine = {}'
+                'line number) == {} , CommandLine == {}'
                     .format(ServerXSNum, CommandLine),
             'safe': 'ServerXSNum (this is the connection list '
-                'line number) = {} , CommandLine = {}'
+                'line number) == {} , CommandLine == {}'
                     .format(ServerXSNum, 'CENSORED') } )
 
         return CommandLine
@@ -1471,7 +1471,7 @@ class Connections:
         # Check if the window was resized since it was started:
         NewScreenHeight, NewScreenWidth = self.stdscr.getmaxyx()
         LogWrite.debug('Class Connections method Display: '
-            'NewScreenHeight = {} , NewScreenWidth = {} '
+            'NewScreenHeight == {} , NewScreenWidth == {} '
                 .format(NewScreenHeight, NewScreenWidth))
 
         if NewScreenHeight != GlobalConfig.ScreenHeight or NewScreenWidth != GlobalConfig.ScreenWidth:
@@ -1528,9 +1528,9 @@ class Connections:
                     self.ResultsList.append(Line)
 
                     LogWrite.debug( {
-                        'unsafe':   'Added Line = "{}" to self.ResultsList'
+                        'unsafe':   'Added Line == "{}" to self.ResultsList'
                             .format(Line),
-                        'safe': 'Added Line = "{}" to self.ResultsList'
+                        'safe': 'Added Line == "{}" to self.ResultsList'
                             .format('CENSORED') } )
 
         self.ResultsList = [x.ljust(self.MaxLineLength, ' ') for x in self.ResultsList]
@@ -1558,7 +1558,7 @@ class Connections:
 
         self.Window.noutrefresh()
         LogWrite.debug('class: Connections, instance: {} method Display completed. '
-            'Number of results = {} , number of displayed results = {}'
+            'Number of results == {} , number of displayed results == {}'
             .format(self.Name, len(self.ResultsList), self.DisplayResultsCount))
 
 
@@ -1571,13 +1571,13 @@ class TextBox:
 
         LogWrite.debug( {
             'unsafe':   'class TextBox, method __init__ started with: '
-                'Name = {} , LinesCount = {} , ColsCount = {} BeginY = {} , '
-                'BeginX = {} , ColorPair = {} , FilterText = {}'
+                'Name == {} , LinesCount == {} , ColsCount == {} BeginY == {} , '
+                'BeginX == {} , ColorPair == {} , FilterText == {}'
                     .format(Name, LinesCount, ColsCount, BeginY, BeginX,
                         ColorPair, FilterText),
             'safe':     'class TextBox, method __init__ started with: '
-                'Name = {} , LinesCount = {} , ColsCount = {} BeginY = {} , '
-                'BeginX = {} , ColorPair = {} , FilterText = CENSORED'
+                'Name == {} , LinesCount == {} , ColsCount == {} BeginY == {} , '
+                'BeginX == {} , ColorPair == {} , FilterText == CENSORED'
                     .format(Name, LinesCount, ColsCount, BeginY, BeginX,
                         ColorPair) } )
 
@@ -1738,7 +1738,7 @@ def UpdateDisplay():
         so here we need to use the Display method of those objects. '''
 
     for Looper in GlobalConfig.DisplayObjects:
-        LogWrite.debug('Calling Looper = {} Display method ...'.format(Looper))
+        LogWrite.debug('Calling Looper == {} Display method ...'.format(Looper))
         Looper.Display()
 
     LogWrite.debug('Calling curses update screen (actually draw the changes we wrote '
@@ -1778,7 +1778,7 @@ def SetupCurses(stdscr):
         return False
 
     GlobalConfig.ScreenHeight, GlobalConfig.ScreenWidth = stdscr.getmaxyx()
-    LogWrite.debug('GlobalConfig.ScreenHeight = {} , GlobalConfig.ScreenWidth = {}'
+    LogWrite.debug('GlobalConfig.ScreenHeight == {} , GlobalConfig.ScreenWidth == {}'
         .format(GlobalConfig.ScreenHeight, GlobalConfig.ScreenWidth))
 
     if GlobalConfig.ScreenWidth < 60 or GlobalConfig.ScreenHeight < 15:
@@ -1943,7 +1943,7 @@ def MainCursesFunction(stdscr):
 
     while True:
         UserKey = ActiveWindow.ReadKey()
-        LogWrite.debug('Keyboard entry: UserKey = {}'.format(UserKey))
+        LogWrite.debug('Keyboard entry: UserKey == {}'.format(UserKey))
             # ^ This is the code of the key the user pressed
 
 # This block is not required any more since I handle it better in
@@ -2328,7 +2328,7 @@ def main(*args):
                     # ^ Connect to the ssh server
 
             except subprocess.CalledProcessError as CPE:
-                print('\n***** ssh exit code = {} *****'
+                print('\n***** ssh exit code == {} *****'
                     .format(CPE.returncode))
                 print('Further debug details: {}'.format(CPE))
                 LogWrite.warning('ssh exit code == {}'.format(CPE.returncode))
