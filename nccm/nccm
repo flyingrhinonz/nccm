@@ -302,6 +302,8 @@ is case insensitive.
 Pressing Enter will connect to the connection highlighed
 in red. This also works if you're in the `Conn` textbox
 and it's empty.
+In cycle mode  `( nccm_loop_nccm == true )` - the value
+of this field is stored for the next cycle.
 
 Textboxes accept backspace to delete one char backwards,
 inline editing not supported.
@@ -325,6 +327,8 @@ Command line arguments
       `nccm -d ab cd ef`
     If there is only one match - nccm will connect to it
     immediately.
+    In cycle mode  `( nccm_loop_nccm == true )` - these args
+    are stored in the  `Filter`  textbox for the next cycle.
 
 * -h  or --help :
     Display the help message.
@@ -440,9 +444,8 @@ Logging:
 Look at your syslog file for nccm entries. Depending upon
 the verbosity level set in the config file you may not see
 much if at all anything.
-By default the production level of the script logs WARNING
-and above which results in syslog silence until something
-bad happens.
+By default the production level of the script logs INFO
+and above which is not much.
 Different syslog implementations have their own tolerance
 for line length, and to handle all scenarios - very long
 log lines are split into multiple lines, with wrapped
@@ -562,9 +565,10 @@ import yaml         # Requires: 'pip3 install --user PyYAML'
 # Beginning of logging setup section:
 
 # Variables that control logging:
-LogLevel = logging.WARNING
+LogLevel = logging.INFO
     # ^ Initial log level of this program.
-    #   Edit this if you want to change the initial log level.
+    #       Edit this if you want to change the initial log level.
+    #       Supported levels: DEBUG, INFO, WARNING, ERROR, CRITICAL .
 MaxLogLineLength = 700
     # ^ Wrap log lines longer than this many chars.
     #   Keep a sensible and usable limit.
@@ -600,8 +604,8 @@ SecureLogging = True
 
 
 # Program identification strings:
-__version__     = '1.6.12'
-VersionDate     = '2021-09-12'
+__version__     = '1.6.13'
+VersionDate     = '2021-09-26'
 ProgramName     = 'NCurses ssh Connection Manager'
 AuthorName      = 'Kenneth Aaron'
 AuthorEmail     = 'flyingrhino AT orcon DOT net DOT nz'
@@ -809,6 +813,11 @@ class GlobalConfig:
         # ^ Run nccm in a loop after exiting from ssh?
     FilterTextArg = ''
         # ^ Filter text supplied at the command line
+    AutoConnect = True
+        # ^ If at the first nccm cycle there is only one match to the filter text
+        #       nccm will automatically connect to that item. But we must disable
+        #       this for subsequent cycles otherwise it will keep on connecting to
+        #       that item rather than giving the GUI back to the user.
     ForceDebugLogging = False
         # ^ Force debug logging - will be set properly shortly
     ScreenHeight = ScreenWidth = 0
@@ -1027,11 +1036,6 @@ class Connections:
                 .format(GlobalConfig.ConfigFile, LogWrite.getEffectiveLevel()))
                 # ^ Values documented here:
                 #   https://docs.python.org/3/library/logging.html#levels
-            LogWrite.info('Fields explained: PN: Process Name , MN: Module Name , '
-                'FN: Function Name , LI: LIne number , '
-                'TN: Thread Name')
-                # ^ Don't move this logging command to any earlier place in the program -
-                #       it will not be displayed due to default WARNING log level.
 
         # Handle loading of the default keepalive value from nccm_config_keepalive:
         self.DefaultKeepAlive = int(self.LoadedServersDict.pop(
@@ -1105,7 +1109,7 @@ class Connections:
 
         if self.LogPath:        # If supplied, validate this is a legitimate dir:
             if not pathlib.Path(self.LogPath).is_dir():
-                LogWrite.error('nccm_config_logpath = {} not found. '
+                LogWrite.error('nccm_config_logpath == {} not found. '
                     'nccm will not run without logging. Either fix the '
                     'log path or disable logging'.format(self.LogPath))
                 raise Exception('Log path configured but not found')
@@ -1115,7 +1119,7 @@ class Connections:
 
         if self.LogPath:
             # ^ If terminal logging path is valid, log window dimensions:
-            LogWrite.info('GlobalConfig.ScreenHeight = {} , GlobalConfig.ScreenWidth = {} . '
+            LogWrite.info('GlobalConfig.ScreenHeight == {} , GlobalConfig.ScreenWidth == {} . '
                 'You might need these dimensions if you are replaying this '
                 'log with catstep'
                     .format(GlobalConfig.ScreenHeight, GlobalConfig.ScreenWidth))
@@ -1151,7 +1155,7 @@ class Connections:
         # Now that nccm supports keyboard bindings the code expects these to be
         # present and is not backward compatible with older nccm.yml versions:
         if not self.KeyboardBindings:
-            LogWrite.error('Cannot find nccm_keybindings: self.KeyboardBindings = {} . '
+            LogWrite.error('Cannot find nccm_keybindings: self.KeyboardBindings == {} . '
                 'nccm.yml is an older version than supported. '
                 'Please update it to latest format.'
                     .format(self.KeyboardBindings))
@@ -1261,7 +1265,7 @@ class Connections:
 
                     else:
                         LogWrite.warning('Something wrong with config: '
-                            'TempSplit = {}'.format(TempSplit))
+                            'TempSplit == {}'.format(TempSplit))
                             # ^ Probably will crash soon...
 
                     LogWrite.debug( {
@@ -1344,7 +1348,7 @@ class Connections:
             LogWrite.debug('Completed loading all connections successfully')
 
         except Exception as Exc:
-            LogWrite.error('Error loading connection. ServerXSNum = {} , FriendlyName = {}'
+            LogWrite.error('Error loading connection. ServerXSNum == {} , FriendlyName == {}'
                 .format(ServerXSNum, FriendlyName))
             raise Exc
 
@@ -1624,8 +1628,14 @@ class TextBox:
             self.Text += chr(Key).lower()
                 # ^ Force to lower and search is case insensitive
 
-        LogWrite.debug('self.Name = {} , self.Text = {}'
-            .format(self.Name, self.Text))
+        if self.Name == 'FilterBox':
+            GlobalConfig.FilterTextArg = self.Text
+                # ^ Keep the globally accessible variable up to date with the filter text
+                #       so that the filter field can be populated at next cycle.
+                #       But only for text supplied in FilterBox (not ConnBox).
+
+        LogWrite.debug('self.Name == {} , self.Text == "{}" , GlobalConfig.FilterTextArg == "{}"'
+            .format(self.Name, self.Text, GlobalConfig.FilterTextArg))
         self.Window.clear()
         self.Window.addstr(0, 0, self.Text)
 
@@ -1634,18 +1644,22 @@ def LogGlobalConfig():
     ''' Log all the GlobalConfig vars for debugging purposes '''
 
     LogWrite.debug('All variables of class GlobalConfig:\n'
+        'GlobalConfig.LogUsingTee = {}\n'
         'GlobalConfig.PromptToContinue = {}\n'
         'GlobalConfig.LoopNccm = {}\n'
         'GlobalConfig.FilterTextArg = {}\n'
+        'GlobalConfig.AutoConnect = {}\n'
         'GlobalConfig.ForceDebugLogging = {}\n'
         'GlobalConfig.ScreenHeight = {}\n'
         'GlobalConfig.ScreenWidth = {}\n'
         'GlobalConfig.DisplayObjects: total = {} , details = {}\n'
         'GlobalConfig.TextboxObjects: total = {} , details = {}\n'
             .format(
+                GlobalConfig.LogUsingTee,
                 GlobalConfig.PromptToContinue,
                 GlobalConfig.LoopNccm,
                 GlobalConfig.FilterTextArg,
+                GlobalConfig.AutoConnect,
                 GlobalConfig.ForceDebugLogging,
                 GlobalConfig.ScreenHeight,
                 GlobalConfig.ScreenWidth,
@@ -1734,7 +1748,7 @@ def SetupCurses(stdscr):
         RestoreTerminal(stdscr)
         print('\nnccm: Window must be at least 60x15\n')
         LogWrite.warning('Window must be at least 60x15. '
-            'GlobalConfig.ScreenHeight = {} , GlobalConfig.ScreenWidth = {}'
+            'GlobalConfig.ScreenHeight == {} , GlobalConfig.ScreenWidth == {}'
                 .format(GlobalConfig.ScreenHeight, GlobalConfig.ScreenWidth))
         return False
 
@@ -1821,7 +1835,7 @@ def SetupWindows(stdscr):
         TextFilters=[FilterBox, ConnBox] , stdscr=stdscr,
         Name='ConnectionsList')
             # ^ We send TextFilters=[FilterBox, ConnBox] and not FilterBox.Text
-            #   because we are referencig the object and when the Text changes
+            #   because we are referencing the object and when the Text changes
             #   within the object - the changes reflect in Connections.Display
             #   method.
     ConnectionsList.Load()
@@ -1875,12 +1889,14 @@ def MainCursesFunction(stdscr):
         'is at this point...')
     LogGlobalConfig()
 
-    if GlobalConfig.FilterTextArg and ConnectionsList.DisplayResultsCount == 1:
-        # ^ User entered command line filter and there was only one match -
-        #   connect to it immediately.
+    if GlobalConfig.FilterTextArg and ConnectionsList.DisplayResultsCount == 1 and GlobalConfig.AutoConnect:
+        # ^ User entered command line filter and there was only one match and we are on
+        #       the first cycle - connect to it immediately.
         LogWrite.debug('GlobalConfig.FilterTextArg supplied and '
-            'ConnectionsList.DisplayResultsCount == 1 . '
+            'ConnectionsList.DisplayResultsCount == 1 and '
+            'GlobalConfig.AutoConnect == True . '
             'Automatically connect to this server ...')
+        LogWrite.debug('Clearing:  GlobalConfig.FilterTextArg')
         CommandLine = ConnectionsList.GetCommandLine(
             ConnectionsList.SelectedEntryVal)
         RestoreTerminal(stdscr)
@@ -2152,6 +2168,10 @@ def InitialLogging():
             PPID = os.getppid(),
             LogLevel = LogLevel ) )
 
+    LogWrite.info('Fields explained: PN: Process Name , MN: Module Name , '
+        'FN: Function Name , LI: LIne number , '
+        'TN: Thread Name')
+
     if not SecureLogging:
         LogWrite.warning('Attention:  SecureLogging == False  -->  '
             'sensitive information will be logged to syslog/journal !')
@@ -2207,9 +2227,11 @@ def ParseArgs():
         GlobalConfig.FilterTextArg = args.filter_text
         LogWrite.debug('GlobalConfig.FilterTextArg (user-supplied filtering text '
             'at the command line) = {}'.format(GlobalConfig.FilterTextArg))
+            # ^ Comes in as a list
         GlobalConfig.FilterTextArg = ' '.join(GlobalConfig.FilterTextArg).lower()
-            # ^ Stored in class TextBox.Text as a space delimited string
-        LogWrite.debug('Lowercased and converted to a string: GlobalConfig.FilterTextArg = {}'
+            # ^ It is used within class TextBox.Text as a space delimited string
+            #       so we must convert it here to a string too.
+        LogWrite.debug('Lowercased and converted to a string: GlobalConfig.FilterTextArg = "{}"'
             .format(GlobalConfig.FilterTextArg))
 
     if args.logprivateinfo:
@@ -2237,13 +2259,14 @@ def main(*args):
         CommandLine = curses.wrapper(MainCursesFunction)
 
         if CommandLine:
-            PressEnterToCont()
             print('\nnccm: About to ssh using:\n{}\n'.format(CommandLine))
+            PressEnterToCont()
+            print('Connecting...')
 
             LogWrite.info( {
-                'unsafe':   'About to subprocess.run ExtCommand = {} ...'
+                'unsafe':   'About to subprocess.run ExtCommand == {} ...'
                     .format(CommandLine),
-                'safe':     'About to subprocess.run ExtCommand = {} ...'
+                'safe':     'About to subprocess.run ExtCommand == {} ...'
                     .format('CENSORED') } )
 
             StartTime = time.time()
@@ -2256,7 +2279,7 @@ def main(*args):
                 print('\n***** ssh exit code = {} *****'
                     .format(CPE.returncode))
                 print('Further debug details: {}'.format(CPE))
-                LogWrite.warning('ssh exit code = {}'.format(CPE.returncode))
+                LogWrite.warning('ssh exit code == {}'.format(CPE.returncode))
                 LogWrite.warning('Further debug details: {}'.format(CPE))
 
             finally:
@@ -2274,13 +2297,13 @@ def main(*args):
                         .format('CENSORED', SessionTime) } )
 
         if GlobalConfig.LoopNccm:
+            PressEnterToCont()
             LogWrite.debug('GlobalConfig.LoopNccm == {} - we are looping nccm instead of exiting at this point'
                 .format(GlobalConfig.LoopNccm))
 
-            GlobalConfig.FilterTextArg = ''
-                # ^ Need to cancel this in case user supplied enough command line
-                #   filter text to connect directly to a server. Without this it
-                #   will loop-connect to that server!
+            GlobalConfig.AutoConnect = False
+                # ^ Disable this to prevent automatic loop connection to the same
+                #       server if only one match in list.
 
         else:
             LogWrite.debug('GlobalConfig.LoopNccm == {} - exiting nccm'
@@ -2292,7 +2315,7 @@ if __name__ == '__main__':
     ScriptStartTime = time.time()
     main()
 
-    LogWrite.debug('{} exiting. Program run time: {:.3f} seconds'
+    LogWrite.info('{} exiting. Program run time: {:.3f} seconds'
         .format(ProgramName, time.time() - ScriptStartTime))
 
 
