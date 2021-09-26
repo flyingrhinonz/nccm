@@ -37,6 +37,7 @@ About nccm
 
 * Simple yet powerful ncurses ssh connection manager.
 * Well documented.
+* Secure.
 * Logs are in English - you don't need to be a developer to
   read the majority of the logs.
 
@@ -604,7 +605,7 @@ SecureLogging = True
 
 
 # Program identification strings:
-__version__     = '1.6.13'
+__version__     = '1.6.14'
 VersionDate     = '2021-09-26'
 ProgramName     = 'NCurses ssh Connection Manager'
 AuthorName      = 'Kenneth Aaron'
@@ -1225,8 +1226,11 @@ class Connections:
                 FSL = self.FullServersList[ServerXSNum] # too much typing. :)
                 FSL.ServerXSNum = ServerXSNum
                 FSL.FriendlyName = FriendlyName
-                LogWrite.debug('Processing FSL = {} , FriendlyName = {} , ServerXSNum = {}'
-                    .format(FSL, FriendlyName, ServerXSNum))
+                LogWrite.debug( {
+                    'unsafe':   'Processing FSL == {} , FriendlyName == {} , ServerXSNum == {}'
+                        .format(FSL, FriendlyName, ServerXSNum),
+                    'safe':     'Processing FSL == {} , FriendlyName == {} , ServerXSNum == {}'
+                        .format(FSL, 'CENSORED', ServerXSNum) } )
 
                 # The following supports extracting UserName & Address from FriendlyName
                 # if UserName & Address are not supplied:
@@ -1330,20 +1334,20 @@ class Connections:
                     FSL.CustomArgs = shlex.split(FSL.CustomArgs)
 
                 LogWrite.debug( {
-                    'unsafe':   'ServerXSNum = {} , FriendlyName = {} , UserName = {} , '
-                        'Address = {} , UserAddr = {} , Comment = {} , KeepAlive = {} , '
-                        'Identity = {} , CustomArgs = {}'
+                    'unsafe':   'ServerXSNum == {} , FriendlyName == {} , UserName == {} , '
+                        'Address == {} , UserAddr == {} , Comment == {} , KeepAlive == {} , '
+                        'Identity == {} , CustomArgs == {}'
                             .format(FSL.ServerXSNum, FSL.FriendlyName,
                                 FSL.UserName, FSL.Address, FSL.UserAddr,
                                 FSL.Comment,
                                 FSL.KeepAlive, FSL.Identity, ' '.join(FSL.CustomArgs)),
-                    'safe':     'ServerXSNum = {} , FriendlyName = {} , UserName = {} , '
-                        'Address = {} , UserAddr = {} , Comment = {} , KeepAlive = {} , '
-                        'Identity = {} , CustomArgs = {}'
-                            .format(FSL.ServerXSNum, FSL.FriendlyName,
+                    'safe':     'ServerXSNum == {} , FriendlyName == {} , UserName == {} , '
+                        'Address == {} , UserAddr == {} , Comment == {} , KeepAlive == {} , '
+                        'Identity == {} , CustomArgs == {}'
+                            .format(FSL.ServerXSNum, 'CENSORED',
                                 'CENSORED', 'CENSORED', 'CENSORED',
-                                FSL.Comment,
-                                FSL.KeepAlive, FSL.Identity, ' '.join(FSL.CustomArgs)) } )
+                                'CENSORED',
+                                FSL.KeepAlive, 'CENSORED', ' '.join(FSL.CustomArgs)) } )
 
             LogWrite.debug('Completed loading all connections successfully')
 
@@ -1487,14 +1491,18 @@ class Connections:
         # Merge the users text input into a set whose uniqueness
         # improves search performance:
         for Looper in self.TextFilters:
-            LogWrite.debug('Looper.Text = {}'.format(Looper.Text))
-                # ^ Remember that the object has a self.Text attribute so
-                #   we need to read the filter text from self.Text .
+            LogWrite.debug( {
+                'unsafe':   'Looper.Text == {}'.format(Looper.Text),
+                'safe':     'Looper.Text == {}'.format('CENSORED') } )
+                    # ^ Remember that the object has a self.Text attribute so
+                    #   we need to read the filter text from self.Text .
             FilterTextList.update(set(Looper.Text.split(' ')))
 
-        LogWrite.debug('FilterTextList = {}'.format(FilterTextList))
-            # ^ Now the combined text fields from both objects stored in
-            #   self.TextFilters .
+        LogWrite.debug( {
+            'unsafe':   'FilterTextList == {}'.format(FilterTextList),
+            'safe':     'FilterTextList == {}'.format('CENSORED') } )
+                # ^ Now the combined text fields from both objects stored in
+                #   self.TextFilters .
 
         # Populate self.ResultsList with all line that match the above filter:
         for FSL in self.FullServersList.values():
@@ -1561,11 +1569,17 @@ class TextBox:
         BeginY=None, BeginX=None, ColorPair=0, FilterText='',
         Name=False):
 
-        LogWrite.debug('class TextBox, method __init__ started with: '
-            'Name = {} , LinesCount = {} , ColsCount = {} BeginY = {} , '
-            'BeginX = {} , ColorPair = {} , FilterText = {}'
-                .format(Name, LinesCount, ColsCount, BeginY, BeginX,
-                    ColorPair, FilterText))
+        LogWrite.debug( {
+            'unsafe':   'class TextBox, method __init__ started with: '
+                'Name = {} , LinesCount = {} , ColsCount = {} BeginY = {} , '
+                'BeginX = {} , ColorPair = {} , FilterText = {}'
+                    .format(Name, LinesCount, ColsCount, BeginY, BeginX,
+                        ColorPair, FilterText),
+            'safe':     'class TextBox, method __init__ started with: '
+                'Name = {} , LinesCount = {} , ColsCount = {} BeginY = {} , '
+                'BeginX = {} , ColorPair = {} , FilterText = CENSORED'
+                    .format(Name, LinesCount, ColsCount, BeginY, BeginX,
+                        ColorPair) } )
 
         self.Name = Name
         self.Text = FilterText
@@ -1643,28 +1657,51 @@ class TextBox:
 def LogGlobalConfig():
     ''' Log all the GlobalConfig vars for debugging purposes '''
 
-    LogWrite.debug('All variables of class GlobalConfig:\n'
-        'GlobalConfig.LogUsingTee = {}\n'
-        'GlobalConfig.PromptToContinue = {}\n'
-        'GlobalConfig.LoopNccm = {}\n'
-        'GlobalConfig.FilterTextArg = {}\n'
-        'GlobalConfig.AutoConnect = {}\n'
-        'GlobalConfig.ForceDebugLogging = {}\n'
-        'GlobalConfig.ScreenHeight = {}\n'
-        'GlobalConfig.ScreenWidth = {}\n'
-        'GlobalConfig.DisplayObjects: total = {} , details = {}\n'
-        'GlobalConfig.TextboxObjects: total = {} , details = {}\n'
-            .format(
-                GlobalConfig.LogUsingTee,
-                GlobalConfig.PromptToContinue,
-                GlobalConfig.LoopNccm,
-                GlobalConfig.FilterTextArg,
-                GlobalConfig.AutoConnect,
-                GlobalConfig.ForceDebugLogging,
-                GlobalConfig.ScreenHeight,
-                GlobalConfig.ScreenWidth,
-                len(GlobalConfig.DisplayObjects), GlobalConfig.DisplayObjects,
-                len(GlobalConfig.TextboxObjects), GlobalConfig.TextboxObjects) )
+    LogWrite.debug( {
+        'unsafe':   'All variables of class GlobalConfig:\n'
+            'GlobalConfig.LogUsingTee == {}\n'
+            'GlobalConfig.PromptToContinue == {}\n'
+            'GlobalConfig.LoopNccm == {}\n'
+            'GlobalConfig.FilterTextArg == {}\n'
+            'GlobalConfig.AutoConnect == {}\n'
+            'GlobalConfig.ForceDebugLogging == {}\n'
+            'GlobalConfig.ScreenHeight == {}\n'
+            'GlobalConfig.ScreenWidth == {}\n'
+            'GlobalConfig.DisplayObjects: total == {} , details == {}\n'
+            'GlobalConfig.TextboxObjects: total == {} , details == {}\n'
+                .format(
+                    GlobalConfig.LogUsingTee,
+                    GlobalConfig.PromptToContinue,
+                    GlobalConfig.LoopNccm,
+                    GlobalConfig.FilterTextArg,
+                    GlobalConfig.AutoConnect,
+                    GlobalConfig.ForceDebugLogging,
+                    GlobalConfig.ScreenHeight,
+                    GlobalConfig.ScreenWidth,
+                    len(GlobalConfig.DisplayObjects), GlobalConfig.DisplayObjects,
+                    len(GlobalConfig.TextboxObjects), GlobalConfig.TextboxObjects),
+        'safe':   'All variables of class GlobalConfig:\n'
+            'GlobalConfig.LogUsingTee == {}\n'
+            'GlobalConfig.PromptToContinue == {}\n'
+            'GlobalConfig.LoopNccm == {}\n'
+            'GlobalConfig.FilterTextArg == {}\n'
+            'GlobalConfig.AutoConnect == {}\n'
+            'GlobalConfig.ForceDebugLogging == {}\n'
+            'GlobalConfig.ScreenHeight == {}\n'
+            'GlobalConfig.ScreenWidth == {}\n'
+            'GlobalConfig.DisplayObjects: total == {} , details == {}\n'
+            'GlobalConfig.TextboxObjects: total == {} , details == {}\n'
+                .format(
+                    GlobalConfig.LogUsingTee,
+                    GlobalConfig.PromptToContinue,
+                    GlobalConfig.LoopNccm,
+                    'CENSORED',
+                    GlobalConfig.AutoConnect,
+                    GlobalConfig.ForceDebugLogging,
+                    GlobalConfig.ScreenHeight,
+                    GlobalConfig.ScreenWidth,
+                    len(GlobalConfig.DisplayObjects), GlobalConfig.DisplayObjects,
+                    len(GlobalConfig.TextboxObjects), GlobalConfig.TextboxObjects) } )
 
 
 def qw(liststr: str):
@@ -1676,12 +1713,12 @@ def qw(liststr: str):
         return liststr.split()
 
 
-def PressEnterToCont():
+def PressEnterToCont(PromptText):
     ''' A simple wait until Enter key pressed '''
 
     if GlobalConfig.PromptToContinue:
         LogWrite.debug('Waiting for user to press Enter...')
-        Ans = input('Press Enter to continue... ')
+        Ans = input(PromptText)
 
     return
 
@@ -2158,15 +2195,20 @@ def InitialLogging():
         .format(ProgramName, __version__, VersionDate, AuthorName, AuthorEmail))
 
     LogWrite.info(IntroLine)
-    LogWrite.info('Invoked commandline: {CmdLine} , from directory: {Dir} , '
-        'by user: {User} , UID: {UID} , PPID: {PPID} , log level: {LogLevel}'
-        .format(
-            CmdLine = sys.argv,
-            Dir = os.getcwd(),
-            User = getpass.getuser(),
-            UID = os.getuid(),
-            PPID = os.getppid(),
-            LogLevel = LogLevel ) )
+    LogWrite.info( {
+        'unsafe': 'Invoked commandline: {CmdLine} , from directory: {Dir} , '
+            'by user: {User} , UID: {UID} , PPID: {PPID} , log level: {LogLevel}'
+                .format(
+                    CmdLine = sys.argv,
+                    Dir = os.getcwd(),
+                    User = getpass.getuser(),
+                    UID = os.getuid(),
+                    PPID = os.getppid(),
+                    LogLevel = LogLevel ),
+        'safe':   'Invoked commandline: CENSORED , from directory: CENSORED , '
+        'by user: CENSORED , UID: CENSORED , PPID: CENSORED , log level: {LogLevel}'
+            .format(LogLevel = LogLevel) } )
+
 
     LogWrite.info('Fields explained: PN: Process Name , MN: Module Name , '
         'FN: Function Name , LI: LIne number , '
@@ -2212,7 +2254,14 @@ def ParseArgs():
             "If there is only one match - connect to it immediately" )
 
     args = parser.parse_args()
-    LogWrite.debug('args object = {}'.format(args))
+    #LogWrite.debug('args object = {}'.format(args))
+        # ^ Exposes private info before we get a chance to check the command
+        #       line args whether the user allows private info logging.
+
+    if args.logprivateinfo:
+        SecureLogging = False
+        LogWrite.warning('--logprivateinfo command line argument supplied - '
+            'stuff like usernames and hostnames will be logged to syslog/journal !')
 
     if args.debug:
         LogWrite.setLevel(logging.DEBUG)
@@ -2221,23 +2270,26 @@ def ParseArgs():
             'to run in debug mode')
 
     LogWrite.debug('parser object = {}'.format(parser))
-    LogWrite.debug('args object = {}'.format(args))
+    LogWrite.debug( {
+        'unsafe':   'args object == {}'.format(args),
+        'safe':     'args object == CENSORED' } )
 
     if args.filter_text:
         GlobalConfig.FilterTextArg = args.filter_text
-        LogWrite.debug('GlobalConfig.FilterTextArg (user-supplied filtering text '
-            'at the command line) = {}'.format(GlobalConfig.FilterTextArg))
+        LogWrite.debug( {
+            'unsafe':   'GlobalConfig.FilterTextArg (user-supplied filtering text '
+                'at the command line) == {}'
+                    .format(GlobalConfig.FilterTextArg),
+            'safe':     'GlobalConfig.FilterTextArg (user-supplied filtering text '
+                'at the command line) == CENSORED' } )
             # ^ Comes in as a list
         GlobalConfig.FilterTextArg = ' '.join(GlobalConfig.FilterTextArg).lower()
             # ^ It is used within class TextBox.Text as a space delimited string
             #       so we must convert it here to a string too.
-        LogWrite.debug('Lowercased and converted to a string: GlobalConfig.FilterTextArg = "{}"'
-            .format(GlobalConfig.FilterTextArg))
-
-    if args.logprivateinfo:
-        SecureLogging = False
-        LogWrite.warning('--logprivateinfo command line argument supplied - '
-            'stuff like usernames and hostnames will be logged to syslog/journal !')
+        LogWrite.debug( {
+            'unsafe':   'Lowercased and converted to a string: GlobalConfig.FilterTextArg == "{}"'
+                .format(GlobalConfig.FilterTextArg),
+            'safe':     'Lowercased and converted to a string: GlobalConfig.FilterTextArg == CENSORED' } )
 
     if args.man:
         DisplayHelp()
@@ -2260,7 +2312,7 @@ def main(*args):
 
         if CommandLine:
             print('\nnccm: About to ssh using:\n{}\n'.format(CommandLine))
-            PressEnterToCont()
+            PressEnterToCont('Press Enter to continue (before connecting) ...')
             print('Connecting...')
 
             LogWrite.info( {
@@ -2297,7 +2349,7 @@ def main(*args):
                         .format('CENSORED', SessionTime) } )
 
         if GlobalConfig.LoopNccm:
-            PressEnterToCont()
+            PressEnterToCont('Press Enter to continue (before returning to nccm) ...')
             LogWrite.debug('GlobalConfig.LoopNccm == {} - we are looping nccm instead of exiting at this point'
                 .format(GlobalConfig.LoopNccm))
 

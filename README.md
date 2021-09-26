@@ -299,6 +299,8 @@ is case insensitive.
 Pressing Enter will connect to the connection highlighed
 in red. This also works if you're in the `Conn` textbox
 and it's empty.
+In cycle mode  `( nccm_loop_nccm == true )` - the value
+of this field is stored for the next cycle.
 
 Textboxes accept backspace to delete one char backwards,
 inline editing not supported.
@@ -322,6 +324,8 @@ Command line arguments
       `nccm -d ab cd ef`
     If there is only one match - nccm will connect to it
     immediately.
+    In cycle mode  `( nccm_loop_nccm == true )` - these args
+    are stored in the  `Filter`  textbox for the next cycle.
 
 * -h  or --help :
     Display the help message.
@@ -437,9 +441,8 @@ Logging:
 Look at your syslog file for nccm entries. Depending upon
 the verbosity level set in the config file you may not see
 much if at all anything.
-By default the production level of the script logs WARNING
-and above which results in syslog silence until something
-bad happens.
+By default the production level of the script logs INFO
+and above which is not much.
 Different syslog implementations have their own tolerance
 for line length, and to handle all scenarios - very long
 log lines are split into multiple lines, with wrapped
