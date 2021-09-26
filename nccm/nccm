@@ -152,9 +152,13 @@ Supported levels: debug, info, warning, error, critical .
 Controls whether you want syslog/journal to include private
 information such as usernames & hostnames. By default this
 is set to `false` which results in the data being replaced
-with `CENSORED` in the logs.
+with `CENSORED` in the logs. Note - you will still see
+`CENSORED` items for all lines that are logged before this
+setting has been read from nccm.yml .
 You can also force this temporarily by supplying the
 command line argument:  `--logprivateinfo` .
+This also solves the problem of censored logs that occur
+before the `nccm_config_logprivateinfo` setting is loaded.
 When this is enabled you will see:  `LogPrv` in red in the
 help line at the bottom of the screen.
 
@@ -605,7 +609,7 @@ SecureLogging = True
 
 
 # Program identification strings:
-__version__     = '1.6.15'
+__version__     = '1.6.16'
 VersionDate     = '2021-09-26'
 ProgramName     = 'NCurses ssh Connection Manager'
 AuthorName      = 'Kenneth Aaron'
@@ -1080,11 +1084,16 @@ class Connections:
             SecureLogging = not(self.LoadedServersDict.pop(
                 'nccm_config_logprivateinfo', False))
                 # ^ Need to toggle the true/false nature of it because:
-                #       nccm_config_logprivateinfo == True  means:  SecureLogging == False
+                #       nccm_config_logprivateinfo == True  means:  SecureLogging == False .
+                #       To avoid changing settings names (and breaking nccm for many
+                #       people, I use the same name but need to reverse the logic).
             LogWrite.debug('Loaded nccm.yml config item:  nccm_config_logprivateinfo  '
                 'into:  SecureLogging == {}  '
                 '(or defaulted it to:  True  if not found in nccm.yml)'
                     .format(SecureLogging))
+                # ^ Note - all lines logged BEFORE this import will still have CENSORED
+                #       in them. Use command line arg:  --logprivateinfo  if you want
+                #       everything to be logged insecurely.
 
             if not SecureLogging:
                 LogWrite.warning('Attention:  SecureLogging == False  -->  '
@@ -1648,8 +1657,11 @@ class TextBox:
                 #       so that the filter field can be populated at next cycle.
                 #       But only for text supplied in FilterBox (not ConnBox).
 
-        LogWrite.debug('self.Name == {} , self.Text == "{}" , GlobalConfig.FilterTextArg == "{}"'
-            .format(self.Name, self.Text, GlobalConfig.FilterTextArg))
+        LogWrite.debug( {
+            'unsafe':   'self.Name == {} , self.Text == "{}" , GlobalConfig.FilterTextArg == "{}"'
+                .format(self.Name, self.Text, GlobalConfig.FilterTextArg),
+            'safe':     'self.Name == {} , self.Text == "{}" , GlobalConfig.FilterTextArg == "{}"'
+                .format(self.Name, 'CENSORED', 'CENSORED') } )
         self.Window.clear()
         self.Window.addstr(0, 0, self.Text)
 
@@ -1718,7 +1730,14 @@ def PressEnterToCont(PromptText):
 
     if GlobalConfig.PromptToContinue:
         LogWrite.debug('Waiting for user to press Enter...')
-        Ans = input(PromptText)
+
+    while True:
+        try:
+            Ans = input(PromptText)
+            break
+        except EOFError as Exception:
+            LogWrite.debug('CTRL-D ignored')
+            print('\n')
 
     return
 
@@ -2273,6 +2292,9 @@ def ParseArgs():
     LogWrite.debug( {
         'unsafe':   'args object == {}'.format(args),
         'safe':     'args object == CENSORED' } )
+        # ^ Huh? I set:  nccm_config_logprivateinfo: true  in nccm.yml but I am still
+        #       seeing CENSORED in the logs! That's because this setting hasn't loaded yet.
+        #   Force it with command line arg:  --logprivateinfo
 
     if args.filter_text:
         GlobalConfig.FilterTextArg = args.filter_text

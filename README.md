@@ -149,9 +149,13 @@ Supported levels: debug, info, warning, error, critical .
 Controls whether you want syslog/journal to include private
 information such as usernames & hostnames. By default this
 is set to `false` which results in the data being replaced
-with `CENSORED` in the logs.
+with `CENSORED` in the logs. Note - you will still see
+`CENSORED` items for all lines that are logged before this
+setting has been read from nccm.yml .
 You can also force this temporarily by supplying the
 command line argument:  `--logprivateinfo` .
+This also solves the problem of censored logs that occur
+before the `nccm_config_logprivateinfo` setting is loaded.
 When this is enabled you will see:  `LogPrv` in red in the
 help line at the bottom of the screen.
 
