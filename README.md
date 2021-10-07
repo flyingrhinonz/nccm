@@ -142,7 +142,7 @@ Controls log level of messages sent by nccm to syslog.
 If you are using systemd it usually captures syslog
 messages which you can read in `journalctl`. I will use
 the word syslog in this documentation as referral to both.
-Use this for debugging. Default level is warning.
+Use this for debugging. Default level is info.
 Supported levels: debug, info, warning, error, critical .
 
 `nccm_config_logprivateinfo`:
@@ -184,7 +184,8 @@ This is a global setting that affects all your connections.
 By default set to `false` and nccm will connect immediately
 to the selected server. Set this value to `true`
 if you want nccm to prompt the user to press Enter before
-a connection is made.
+a connection is made and once again before returning to
+nccm.
 
 `nccm_config_importnccmd:`
 This setting defines whether nccm should try to import any
@@ -208,7 +209,7 @@ or audit, etc) and it's better to know that logging is not
 working now rather than doing your work and later finding
 out that you don't have a log file.
 The log filename format is:
-{DATE}_{TIME}_{USER}_AT_{SERVER}_{SCREENWIDTH}x{SCREENHEIGHT}.nccm.log
+{DATE}_{TIME}_{USER}_AT_{SERVER}_{SCREENWIDTH}x{SCREENHEIGHT}.nccm.log .
 Note - the screen dimensions are those when nccm started
 the connection - they might have changed later on during
 your session.
@@ -275,6 +276,7 @@ In both modes:
 - Ctrl-q or
 - Ctrl-c or
 - Ctrl-d:             Quit the program
+- Ctrl-u:             Clear the textbox text
 - F1-F5 or !@#$% :    Sort by respective column (1-5)
 
 

@@ -279,6 +279,7 @@ In both modes:
 - Ctrl-q or
 - Ctrl-c or
 - Ctrl-d:             Quit the program
+- Ctrl-u:             Clear the current textbox text
 - F1-F5 or !@#$% :    Sort by respective column (1-5)
 
 
@@ -611,7 +612,7 @@ SecureLogging = True
 
 # Program identification strings:
 __version__     = '1.6.17'
-VersionDate     = '2021-10-03'
+VersionDate     = '2021-10-08'
 ProgramName     = 'NCurses ssh Connection Manager'
 AuthorName      = 'Kenneth Aaron'
 AuthorEmail     = 'flyingrhino AT orcon DOT net DOT nz'
@@ -1642,11 +1643,21 @@ class TextBox:
         return UserKey
 
 
-    def ProcessKey(self, Key):
+    def ProcessKey(self, Key, KeyboardBindings):
 
-        if Key == curses.KEY_BACKSPACE or Key == 263:   # Backspace key
+        ''' We're receiving ConnectionsList.KeyboardBindings as KeyboardBindings
+                so that we can use the keyboard codes from:  nccm.yml  instead
+                of hardcoding values here.
+        '''
+
+        if Key == curses.KEY_BACKSPACE or Key in KeyboardBindings['nccm_key_backspace']:
+            # ^ Backspace key
             if len(self.Text) > 0:
                 self.Text = self.Text[:-1]
+
+        elif Key in KeyboardBindings['nccm_key_ctrl_u']:
+            # ^ Clear textbox text
+            self.Text = ''
 
         elif len(self.Text) < self.MaxText:
             self.Text += chr(Key).lower()
@@ -1987,8 +1998,10 @@ def MainCursesFunction(stdscr):
             or chr(UserKey) in string.ascii_letters
             or chr(UserKey) in string.punctuation
             or UserKey in ConnectionsList.KeyboardBindings['nccm_key_space']    # Space
-            or UserKey in ConnectionsList.KeyboardBindings['nccm_key_backspace'] )
+            or UserKey in ConnectionsList.KeyboardBindings['nccm_key_backspace']
                 # ^ Backspace key
+            or UserKey in ConnectionsList.KeyboardBindings['nccm_key_ctrl_u'] )
+                # ^ Clear filterbox text
             and ActiveWindow == FilterBox ):
             # ^ Filterbox accepts any printable character or backspace
             #   Using string.punctuation crashes on ctrl-j input so I explictly
@@ -1997,16 +2010,20 @@ def MainCursesFunction(stdscr):
                 ConnectionsList.YOffset = 0
                 ConnectionsList.XOffset = 0
                     # ^ Keypress received so reset the display to the beginning of the list
-                ActiveWindow.ProcessKey(UserKey)
+                ActiveWindow.ProcessKey(UserKey, ConnectionsList.KeyboardBindings)
+                    # ^ Pass the keyboard bindings to the method because it doesn't
+                    #       have access to ConnectionsList.KeyboardBindings.
 
         # Handle text entry in ConnBox:
         elif ( (chr(UserKey) in string.digits
-            or UserKey in ConnectionsList.KeyboardBindings['nccm_key_backspace'] )
+            or UserKey in ConnectionsList.KeyboardBindings['nccm_key_backspace']
                 # ^ Backspace key
+            or UserKey in ConnectionsList.KeyboardBindings['nccm_key_ctrl_u'] )
+                # ^ Clear filterbox text
             and ActiveWindow == ConnBox ):
             # ^ Filterbox accepts any digit or backspace
                 LogWrite.debug('Handle text entry in ConnBox ...')
-                ActiveWindow.ProcessKey(UserKey)
+                ActiveWindow.ProcessKey(UserKey, ConnectionsList.KeyboardBindings)
 
         elif ( UserKey in ConnectionsList.KeyboardBindings['nccm_key_exc']
             # ^ ! key (sort by column #1)

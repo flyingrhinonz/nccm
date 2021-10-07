@@ -170,6 +170,8 @@ nccm_keybindings:
     - 11
   nccm_key_ctrl_q:          # Ctrl-q (quits nccm)
     - 17
+  nccm_key_ctrl_u:          # Ctrl-u (clears textbox text)
+    - 21
   nccm_key_exc:             # ! key
     - 33
   nccm_key_at:              # @ key
