@@ -132,6 +132,15 @@ nccm_config_logpath: false
 #   happen - either fix the path or disable logging.
 #   Supported values: false or any valid path
 
+nccm_config_prompt_on_unknown_user: false
+# ^  If there is no user specified for a connection, instead of inferring
+#    the user from the currently logged in user, provide a prompt right
+#    before connecting to ask for the user name you would like to log
+#    in with. This can be useful for testing various logins for a connection
+#    or if you do not want to provide usernames in the server list
+#    Supported values: true, false
+
+
 nccm_loop_nccm: false
 # ^ Run nccm in a loop - when you exit out of your ssh session nccm menu
 #   will reappear. You are allowed to resize your window outside nccm and

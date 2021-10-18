@@ -232,6 +232,13 @@ nccm menu will reappear. You are allowed to resize your
 window outside nccm and the new window size will apply when
 nccm menu reappears after you exit from your ssh session.
 
+`nccm_config_prompt_on_unknown_user`
+If there is no user specified for a connection, instead of inferring
+the user from the currently logged in user, provide a prompt right
+before connecting to ask for the user name you would like to log
+in with. This can be useful for testing various logins for a connection
+or if you do not want to provide usernames in the server list
+
 `nccm_keybindings`
 nccm is configured for US keyboard mapping as entered into
 a standard linux xterm. If you have something else and
@@ -835,6 +842,12 @@ class GlobalConfig:
     TextboxObjects = []
         # ^ A list of editable textbox windows (user input)
 
+    PromptOnUnknownUser = False
+	# ^ If a connection does not have a specific user set, do not infer
+	#	user from the currently logged int user and instead 
+	#	request a username before prompting to continue.
+    
+
     # Setup the supported directories/pathnames for the connections file.
     # If you want to store nccm.yml in a directory that's not already supported
     # or change the filename, do it here:
@@ -1113,6 +1126,15 @@ class Connections:
         LogWrite.debug('Loaded {} config item:  GlobalConfig.LoopNccm == {}'
             .format(GlobalConfig.ConfigFile, GlobalConfig.LoopNccm))
 
+
+        # Handle loading of GlobalConfig.PromptOnUnknownUser
+        GlobalConfig.PromptOnUnknownUser = self.LoadedServersDict.pop(
+            'nccm_config_prompt_on_unknown_user', False)
+        LogWrite.debug('Loaded {} config item:  GlobalConfig.PromptOnUnknownUser == {}'
+            .format(GlobalConfig.ConfigFile, GlobalConfig.PromptOnUnknownUser))
+
+
+
         # Handle loading of the LogPath value from nccm_config_logpath:
         self.LogPath = self.LoadedServersDict.pop(
             'nccm_config_logpath', False)
@@ -1307,7 +1329,10 @@ class Connections:
                         'unsafe':   'FSL.Address == {}'.format(FSL.Address),
                         'safe':     'FSL.Address == {}'.format('CENSORED') } )
 
-                FSL.UserAddr = '{}@{}'.format(FSL.UserName, FSL.Address) # for convenience
+                if SshUserFromLogin and GlobalConfig.PromptOnUnknownUser:
+                    FSL.UserAddr = '<user>@{}'.format(FSL.Address) # for convenience
+                else:
+                    FSL.UserAddr = '{}@{}'.format(FSL.UserName, FSL.Address) # for convenience
 
                 FSL.Comment = self.LoadedServersDict[FriendlyName].get('comment', '')
                     # ^ .get because item my be empty
@@ -1319,8 +1344,10 @@ class Connections:
                     if FSL.Comment:
                         FSL.Comment += ' '
                             # ^ Pretty formtting, nothing else...
-                    FSL.Comment += '[{}@ taken from login user]'.format(FSL.UserName)
-
+                    if GlobalConfig.PromptOnUnknownUser:
+                        FSL.Comment += '[user will be prompted on login]'
+                    else:
+                        FSL.Comment += '[{}@ taken from login user]'.format(FSL.UserName)
                 FSL.KeepAlive = self.LoadedServersDict[FriendlyName].get(
                     'keepalive', self.DefaultKeepAlive)
                         # ^ If custom keepalive supplied use that,
@@ -1413,7 +1440,12 @@ class Connections:
         # the list to build the ssh connection line:
         CommandLine = []
         CommandLine += (self.SshProgram, )
-        CommandLine += (SelectedEntry.UserAddr, )
+        if '<user>@' in SelectedEntry.UserAddr:
+            RestoreTerminal(self.stdscr)
+            PromptedUser = PromptForUserLogin("Enter a username below and press enter: ")
+            CommandLine += ('{}@{}'.format(PromptedUser, SelectedEntry.Address), )
+        else:
+            CommandLine += (SelectedEntry.UserAddr, )
 
         if SelectedEntry.KeepAlive:
             CommandLine += ('-o', 'ServerAliveInterval={}'
@@ -1753,6 +1785,24 @@ def PressEnterToCont(PromptText):
 
     return
 
+def PromptForUserLogin(PromptText):
+    ''' A simple prompt asking for login information from the user. '''
+
+    if GlobalConfig.PromptOnUnknownUser:
+        LogWrite.debug('Waiting for user to enter login information and press Enter...')
+        
+    Ans = None
+    while True:
+        try:
+            Ans = input(PromptText)
+            if Ans != '':
+                break
+            else:
+                print("No username was detected, please retry.")
+        except EOFError as Exception:
+            LogWrite.debug('CTRL-D ignored')
+            print('\n')
+    return Ans
 
 def RestoreTerminal(stdscr):
     ''' Restore the terminal to a sane status '''
