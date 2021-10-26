@@ -927,6 +927,7 @@ class ServerXS:
         self.FriendlyName = ""
         self.UserName = ""
         self.Address = ""
+        self.Port = ""
         self.UserAddr = ""
         self.Comment = ""
         self.KeepAlive = ""
@@ -1290,6 +1291,13 @@ class Connections:
                 # Get FSL.Address:
                 FSL.Address = self.LoadedServersDict[FriendlyName].get('address', False)
 
+                # Get server port if needed
+                FSL.Port = self.LoadedServersDict[FriendlyName].get('port', False)
+
+                if not FSL.Port:
+                    LogWrite.debug("No specific port supplied, using default.")
+                    FSL.Port = 22
+
                 LogWrite.debug( {
                     'unsafe':   'FSL.Address == {}'.format(FSL.Address),
                     'safe':     'FSL.Address == {}'.format('CENSORED') } )
@@ -1414,6 +1422,9 @@ class Connections:
         CommandLine = []
         CommandLine += (self.SshProgram, )
         CommandLine += (SelectedEntry.UserAddr, )
+	
+        if SelectedEntry.Port:
+            CommandLine += ('-p', '{}'.format(SelectedEntry.Port))
 
         if SelectedEntry.KeepAlive:
             CommandLine += ('-o', 'ServerAliveInterval={}'
