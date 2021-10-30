@@ -237,16 +237,18 @@ nccm is configured for US keyboard mapping as entered into
 a standard linux xterm. If you have something else and
 certain keys don't behave as you'd expect - change their
 codes here.
-I have experienced putty sending Home / End / Fn keys
+I have experienced putty/kitty sending Home / End / Fn keys
 differently to xterm - and other programs may have similar
 behavior. You have the option of fixing your terminal
 program or modifying the key codes within nccm.
+Tip - in putty/kitty you can adjust this here:
+Terminal -> Keyboard .
 Each of the keyboard codes is a list (even if it contains
 only one item), you can map a keypress to as many codes as
 you wish by adding more codes to it.
 If you want to figure out what code results from a
-keypress - run 'nccm -d' , press a key and look for:
-'Keyboard entry: UserKey == nnn'  in syslog/journal.
+keypress - run `nccm -d` , press a key and look for:
+`Keyboard entry: UserKey == nnn`  in syslog/journal.
 You can even map other keys to nccm keys - for example
 instead of F1 you want to use F12 - just put the code for
 F12 in the F1 key position.
@@ -611,8 +613,8 @@ SecureLogging = True
 
 
 # Program identification strings:
-__version__     = '1.6.17'
-VersionDate     = '2021-10-08'
+__version__     = '1.6.18'
+VersionDate     = '2021-10-30'
 ProgramName     = 'NCurses ssh Connection Manager'
 AuthorName      = 'Kenneth Aaron'
 AuthorEmail     = 'flyingrhino AT orcon DOT net DOT nz'
@@ -968,21 +970,21 @@ class Connections:
             # ^ Full list as imported from the loaded object
             #   This is the source list that we reuse during the program.
             #   It is also sorted in place if the user chooses sorting by column.
-        self.MaxLenServerXSNum = 0  # Length of the longest serial number field
-        self.MaxLenFriendlyName = 0 # Length of the longest friendly name
-        self.MaxLenUserAddr = 0     # Length of the longest connection string command
-                                    #   (root@server)
-        self.MaxLenComment = 0      # Length of the longest comment column
+        self.MaxLenServerXSNum = 0          # Length of the longest serial number field
+        self.MaxLenFriendlyName = 0         # Length of the longest friendly name
+        self.MaxLenUserAddr = 0             # Length of the longest connection string command
+                                            #   (root@server)
+        self.MaxLenComment = 0              # Length of the longest comment column
 
-        self.SortOrder = True       # Column sort order (flips between True/False)
-        self.YOffset = 0            # Y offset for scrolling vertically
-        self.XOffset = 0            # X offset for scrolling horizontally
-        self.MaxLineLength = 0      # Result of formatting the text to fit the max
-                                    #   column length
-        self.MarkerLine = 0         # Highlighted line for connection selection
-        self.SelectedEntry = None   # The connection number matching MarkerLine
-        self.SelectedEntryVal = None    # Connection number value of the highlighted line
-        self.DisplayResultsCount = 0    # Number of displayed results after filtering
+        self.SortOrder = True               # Column sort order (flips between True/False)
+        self.YOffset = 0                    # Y offset for scrolling vertically
+        self.XOffset = 0                    # X offset for scrolling horizontally
+        self.MaxLineLength = 0              # Result of formatting the text to fit the max
+                                            #   column length
+        self.MarkerLine = 0                 # Highlighted line for connection selection
+        self.SelectedEntry = None           # The connection number matching MarkerLine
+        self.SelectedEntryVal = None        # Connection number value of the highlighted line
+        self.DisplayResultsCount = 0        # Number of displayed results after filtering
 
         self.Window = curses.newwin(LinesCount, ColsCount, BeginY, BeginX)
 
@@ -1573,6 +1575,22 @@ class Connections:
             .format(self.Name, len(self.ResultsList), self.DisplayResultsCount))
 
 
+    def LogPositions(self, Comment=None):
+        ''' Logs marker positioning to follow the highlighted line '''
+
+        LogWrite.debug( {
+            'unsafe':   'Comment == {} , self.Name = {} , self.YOffset == {} , self.XOffset == {} , '
+                        'self.MarkerLine == {} , self.SelectedEntryVal == {} , '
+                        'self.DisplayResultsCount == {} , self.SelectedEntry == "{}"'
+                            .format( Comment, self.Name, self.YOffset, self.XOffset, self.MarkerLine,
+                                self.SelectedEntryVal, self.DisplayResultsCount, self.SelectedEntry ),
+            'safe':     'Comment == {} , self.Name = {} , self.YOffset == {} , self.XOffset == {} , '
+                        'self.MarkerLine == {} , self.SelectedEntryVal == {} , '
+                        'self.DisplayResultsCount == {} , self.SelectedEntry == CENSORED'
+                            .format( Comment, self.Name, self.YOffset, self.XOffset, self.MarkerLine,
+                                self.SelectedEntryVal, self.DisplayResultsCount ) } )
+
+
 class TextBox:
     ''' This manages objects that handle text input '''
 
@@ -1933,7 +1951,8 @@ def MainCursesFunction(stdscr):
     LogWrite.debug('Function MainCursesFunction started')
     CommandLine = []
 
-    if SetupCurses(stdscr) == False:       # Something failed in setup or tests
+    if SetupCurses(stdscr) == False:
+        # ^ Something failed in setup or tests
         LogWrite.error('SetupCurses(stdscr) failed')
         return
 
@@ -1973,6 +1992,7 @@ def MainCursesFunction(stdscr):
     LogWrite.debug('Starting keyboard read loop...')
 
     while True:
+        ConnectionsList.LogPositions(Comment='Top of loop')
         UserKey = ActiveWindow.ReadKey()
         LogWrite.debug('Keyboard entry: UserKey == {}'.format(UserKey))
             # ^ This is the code of the key the user pressed
@@ -2085,6 +2105,8 @@ def MainCursesFunction(stdscr):
                         ConnectionsList.YOffset -= 1
                     else:
                         ConnectionsList.YOffset = 0
+            #ConnectionsList.LogPositions(Comment='Up arrow')
+                # ^ Too much logging
 
         elif UserKey in ConnectionsList.KeyboardBindings['nccm_key_down']:
             # ^ Down arrow
@@ -2098,6 +2120,8 @@ def MainCursesFunction(stdscr):
                 elif (len(ConnectionsList.ResultsList) -
                     ConnectionsList.YOffset > ConnectionsList.MaxTextLines):
                     ConnectionsList.YOffset += 1
+            #ConnectionsList.LogPositions(Comment="Down arrow")
+                # ^ Too much logging
 
         elif UserKey in ConnectionsList.KeyboardBindings['nccm_key_home']:
             # ^ Home key
@@ -2183,6 +2207,9 @@ def MainCursesFunction(stdscr):
                 LogWrite.debug('Handle Enter key in FilterBox ...')
                     # ^ Well, it has to be FilterBox because we explicitly checked
                     #   for ConnBox earlier...
+                LogWrite.debug('Enter key pressed. ConnectionsList.SelectedEntryVal == {} , ConnectionsList.SelectedEntry == {}'
+                    .format(ConnectionsList.SelectedEntryVal, ConnectionsList.SelectedEntry))
+                ConnectionsList.LogPositions(Comment="Enter key")
                 CommandLine = ConnectionsList.GetCommandLine(
                     ConnectionsList.SelectedEntryVal)
                 break
