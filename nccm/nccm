@@ -613,7 +613,7 @@ SecureLogging = True
 
 
 # Program identification strings:
-__version__     = '1.6.18'
+__version__     = '1.6.19'
 VersionDate     = '2021-10-30'
 ProgramName     = 'NCurses ssh Connection Manager'
 AuthorName      = 'Kenneth Aaron'
@@ -854,6 +854,15 @@ class GlobalConfig:
     ConfigFilePath.append('/etc/' + ConfigFile)
         # ^ /etc/nccm.yml
 
+    # These vars remember the marker position after disconnecting from ssh
+    #   so that the marker can be placed at the same position that was
+    #   used to make the connection. After returning to nccm the Connections
+    #   object is recreated so we need persistent storage for these vars.
+    #   They still belong in the Connections object from a logical perspective
+    #   so we'll copy them from here when the object is instanciated:
+    LoopYOffset = 0
+    LoopMarkerLine = 0
+
 
 # If the log level was set to debug in the variable we set earlier -
 #   LogLevel = logging.DEBUG - then enforce debug level logging
@@ -977,11 +986,13 @@ class Connections:
         self.MaxLenComment = 0              # Length of the longest comment column
 
         self.SortOrder = True               # Column sort order (flips between True/False)
-        self.YOffset = 0                    # Y offset for scrolling vertically
+        self.YOffset = GlobalConfig.LoopYOffset
+            # ^ Y offset for scrolling vertically
         self.XOffset = 0                    # X offset for scrolling horizontally
-        self.MaxLineLength = 0              # Result of formatting the text to fit the max
-                                            #   column length
-        self.MarkerLine = 0                 # Highlighted line for connection selection
+        self.MaxLineLength = 0
+            # ^ Result of formatting the text to fit the max column length
+        self.MarkerLine = GlobalConfig.LoopMarkerLine
+            # ^ Highlighted line for connection selection
         self.SelectedEntry = None           # The connection number matching MarkerLine
         self.SelectedEntryVal = None        # Connection number value of the highlighted line
         self.DisplayResultsCount = 0        # Number of displayed results after filtering
@@ -1711,6 +1722,8 @@ def LogGlobalConfig():
             'GlobalConfig.ScreenWidth == {}\n'
             'GlobalConfig.DisplayObjects: total == {} , details == {}\n'
             'GlobalConfig.TextboxObjects: total == {} , details == {}\n'
+            'GlobalConfig.LoopYOffset == {}\n'
+            'GlobalConfig.LoopMarkerLine == {}\n'
                 .format(
                     GlobalConfig.LogUsingTee,
                     GlobalConfig.PromptToContinue,
@@ -1721,7 +1734,9 @@ def LogGlobalConfig():
                     GlobalConfig.ScreenHeight,
                     GlobalConfig.ScreenWidth,
                     len(GlobalConfig.DisplayObjects), GlobalConfig.DisplayObjects,
-                    len(GlobalConfig.TextboxObjects), GlobalConfig.TextboxObjects),
+                    len(GlobalConfig.TextboxObjects), GlobalConfig.TextboxObjects,
+                    GlobalConfig.LoopYOffset,
+                    GlobalConfig.LoopMarkerLine),
         'safe':   'All variables of class GlobalConfig:\n'
             'GlobalConfig.LogUsingTee == {}\n'
             'GlobalConfig.PromptToContinue == {}\n'
@@ -1733,6 +1748,8 @@ def LogGlobalConfig():
             'GlobalConfig.ScreenWidth == {}\n'
             'GlobalConfig.DisplayObjects: total == {} , details == {}\n'
             'GlobalConfig.TextboxObjects: total == {} , details == {}\n'
+            'GlobalConfig.LoopYOffset == {}\n'
+            'GlobalConfig.LoopMarkerLine == {}\n'
                 .format(
                     GlobalConfig.LogUsingTee,
                     GlobalConfig.PromptToContinue,
@@ -1743,7 +1760,9 @@ def LogGlobalConfig():
                     GlobalConfig.ScreenHeight,
                     GlobalConfig.ScreenWidth,
                     len(GlobalConfig.DisplayObjects), GlobalConfig.DisplayObjects,
-                    len(GlobalConfig.TextboxObjects), GlobalConfig.TextboxObjects) } )
+                    len(GlobalConfig.TextboxObjects), GlobalConfig.TextboxObjects,
+                    GlobalConfig.LoopYOffset,
+                    GlobalConfig.LoopMarkerLine) } )
 
 
 def qw(liststr: str):
@@ -2210,6 +2229,12 @@ def MainCursesFunction(stdscr):
                 LogWrite.debug('Enter key pressed. ConnectionsList.SelectedEntryVal == {} , ConnectionsList.SelectedEntry == {}'
                     .format(ConnectionsList.SelectedEntryVal, ConnectionsList.SelectedEntry))
                 ConnectionsList.LogPositions(Comment="Enter key")
+
+                # Save these vars so that we can display the marker line at the same
+                #   position after connection ends:
+                GlobalConfig.LoopYOffset = ConnectionsList.YOffset
+                GlobalConfig.LoopMarkerLine = ConnectionsList.MarkerLine
+
                 CommandLine = ConnectionsList.GetCommandLine(
                     ConnectionsList.SelectedEntryVal)
                 break
