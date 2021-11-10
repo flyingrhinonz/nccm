@@ -36,10 +36,29 @@ About nccm
 ----------
 
 * Simple yet powerful ncurses ssh connection manager.
+* Intuitive filtering by any text you supply.
 * Well documented.
 * Secure.
 * Logs are in English - you don't need to be a developer to
   read the majority of the logs.
+
+
+Who is nccm for?
+----------------
+
+* You have dozens or hundreds of boxes to manage via ssh.
+* Too hard to remember server hostnames or IP addresses
+    and prefer descriptive names?
+* You use ssh connection arguments on the command line and
+    it's too much effort to type every time you connect.
+* View all your devices at once and filter easily so that
+    you know who to connect to.
+* Want to focus more on your job and less on the overhead
+    of connecting to your devices?
+* Prefer to work from the command line, don't have a GUI,
+    or simply prefer to work more efficiently?
+If you answered 'yes' to any of the above -
+    nccm is for YOU!
 
 
 Manual install instructions
@@ -407,6 +426,9 @@ displaying an error message.
 It's safe to resize the window once connection
 establishment is in progress or after connected to
 your server.
+If you run nccm in loop mode and resize your terminal
+after a connection is made - nccm will accept your
+newly resized terminal when it returns.
 
 Does not support highlighting filter keywords in search
 results because this results in a messy and confusing
@@ -540,8 +562,8 @@ be considered.
 Credits
 -------
 
-Big thanks goes to Andrew P. for suggesting features and
-submitting improvements.
+Big thanks to everyone who reported bugs, submitted feature
+requests and improvements that made nccm what it is today.
 
 '''
 
@@ -613,8 +635,8 @@ SecureLogging = True
 
 
 # Program identification strings:
-__version__     = '1.6.19'
-VersionDate     = '2021-10-30'
+__version__     = '1.6.20'
+VersionDate     = '2021-11-11'
 ProgramName     = 'NCurses ssh Connection Manager'
 AuthorName      = 'Kenneth Aaron'
 AuthorEmail     = 'flyingrhino AT orcon DOT net DOT nz'

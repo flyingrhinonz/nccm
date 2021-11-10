@@ -33,10 +33,29 @@ About nccm
 ----------
 
 * Simple yet powerful ncurses ssh connection manager.
+* Intuitive filtering by any text you supply.
 * Well documented.
 * Secure.
 * Logs are in English - you don't need to be a developer to
   read the majority of the logs.
+
+
+Who is nccm for?
+----------------
+
+* You have dozens or hundreds of boxes to manage via ssh.
+* Too hard to remember server hostnames or IP addresses
+    and prefer descriptive names?
+* You use ssh connection arguments on the command line and
+    it's too much effort to type every time you connect.
+* View all your devices at once and filter easily so that
+    you know who to connect to.
+* Want to focus more on your job and less on the overhead
+    of connecting to your devices?
+* Prefer to work from the command line, don't have a GUI,
+    or simply prefer to work more efficiently?
+If you answered 'yes' to any of the above -
+    nccm is for YOU!
 
 
 Manual install instructions
@@ -234,16 +253,18 @@ nccm is configured for US keyboard mapping as entered into
 a standard linux xterm. If you have something else and
 certain keys don't behave as you'd expect - change their
 codes here.
-I have experienced putty sending Home / End / Fn keys
+I have experienced putty/kitty sending Home / End / Fn keys
 differently to xterm - and other programs may have similar
 behavior. You have the option of fixing your terminal
 program or modifying the key codes within nccm.
+Tip - in putty/kitty you can adjust this here:
+Terminal -> Keyboard .
 Each of the keyboard codes is a list (even if it contains
 only one item), you can map a keypress to as many codes as
 you wish by adding more codes to it.
 If you want to figure out what code results from a
-keypress - run 'nccm -d' , press a key and look for:
-'Keyboard entry: UserKey == nnn'  in syslog/journal.
+keypress - run `nccm -d` , press a key and look for:
+`Keyboard entry: UserKey == nnn`  in syslog/journal.
 You can even map other keys to nccm keys - for example
 instead of F1 you want to use F12 - just put the code for
 F12 in the F1 key position.
@@ -276,7 +297,7 @@ In both modes:
 - Ctrl-q or
 - Ctrl-c or
 - Ctrl-d:             Quit the program
-- Ctrl-u:             Clear the textbox text
+- Ctrl-u:             Clear the current textbox text
 - F1-F5 or !@#$% :    Sort by respective column (1-5)
 
 
@@ -402,6 +423,9 @@ displaying an error message.
 It's safe to resize the window once connection
 establishment is in progress or after connected to
 your server.
+If you run nccm in loop mode and resize your terminal
+after a connection is made - nccm will accept your
+newly resized terminal when it returns.
 
 Does not support highlighting filter keywords in search
 results because this results in a messy and confusing
@@ -535,6 +559,6 @@ be considered.
 Credits
 -------
 
-Big thanks goes to Andrew P. for suggesting features and
-submitting improvements.
+Big thanks to everyone who reported bugs, submitted feature
+requests and improvements that made nccm what it is today.
 
