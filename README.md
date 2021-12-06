@@ -54,7 +54,7 @@ Who is nccm for?
     of connecting to your devices?
 * Prefer to work from the command line, don't have a GUI,
     or simply prefer to work more efficiently?
-If you answered 'yes' to any of the above -
+* If you answered 'yes' to any of the above -
     nccm is for YOU!
 
 
@@ -469,6 +469,7 @@ works properly, then update the newly downloaded nccm.yml
 from your backup copy.
 
 Logging:
+
 Look at your syslog file for nccm entries. Depending upon
 the verbosity level set in the config file you may not see
 much if at all anything.
@@ -485,6 +486,8 @@ Increase logging verbosity level to `debug` using the
 This is by far the easiest way to debug and covers most
 scenarios except for faults that occur before the code
 actually reads the `-d` command line argument.
+Tip - to extract recent logs from the system use:
+`journalctl -t "nccm" --since -10min >> /tmp/nccm.log`
 
 To permanently increase logging verbosity change this line
 in the `nccm.yml` config file to debug:
@@ -532,6 +535,16 @@ If you find bugs please update to the latest version of
 nccm first (this may include updating your yaml file in
 case the format changed). If the bug persists please report
 it through the `issues` tab in github.
+I use nccm on Linux Mint and RHEL. I use it infrequently
+on Fedora too. I can easily fix any bugs that I can
+recreate on platforms that I use, but I know that nccm is
+used on many other platforms too - not all of which are
+pure Linux. If you encounter bugs that I can't recreate -
+try posting as much debugging information as possible and
+I'll try to help, or one of the users may have the same
+platform as you and may be of assistance.
+If you encounter and fix any issues - please post your
+problem and solution for all to benefit from.
 
 
 Hacking nccm

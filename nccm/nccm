@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 # vim:set shiftwidth=4 expandtab:
 
+
 '''
 NCurses ssh Connection Manager (nccm)
 =====================================
@@ -57,7 +58,7 @@ Who is nccm for?
     of connecting to your devices?
 * Prefer to work from the command line, don't have a GUI,
     or simply prefer to work more efficiently?
-If you answered 'yes' to any of the above -
+* If you answered 'yes' to any of the above -
     nccm is for YOU!
 
 
@@ -472,6 +473,7 @@ works properly, then update the newly downloaded nccm.yml
 from your backup copy.
 
 Logging:
+
 Look at your syslog file for nccm entries. Depending upon
 the verbosity level set in the config file you may not see
 much if at all anything.
@@ -488,6 +490,8 @@ Increase logging verbosity level to `debug` using the
 This is by far the easiest way to debug and covers most
 scenarios except for faults that occur before the code
 actually reads the `-d` command line argument.
+Tip - to extract recent logs from the system use:
+`journalctl -t "nccm" --since -10min >> /tmp/nccm.log`
 
 To permanently increase logging verbosity change this line
 in the `nccm.yml` config file to debug:
@@ -535,6 +539,16 @@ If you find bugs please update to the latest version of
 nccm first (this may include updating your yaml file in
 case the format changed). If the bug persists please report
 it through the `issues` tab in github.
+I use nccm on Linux Mint and RHEL. I use it infrequently
+on Fedora too. I can easily fix any bugs that I can
+recreate on platforms that I use, but I know that nccm is
+used on many other platforms too - not all of which are
+pure Linux. If you encounter bugs that I can't recreate -
+try posting as much debugging information as possible and
+I'll try to help, or one of the users may have the same
+platform as you and may be of assistance.
+If you encounter and fix any issues - please post your
+problem and solution for all to benefit from.
 
 
 Hacking nccm
@@ -635,8 +649,8 @@ SecureLogging = True
 
 
 # Program identification strings:
-__version__     = '1.6.20'
-VersionDate     = '2021-11-11'
+__version__     = '1.6.21'
+VersionDate     = '2021-12-06'
 ProgramName     = 'NCurses ssh Connection Manager'
 AuthorName      = 'Kenneth Aaron'
 AuthorEmail     = 'flyingrhino AT orcon DOT net DOT nz'
@@ -977,7 +991,7 @@ class Connections:
     def __init__(self, LinesCount=None, ColsCount=None, BeginY=None,
         BeginX=None, ColorPair=0, TextFilters=None, stdscr=None, Name=False):
 
-        LogWrite.debug('Class Connections method __init__ started with: '
+        LogWrite.debug('class: Connections , method: __init__ started with: '
             'Name == {} , LinesCount == {} , ColsCount == {} , '
             'BeginY == {} , BeginX == {} , ColorPair == {} , '
             'TextFilters == {}, stdscr == {}'
@@ -1513,10 +1527,10 @@ class Connections:
 
     def Display(self):
 
-        LogWrite.debug('Class Connections method Display started')
+        LogWrite.debug('class: Connections, method: Display started')
         # Check if the window was resized since it was started:
         NewScreenHeight, NewScreenWidth = self.stdscr.getmaxyx()
-        LogWrite.debug('Class Connections method Display: '
+        LogWrite.debug('class Connections, method: Display: '
             'NewScreenHeight == {} , NewScreenWidth == {} '
                 .format(NewScreenHeight, NewScreenWidth))
 
@@ -1684,9 +1698,11 @@ class TextBox:
                 ConnBox.ActivateWindow()
         '''
 
+        LogWrite.debug('class: TextBox, method: ActivateWindow started')
         self.Window.noutrefresh()
         curses.doupdate()
-        LogWrite.debug('Active window is now: {}'.format(self.Name))
+        LogWrite.debug('Active window is now: {} , {}'
+            .format(self.Name, self))
 
 
     def ReadKey(self):
@@ -1699,22 +1715,42 @@ class TextBox:
         ''' We're receiving ConnectionsList.KeyboardBindings as KeyboardBindings
                 so that we can use the keyboard codes from:  nccm.yml  instead
                 of hardcoding values here.
+            Note - if key codes are missing this function will log the entry
+                point debug message and crash on the line that's missing the
+                code (will not appear in the logs but will show the crash line
+                in the on-screen message). See issue #11 for an example of this.
         '''
+
+        LogWrite.debug('class: TextBox, method: ProcessKey started')
+        #LogWrite.debug('self == {} , Key == {} , KeyboardBindings == {}'
+        #    .format(self, Key, KeyboardBindings))
+            # ^ Too much logging
 
         if Key == curses.KEY_BACKSPACE or Key in KeyboardBindings['nccm_key_backspace']:
             # ^ Backspace key
+            #LogWrite.debug('Process backspace key...')
+                # ^ Too much logging
             if len(self.Text) > 0:
                 self.Text = self.Text[:-1]
 
         elif Key in KeyboardBindings['nccm_key_ctrl_u']:
             # ^ Clear textbox text
+            #   Note - crashes nccm if the newly added ctrl-u feature key code
+            #       is missing in nccm.yml . See issue #11 for details.
+            #LogWrite.debug('Process ctrl-u key...')
+                # ^ Too much logging
             self.Text = ''
 
         elif len(self.Text) < self.MaxText:
+            #LogWrite.debug('Process printable key...')
+                # ^ Too much logging
             self.Text += chr(Key).lower()
                 # ^ Force to lower and search is case insensitive
 
         if self.Name == 'FilterBox':
+            #LogWrite.debug('We have:  self.Name == FilterBox  so copy:  self.Text  to:  '
+            #    'GlobalConfig.FilterTextArg  for the next cycle...')
+                # ^ Too much logging
             GlobalConfig.FilterTextArg = self.Text
                 # ^ Keep the globally accessible variable up to date with the filter text
                 #       so that the filter field can be populated at next cycle.
@@ -1931,6 +1967,9 @@ def SetupWindows(stdscr):
     ConnBox = TextBox(LinesCount=1, ColsCount=8,
         BeginY=GlobalConfig.ScreenHeight-3, BeginX=10, ColorPair=3,
         FilterText='', Name='ConnBox')
+    LogWrite.debug('ConnBox == {}  (this is the conn number entry textbox)'
+        .format(ConnBox))
+
     GlobalConfig.DisplayObjects.append(ConnBox)
         # ^ Add this window to the displayable windows
     GlobalConfig.TextboxObjects.append(ConnBox)
@@ -1951,6 +1990,8 @@ def SetupWindows(stdscr):
         BeginY=GlobalConfig.ScreenHeight-3, BeginX=29, ColorPair=3,
         FilterText=GlobalConfig.FilterTextArg, Name='FilterBox')
             # ^ Preload it with whatever was supplied as --filter command line arg
+    LogWrite.debug('FilterBox == {}  (this is the filter text entry textbox)'
+        .format(FilterBox))
 
     GlobalConfig.DisplayObjects.append(FilterBox)
     GlobalConfig.TextboxObjects.append(FilterBox)
@@ -2030,6 +2071,8 @@ def MainCursesFunction(stdscr):
         RestoreTerminal(stdscr)
         return CommandLine
 
+    LogWrite.debug('Active window is now: ActiveWindow == {}  (the user input textbox that is active right now)'
+        .format(ActiveWindow))
     LogWrite.debug('Starting keyboard read loop...')
 
     while True:
@@ -2050,9 +2093,13 @@ def MainCursesFunction(stdscr):
             LogWrite.debug('Handle Tab key ...')
             ActiveWindow = next(CyclicTextboxObjects)
                 # ^ See the 'for Looper in CyclicTextboxObjects:' comment above
+                #   We set ActiveWindow to the next item in the iterable but curses also
+                #       needs to be updated that this window is active. We'll do that next.
+            LogWrite.debug('Active window is now: ActiveWindow == {}  (the user input textbox that is active right now)'
+                .format(ActiveWindow))
             ActiveWindow.ActivateWindow()
-                # ^ Get the next item in the iterable and run it's ActivateWindow method.
-                #   This is effectively the next textbox window object
+                # ^ Run it's ActivateWindow method so that curses knows of this change.
+                #   This is effectively the next textbox window object.
 
         # Handle text entry in FilterBox:
         elif ( (chr(UserKey) in string.digits
