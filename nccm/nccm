@@ -649,8 +649,8 @@ SecureLogging = True
 
 
 # Program identification strings:
-__version__     = '1.6.21'
-VersionDate     = '2021-12-06'
+__version__     = '1.6.22'
+VersionDate     = '2021-12-07'
 ProgramName     = 'NCurses ssh Connection Manager'
 AuthorName      = 'Kenneth Aaron'
 AuthorEmail     = 'flyingrhino AT orcon DOT net DOT nz'
@@ -1838,13 +1838,15 @@ def PressEnterToCont(PromptText):
     if GlobalConfig.PromptToContinue:
         LogWrite.debug('Waiting for user to press Enter...')
 
-    while True:
-        try:
-            Ans = input(PromptText)
-            break
-        except EOFError as Exception:
-            LogWrite.debug('CTRL-D ignored')
-            print('\n')
+        while True:
+            try:
+                Ans = input(PromptText)
+                break
+            except EOFError as Exception:
+                LogWrite.debug('CTRL-D ignored')
+                print('\n')
+    else:
+        LogWrite.debug('Not waiting for user to press Enter. Returning processing to program now')
 
     return
 
