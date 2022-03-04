@@ -76,19 +76,24 @@
 
 nccm_config_controlmode: std
 # ^ Supported values: std, focus
+#   std - arrow keys behave as expected when browsing the list.
+#   focus - list moves while your selected line stays in focus.
 
 nccm_config_loglevel: info
 # ^ Supported values: debug, info, warning, error, critical
+#   Keep this at:  info  for general use and increase to:  debug  if you
+#   need to troubleshoot any problems.
 
 nccm_config_logprivateinfo: false
 # ^ Do you want syslog to include private information such as usernames
-#   and hostnames?
-#   Setting this to false results in these items being replaced
+#   and hostnames? Passwords will never be logged regardless of setting.
+#   Setting this to:  false  results in these items being replaced
 #   with "CENSORED" in syslog/journal.
 #   Supported values: true, false
+#   When set to:  true  you will see:  LogPrv  in the ncmm status line.
 
 nccm_config_keepalive: 30
-# ^ Send keepalive every n seconds (0 to disable) to prevent disconnection
+# ^ Send keepalive every n seconds (0 to disable) to prevent disconnection.
 #   Supported values: 0 to any integer
 
 nccm_config_identity: false
@@ -106,8 +111,11 @@ nccm_config_sshprogram: ssh
 
 nccm_config_promptuser: false
 # ^ Prompt user to press Enter before nccm makes the ssh connection to
-#   the server (set to true). This may be useful in some cases, especially
-#   if you need to resize your window before the connection is made.
+#   the server and upon disconnection from the server (set to true).
+#   This may be useful in some cases, especially if you need to resize
+#   your window outside of nccm, if you want to double check you're
+#   connecting to the correct server, or if you need to copy text before
+#   session control returns to nccm.
 #   Supported values: true, false
 
 nccm_config_importnccmd: true
@@ -124,13 +132,14 @@ nccm_config_logpath: false
 # ^ Path to save the session log file. Set to false to disable logging.
 #   Supply something like: /home/myname/nccm_logs/
 #   You can use or skip the trailing slash - nccm can handle either.
-#   Uses 'tee' to create a copy of the ssh output. Best to view this file
+#   Uses 'tee' to create a copy of the terminal output. Best to view this file
 #   with 'catstep' ( get it from: https://github.com/flyingrhinonz/catstep )
 #   or regular 'cat'.
 #   If nccm cant find this path it will exit with an exception. The reason
 #   being that it's bad if you're expecting logging to occur and it doesn't
 #   happen - either fix the path or disable logging.
-#   Supported values: false or any valid path
+#   Supported values: false or any valid path.
+#   When activated you will see:  LogTee  in the ncmm status line.
 
 nccm_loop_nccm: false
 # ^ Run nccm in a loop - when you exit out of your ssh session nccm menu
@@ -140,7 +149,8 @@ nccm_loop_nccm: false
 #   Supported values: true, false
 
 nccm_keybindings:
-  # ^ nccm is configured for US keyboard mapping. If you have something else
+  # ^ nccm is configured for US keyboard mapping. If your regional settings
+  #   or your terminal itself present different key mappings
   #   and certain keys don't behave as you'd expect - change their codes here.
   #   Each of the keyboard codes is a list, you can map a keypress to as many
   #   codes as you wish.

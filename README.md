@@ -4,7 +4,7 @@ NCurses ssh Connection Manager (nccm)
 
 ![](images/program_screenshot.png)
 
-Copyright (C) 2020-2021 Kenneth Aaron.
+Copyright (C) 2020-2022 Kenneth Aaron.
 
 flyingrhino AT orcon DOT net DOT nz
 
@@ -33,7 +33,7 @@ About nccm
 ----------
 
 * Simple yet powerful ncurses ssh connection manager.
-* Intuitive filtering by any text you supply.
+* Intuitive filtering by all text you supply.
 * Well documented.
 * Secure.
 * Logs are in English - you don't need to be a developer to
@@ -43,7 +43,7 @@ About nccm
 Who is nccm for?
 ----------------
 
-* You have dozens or hundreds of boxes to manage via ssh.
+* You have dozens or thousands of boxes to manage via ssh.
 * Too hard to remember server hostnames or IP addresses
     and prefer descriptive names?
 * You use ssh connection arguments on the command line and
@@ -54,6 +54,8 @@ Who is nccm for?
     of connecting to your devices?
 * Prefer to work from the command line, don't have a GUI,
     or simply prefer to work more efficiently?
+* Need a simple tool to do its job reliably and securely
+    without unnecessary features to slow you down?
 * If you answered 'yes' to any of the above -
     nccm is for YOU!
 
@@ -171,7 +173,7 @@ is set to `false` which results in the data being replaced
 with `CENSORED` in the logs. Note - you will still see
 `CENSORED` items for all lines that are logged before this
 setting has been read from nccm.yml .
-You can also force this temporarily by supplying the
+You can also bypass censorship temporarily by supplying the
 command line argument:  `--logprivateinfo` .
 This also solves the problem of censored logs that occur
 before the `nccm_config_logprivateinfo` setting is loaded.
