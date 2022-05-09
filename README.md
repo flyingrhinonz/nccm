@@ -33,11 +33,13 @@ About nccm
 ----------
 
 * Simple yet powerful ncurses ssh connection manager.
+* No unnecessary features or bloatware - do one thing and
+    do it well.
 * Intuitive filtering by all text you supply.
 * Well documented.
 * Secure.
 * Logs are in English - you don't need to be a developer to
-  read the majority of the logs.
+    read the majority of the logs.
 
 
 Who is nccm for?
@@ -223,6 +225,7 @@ loaded first, then /etc/nccm.d/*.yml are imported.
 `nccm_config_logpath`
 If you want nccm to save a copy of ssh terminal output
 using `tee` - set this to the logfile path.
+By default this is set to:  `false`  meaning no logging.
 If this dir is missing, nccm will log an error and exit -
 either fix the logging or disable it. The reasoning is that
 you have logging on for a reason (either checking it later
@@ -235,7 +238,7 @@ Note - the screen dimensions are those when nccm started
 the connection - they might have changed later on during
 your session.
 When tee logging is enabled you will see:  `LogTee`  in
-white in the help line at the botton of the screen.
+red in the help line at the bottom of the screen.
 
 To view the resulting file I recommend using `catstep`
 which can replay the file slowly and also let you step
@@ -337,12 +340,10 @@ inline editing not supported.
 
 Displayed connection list is filtered by the combined
 contents of all the fields as you type in real time.
-Spaces delimit filters if typed into `Filter` textbox
-and all filter entries are AND'ed.
-
-nccm_config_controlmode == focus was inspired by vim
-where you can move your display up/down around your work
-while keeping your current line selected.
+Spaces delimit filters if typed into `Filter` textbox and
+all filter entries are AND'ed.
+A count of filtered lines will appear as:  `Hits=n`  in the
+help line at the bottom of the screen.
 
 
 Command line arguments
@@ -417,8 +418,8 @@ Will not store passwords. Please don't request this
 feature because it won't be added.
 Either use ssh passwordless login (by placing your
 public key on the server in `.ssh/authorized_keys` - tip:
-look up `ssh-copy-id`) or store your password in a
-password manager and paste it when prompted.
+look up `ssh-keygen` and `ssh-copy-id`) or store your
+password in a password manager and paste it when prompted.
 
 Does not like window resizing and exits gracefully
 displaying an error message.

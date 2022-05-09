@@ -37,11 +37,13 @@ About nccm
 ----------
 
 * Simple yet powerful ncurses ssh connection manager.
+* No unnecessary features or bloatware - do one thing and
+    do it well.
 * Intuitive filtering by all text you supply.
 * Well documented.
 * Secure.
 * Logs are in English - you don't need to be a developer to
-  read the majority of the logs.
+    read the majority of the logs.
 
 
 Who is nccm for?
@@ -227,6 +229,7 @@ loaded first, then /etc/nccm.d/*.yml are imported.
 `nccm_config_logpath`
 If you want nccm to save a copy of ssh terminal output
 using `tee` - set this to the logfile path.
+By default this is set to:  `false`  meaning no logging.
 If this dir is missing, nccm will log an error and exit -
 either fix the logging or disable it. The reasoning is that
 you have logging on for a reason (either checking it later
@@ -239,7 +242,7 @@ Note - the screen dimensions are those when nccm started
 the connection - they might have changed later on during
 your session.
 When tee logging is enabled you will see:  `LogTee`  in
-white in the help line at the botton of the screen.
+red in the help line at the bottom of the screen.
 
 To view the resulting file I recommend using `catstep`
 which can replay the file slowly and also let you step
@@ -341,12 +344,10 @@ inline editing not supported.
 
 Displayed connection list is filtered by the combined
 contents of all the fields as you type in real time.
-Spaces delimit filters if typed into `Filter` textbox
-and all filter entries are AND'ed.
-
-nccm_config_controlmode == focus was inspired by vim
-where you can move your display up/down around your work
-while keeping your current line selected.
+Spaces delimit filters if typed into `Filter` textbox and
+all filter entries are AND'ed.
+A count of filtered lines will appear as:  `Hits=n`  in the
+help line at the bottom of the screen.
 
 
 Command line arguments
@@ -421,8 +422,8 @@ Will not store passwords. Please don't request this
 feature because it won't be added.
 Either use ssh passwordless login (by placing your
 public key on the server in `.ssh/authorized_keys` - tip:
-look up `ssh-copy-id`) or store your password in a
-password manager and paste it when prompted.
+look up `ssh-keygen` and `ssh-copy-id`) or store your
+password in a password manager and paste it when prompted.
 
 Does not like window resizing and exits gracefully
 displaying an error message.
@@ -606,7 +607,9 @@ import time
 # Pay attention to these imports:
 import yaml         # Requires: 'pip3 install --user PyYAML'
                     #   On a Debian based system you can also do:
-                    #   sudo apt-get install python3-yaml
+                    #       sudo apt-get install python3-yaml
+                    #   On Fedora you can do:
+                    #       dnf install python3-pyyaml
 
 
 # Beginning of logging setup section:
@@ -620,7 +623,8 @@ MaxLogLineLength = 700
     # ^ Wrap log lines longer than this many chars.
     #   Keep a sensible and usable limit.
 SysLogProgName = 'nccm'
-    # ^ This is how our program is identified in syslog
+    # ^ This is how our program is identified in syslog.
+    #       Use:  journalctl -f -t 'nccm'  to watch its logs.
 Indent = 8
     # ^ Wrapped lines are indented by n spaces to make
     #       logging easier to read.
@@ -648,14 +652,21 @@ SecureLogging = True
     #
     #   If you want simple logging - call LogWrite with a string:
     #       LogWrite.info('This will be logged as is')
+    #
+    #   You can also supply the dict:  'tee': "text to print"
+    #       which saves you writing two lines (one for print and one for logging)
+    #       per how you supply the dict (see the examples in the code later on):
+    #   LogWrite.info( { 'tee': 'The same line gets printed to display and logged.'} )
+    #   LogWrite.info( { 'tee': 'User line to display', 'safe': 'CENSORED line gets logged' } )
 
 
 # Program identification strings:
-__version__     = '1.6.22'
-VersionDate     = '2021-12-07'
+__version__     = '1.6.23'
+VersionDate     = '2022-05-07'
 ProgramName     = 'NCurses ssh Connection Manager'
 AuthorName      = 'Kenneth Aaron'
 AuthorEmail     = 'flyingrhino AT orcon DOT net DOT nz'
+License         = 'GPLv3'
 
 
 # This block handles logging to syslog:
@@ -686,11 +697,30 @@ class CustomHandler(logging.handlers.SysLogHandler):
             # ^ LogWrite was called with a dict - log either safe/unsafe
             #       per SecureLogging setting.
 
+            if 'tee' in record.msg:
+                # ^ Dict key == tee means print the message to screen, and later choose
+                #       which version gets logged.
+                print(record.msg['tee'])
+
             if SecureLogging:
-                record.msg = record.msg['safe']
+                # ^ In:  SecureLogging == True  mode - try to log the:  safe  value if found,
+                #       else log the:  tee  value:
+                if 'safe' in record.msg:
+                    record.msg = record.msg['safe']
+                else:
+                    record.msg = record.msg['tee']
+                    #record.msg = "No safe message was supplied."
+                        # ^ At the moment we are logging the:  tee  value if no:  safe  value is supplied,
+                        #       but a safer option could be to force log a notification string as in the
+                        #       commented out line - you choose which better suits you.
 
             else:
-                record.msg = record.msg['unsafe']
+                # ^ In:  SecureLogging == False  mode - try to log the:  unsafe  value if found,
+                #       else log the:  tee  value:
+                if 'unsafe' in record.msg:
+                    record.msg = record.msg['unsafe']
+                else:
+                    record.msg = record.msg['tee']
 
         if EnhancedLogging:
             # ^ We will split the supplied log line (record.msg) into multiple lines.
@@ -843,8 +873,8 @@ LogWrite.debug('nccm started with log level == {} as set by '
 
 # ^ End of logging setup section
 
-# Beginning of global variables section:
 
+# Beginning of global variables section:
 
 class GlobalConfig:
     ''' This is used as a simple global variable storage because GlobalConfig only
@@ -901,6 +931,9 @@ class GlobalConfig:
     LoopYOffset = 0
     LoopMarkerLine = 0
 
+    HitCount = 0
+        # ^ Number of connections matching the filter text
+
 
 # If the log level was set to debug in the variable we set earlier -
 #   LogLevel = logging.DEBUG - then enforce debug level logging
@@ -921,6 +954,10 @@ class HelpTextDisplay:
 
     def __init__(self, LinesCount=None, ColsCount=None,
         BeginY=None, BeginX=None):
+
+        LogWrite.debug('class: HelpTextDisplay , method: __init__ started with: '
+            'LinesCount == {} , ColsCount == {} , BeginY == {} , BeginX == {}'
+                .format(LinesCount, ColsCount, BeginY, BeginX))
         self.Window = curses.newwin(LinesCount, ColsCount, BeginY, BeginX)
 
         # This is the list of items displayed in the help menu:
@@ -928,6 +965,12 @@ class HelpTextDisplay:
             ( 'ctrl-h',     'Help' ),
             ( 'ctrl-q',     'Quit' ),
         ))
+
+
+    def Display(self):
+
+        LogWrite.debug('class: HelpTextDisplay , method: Display started')
+        self.Window.erase()
 
         for Looper in self.HelpMenuItems:
             self.Window.addstr('  '+Looper, curses.color_pair(1))
@@ -945,11 +988,13 @@ class HelpTextDisplay:
             LogWrite.debug('GlobalConfig.LogUsingTee is True - setting up '
                 'to display the white LogTee in the help window')
             self.Window.addstr('  ', curses.color_pair(1))
-            self.Window.addstr('LogTee', curses.color_pair(6))
+            self.Window.addstr('LogTee', curses.color_pair(5))
 
+        LogWrite.debug('Setting up Hits == {} (from: GlobalConfig.HitCount) ...'
+            .format(GlobalConfig.HitCount))
+        self.Window.addstr('  ', curses.color_pair(1))
+        self.Window.addstr('Hits={}'.format(GlobalConfig.HitCount), curses.color_pair(6))
 
-
-    def Display(self):
         self.Window.noutrefresh()
 
 
@@ -1194,19 +1239,6 @@ class Connections:
             GlobalConfig.LogUsingTee = True
                 # ^ And set this global variable too.
 
-        # Since we loaded SecureLogging from nccm.yml (or got it earlier
-        #   from the command line arg:  --logprivateinfo)  and also the
-        #   nccm_config_logpath setting, we need to build
-        #   the help text display window and include the red 'LogPrv' in it.
-        # In earier nccm versions before we had SecureLogging - this window
-        #   was built along with the other windows in the function SetupWindows,
-        #   but we can't built it so early anymore :
-        HelpBox = HelpTextDisplay(LinesCount=1, ColsCount=GlobalConfig.ScreenWidth,
-            BeginY=GlobalConfig.ScreenHeight-1, BeginX=0)
-        GlobalConfig.DisplayObjects.append(HelpBox)
-            # ^ Add this window to the displayable windows
-        LogWrite.debug('HelpBox window built (the line that displays help text)')
-
         # Handle loading of the keyboard bindings:
         self.KeyboardBindings = self.LoadedServersDict.pop(
             'nccm_keybindings', False)
@@ -1411,12 +1443,31 @@ class Connections:
                                 'CENSORED',
                                 FSL.KeepAlive, 'CENSORED', ' '.join(FSL.CustomArgs)) } )
 
-            LogWrite.debug('Completed loading all connections successfully')
+                GlobalConfig.HitCount = ServerXSNum + 1
+                    # ^ Enumerate starts at 0, so our hit count in human terms will be +1
+
+            LogWrite.debug('Completed loading all connections successfully. GlobalConfig.HitCount == {}'
+                .format(GlobalConfig.HitCount))
 
         except Exception as Exc:
             LogWrite.error('Error loading connection. ServerXSNum == {} , FriendlyName == {}'
                 .format(ServerXSNum, FriendlyName))
             raise Exc
+
+        LogWrite.debug('Setting up the HelpBox next ...')
+        # Since we loaded SecureLogging from nccm.yml (or got it earlier
+        #   from the command line arg:  --logprivateinfo)  and also the
+        #   nccm_config_logpath setting, we need to build
+        #   the help text display window and include the red 'LogPrv' in it.
+        # In earier nccm versions before we had SecureLogging - this window
+        #   was built along with the other windows in the function SetupWindows,
+        #   but we can't built it so early anymore :
+        # I moved this block down here because of the recently added GlobalConfig.HitCount .
+        HelpBox = HelpTextDisplay(LinesCount=1, ColsCount=GlobalConfig.ScreenWidth,
+            BeginY=GlobalConfig.ScreenHeight-1, BeginX=0)
+        GlobalConfig.DisplayObjects.append(HelpBox)
+            # ^ Add this window to the displayable windows
+        LogWrite.debug('HelpBox window built (the line that displays help text)')
 
         # Calculate the max length of each column:
         for Column in qw('ServerXSNum FriendlyName UserAddr Comment'):
@@ -1530,6 +1581,7 @@ class Connections:
     def Display(self):
 
         LogWrite.debug('class: Connections, method: Display started')
+
         # Check if the window was resized since it was started:
         NewScreenHeight, NewScreenWidth = self.stdscr.getmaxyx()
         LogWrite.debug('class Connections, method: Display: '
@@ -1538,9 +1590,7 @@ class Connections:
 
         if NewScreenHeight != GlobalConfig.ScreenHeight or NewScreenWidth != GlobalConfig.ScreenWidth:
             RestoreTerminal(self.stdscr)
-            print('\nnccm: Resizing the window during menu display is not permitted.\n'
-                'You may resize the window during or after connection initiation.\n')
-            LogWrite.warning('Resizing the window during menu display is not permitted')
+            LogWrite.warning( { 'tee': '\nnccm: Resizing the window during menu display is not supported.\nYou may resize the window during or after connection initiation.\nIf nccm returns after you disconnect - it will use the new window size.\n' } )
             sys.exit(1)
 
         FilterTextList = set()          # Unique text strings for filtering.
@@ -1619,9 +1669,10 @@ class Connections:
             self.Window.addstr('\n')
 
         self.Window.noutrefresh()
+        GlobalConfig.HitCount = len(self.ResultsList)
         LogWrite.debug('class: Connections, instance: {} method Display completed. '
-            'Number of results == {} , number of displayed results == {}'
-            .format(self.Name, len(self.ResultsList), self.DisplayResultsCount))
+            'Number of results (GlobalConfig.HitCount) == {} , number of displayed results == {}'
+            .format(self.Name, GlobalConfig.HitCount, self.DisplayResultsCount))
 
 
     def LogPositions(self, Comment=None):
@@ -1784,6 +1835,7 @@ def LogGlobalConfig():
             'GlobalConfig.TextboxObjects: total == {} , details == {}\n'
             'GlobalConfig.LoopYOffset == {}\n'
             'GlobalConfig.LoopMarkerLine == {}\n'
+            'GlobalConfig.HitCount == {}\n'
                 .format(
                     GlobalConfig.LogUsingTee,
                     GlobalConfig.PromptToContinue,
@@ -1796,7 +1848,8 @@ def LogGlobalConfig():
                     len(GlobalConfig.DisplayObjects), GlobalConfig.DisplayObjects,
                     len(GlobalConfig.TextboxObjects), GlobalConfig.TextboxObjects,
                     GlobalConfig.LoopYOffset,
-                    GlobalConfig.LoopMarkerLine),
+                    GlobalConfig.LoopMarkerLine,
+                    GlobalConfig.HitCount),
         'safe':   'All variables of class GlobalConfig:\n'
             'GlobalConfig.LogUsingTee == {}\n'
             'GlobalConfig.PromptToContinue == {}\n'
@@ -1810,6 +1863,7 @@ def LogGlobalConfig():
             'GlobalConfig.TextboxObjects: total == {} , details == {}\n'
             'GlobalConfig.LoopYOffset == {}\n'
             'GlobalConfig.LoopMarkerLine == {}\n'
+            'GlobalConfig.HitCount == {}\n'
                 .format(
                     GlobalConfig.LogUsingTee,
                     GlobalConfig.PromptToContinue,
@@ -1822,7 +1876,8 @@ def LogGlobalConfig():
                     len(GlobalConfig.DisplayObjects), GlobalConfig.DisplayObjects,
                     len(GlobalConfig.TextboxObjects), GlobalConfig.TextboxObjects,
                     GlobalConfig.LoopYOffset,
-                    GlobalConfig.LoopMarkerLine) } )
+                    GlobalConfig.LoopMarkerLine,
+                    GlobalConfig.HitCount ) } )
 
 
 def qw(liststr: str):
@@ -1867,14 +1922,31 @@ def UpdateDisplay():
     ''' The window objects were added to GlobalConfig.DisplayObjects list,
         so here we need to use the Display method of those objects. '''
 
+    LogWrite.debug('Function UpdateDisplay started')
+
+    # The next two blocks draw the various window objects. Note - we must display the
+    #   help menu (HelpTextDisplay) last because the:  HitCount  var is set by
+    #   class: Connections, method: Display  - which is also present in the loop.
+    #   Therefore we need to ensure that:  HitCount  is set before the help menu
+    #   is displayed:
     for Looper in GlobalConfig.DisplayObjects:
+        if 'HelpTextDisplay' in str(Looper):
+            LogWrite.debug('Skipping Looper == {} . Redrawing of:  HelpTextDisplay  must be done last'.format(Looper))
+            continue
         LogWrite.debug('Calling Looper == {} Display method ...'.format(Looper))
         Looper.Display()
+
+    for Looper in GlobalConfig.DisplayObjects:
+        if 'HelpTextDisplay' in str(Looper):
+            LogWrite.debug('Calling Looper == {} Display method ...'.format(Looper))
+            Looper.Display()
 
     LogWrite.debug('Calling curses update screen (actually draw the changes we wrote '
         'to the window buffers) ...')
     curses.doupdate()
         # ^ Speed up display and avoid flickering by using 'window.noutrefresh'
+
+    LogWrite.debug('Function UpdateDisplay ended')
 
 
 def SetupCurses(stdscr):
@@ -1903,8 +1975,7 @@ def SetupCurses(stdscr):
 
     if not curses.has_colors(): # Color not supported
         RestoreTerminal(stdscr)
-        print('\nnccm: This program requires color support\n')
-        LogWrite.warning('This program requires color support')
+        LogWrite.warning( { 'tee': '\nnccm: This program requires color support\n' } )
         return False
 
     GlobalConfig.ScreenHeight, GlobalConfig.ScreenWidth = stdscr.getmaxyx()
@@ -1913,20 +1984,14 @@ def SetupCurses(stdscr):
 
     if GlobalConfig.ScreenWidth < 60 or GlobalConfig.ScreenHeight < 15:
         RestoreTerminal(stdscr)
-        print('\nnccm: Window must be at least 60x15\n')
-        LogWrite.warning('Window must be at least 60x15. '
-            'GlobalConfig.ScreenHeight == {} , GlobalConfig.ScreenWidth == {}'
-                .format(GlobalConfig.ScreenHeight, GlobalConfig.ScreenWidth))
+        LogWrite.warning( { 'tee': '\nnccm: Window must be at least 60x15. GlobalConfig.ScreenHeight == {} , GlobalConfig.ScreenWidth == {}\n'
+            .format(GlobalConfig.ScreenHeight, GlobalConfig.ScreenWidth) } )
         return False
 
     if len(GlobalConfig.FilterTextArg) > GlobalConfig.ScreenWidth-32:
         RestoreTerminal(stdscr)
-        print('\nnccm: Filter text too long ({} chars). '
-            'For your window size enter no more than {} chars\n'
-                .format(len(GlobalConfig.FilterTextArg), GlobalConfig.ScreenWidth-32))
-        LogWrite.warning('nccm: Filter text too long ({} chars). '
-            'For your window size enter no more than {} chars\n'
-                .format(len(GlobalConfig.FilterTextArg), GlobalConfig.ScreenWidth-32))
+        LogWrite.warning( { 'tee': '\nnccm: Filter text too long ({} chars). For your window size enter no more than {} chars\n'
+            .format(len(GlobalConfig.FilterTextArg), GlobalConfig.ScreenWidth-32) } )
         return False
 
     LogWrite.debug('Function SetupCurses should have completed successfully')
