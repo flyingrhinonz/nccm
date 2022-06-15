@@ -257,6 +257,15 @@ nccm menu will reappear. You are allowed to resize your
 window outside nccm and the new window size will apply when
 nccm menu reappears after you exit from your ssh session.
 
+`nccm_config_preconnect_script`
+Path to an executable that nccm will run prior to making a
+connection.
+Supported values: false (default) or any valid path to
+an executable script/program.
+
+`nccm_config_postconnect_script`
+Same as above but run after the connection exits.
+
 `nccm_keybindings`
 nccm is configured for US keyboard mapping as entered into
 a standard linux xterm. If you have something else and
@@ -661,8 +670,8 @@ SecureLogging = True
 
 
 # Program identification strings:
-__version__     = '1.6.23'
-VersionDate     = '2022-05-07'
+__version__     = '1.6.24'
+VersionDate     = '2022-06-15'
 ProgramName     = 'NCurses ssh Connection Manager'
 AuthorName      = 'Kenneth Aaron'
 AuthorEmail     = 'flyingrhino AT orcon DOT net DOT nz'
@@ -884,6 +893,10 @@ class GlobalConfig:
         # ^ This var is set after reading the nccm_config_logpath setting
         #   from nccm so that I can check it later in HelpTextDisplay due
         #   to it being globally accessible.
+    PreconnectScript = False
+        # ^ Run a script prior to connection
+    PostconnectScript = False
+        # ^ Run a script after disconnection
     PromptToContinue = False
         # ^ Prompt user to press Enter before connecting
     LoopNccm = False
@@ -1239,6 +1252,38 @@ class Connections:
             GlobalConfig.LogUsingTee = True
                 # ^ And set this global variable too.
 
+        # Handle loading of the GlobalConfig.PreconnectScript value from nccm_config_preconnect_script:
+        GlobalConfig.PreconnectScript = self.LoadedServersDict.pop(
+            'nccm_config_preconnect_script', False)
+        LogWrite.debug('Loaded {} config item:  GlobalConfig.PreconnectScript == {}'
+            .format(GlobalConfig.ConfigFile, GlobalConfig.PreconnectScript))
+
+        if GlobalConfig.PreconnectScript:
+            # ^ If supplied, validate this is an executable file
+            if not os.access(GlobalConfig.PreconnectScript, os.X_OK):
+                LogWrite.error('nccm_config_preconnect_script == {} not found or not executable'
+                    .format(GlobalConfig.PreconnectScript))
+                raise Exception('Preconnect script not found or not executable. '
+                    'Check the value of:  nccm_config_preconnect_script  in nccm.yml')
+                    # ^ If you configured this item - you meant for it to work.
+                    #       Therefore if it doesn't work it should be fixed or disabled.
+
+        # Handle loading of the GlobalConfig.PostconnectScript value from nccm_config_postconnect_script:
+        GlobalConfig.PostconnectScript = self.LoadedServersDict.pop(
+            'nccm_config_postconnect_script', False)
+        LogWrite.debug('Loaded {} config item:  GlobalConfig.PostconnectScript == {}'
+            .format(GlobalConfig.ConfigFile, GlobalConfig.PostconnectScript))
+
+        if GlobalConfig.PostconnectScript:
+            # ^ If supplied, validate this is an executable file
+            if not os.access(GlobalConfig.PostconnectScript, os.X_OK):
+                LogWrite.error('nccm_config_postconnect_script == {} not found or not executable'
+                    .format(GlobalConfig.PostconnectScript))
+                raise Exception('Postconnect script not found or not executable. '
+                    'Check the value of:  nccm_config_postconnect_script  in nccm.yml')
+                    # ^ If you configured this item - you meant for it to work.
+                    #       Therefore if it doesn't work it should be fixed or disabled.
+
         # Handle loading of the keyboard bindings:
         self.KeyboardBindings = self.LoadedServersDict.pop(
             'nccm_keybindings', False)
@@ -1513,7 +1558,14 @@ class Connections:
         # Remember that the connection line is a list of items.
         # Pull the correct items out of
         # the list to build the ssh connection line:
+
         CommandLine = []
+            # ^ This is the command line that we use to make the ssh connection.
+
+        CommandInfo = {}
+            # This dict contains the above CommandLine list as well as other useful
+            #   information we can pass on to scripts.
+
         CommandLine += (self.SshProgram, )
         CommandLine += (SelectedEntry.UserAddr, )
 
@@ -1556,7 +1608,10 @@ class Connections:
                 'line number) == {} , CommandLine == {}'
                     .format(ServerXSNum, 'CENSORED') } )
 
-        return CommandLine
+        CommandInfo['CommandLine'] = CommandLine
+        CommandInfo['UserAddr'] = SelectedEntry.UserAddr
+        CommandInfo['Identity'] = SelectedEntry.Identity
+        return CommandInfo
 
 
     def WriteLogFileHeader(self):
@@ -1824,6 +1879,8 @@ def LogGlobalConfig():
     LogWrite.debug( {
         'unsafe':   'All variables of class GlobalConfig:\n'
             'GlobalConfig.LogUsingTee == {}\n'
+            'GlobalConfig.PreconnectScript == {}\n'
+            'GlobalConfig.PostconnectScript == {}\n'
             'GlobalConfig.PromptToContinue == {}\n'
             'GlobalConfig.LoopNccm == {}\n'
             'GlobalConfig.FilterTextArg == {}\n'
@@ -1838,6 +1895,8 @@ def LogGlobalConfig():
             'GlobalConfig.HitCount == {}\n'
                 .format(
                     GlobalConfig.LogUsingTee,
+                    GlobalConfig.PreconnectScript,
+                    GlobalConfig.PostconnectScript,
                     GlobalConfig.PromptToContinue,
                     GlobalConfig.LoopNccm,
                     GlobalConfig.FilterTextArg,
@@ -1852,6 +1911,8 @@ def LogGlobalConfig():
                     GlobalConfig.HitCount),
         'safe':   'All variables of class GlobalConfig:\n'
             'GlobalConfig.LogUsingTee == {}\n'
+            'GlobalConfig.PreconnectScript == {}\n'
+            'GlobalConfig.PostconnectScript == {}\n'
             'GlobalConfig.PromptToContinue == {}\n'
             'GlobalConfig.LoopNccm == {}\n'
             'GlobalConfig.FilterTextArg == {}\n'
@@ -1866,6 +1927,8 @@ def LogGlobalConfig():
             'GlobalConfig.HitCount == {}\n'
                 .format(
                     GlobalConfig.LogUsingTee,
+                    GlobalConfig.PreconnectScript,
+                    GlobalConfig.PostconnectScript,
                     GlobalConfig.PromptToContinue,
                     GlobalConfig.LoopNccm,
                     'CENSORED',
@@ -2100,7 +2163,7 @@ def DisplayHelp():
 def MainCursesFunction(stdscr):
 
     LogWrite.debug('Function MainCursesFunction started')
-    CommandLine = []
+    CommandInfo = {}
 
     if SetupCurses(stdscr) == False:
         # ^ Something failed in setup or tests
@@ -2135,10 +2198,10 @@ def MainCursesFunction(stdscr):
             'GlobalConfig.AutoConnect == True . '
             'Automatically connect to this server ...')
         LogWrite.debug('Clearing:  GlobalConfig.FilterTextArg')
-        CommandLine = ConnectionsList.GetCommandLine(
+        CommandInfo = ConnectionsList.GetCommandLine(
             ConnectionsList.SelectedEntryVal)
         RestoreTerminal(stdscr)
-        return CommandLine
+        return CommandInfo
 
     LogWrite.debug('Active window is now: ActiveWindow == {}  (the user input textbox that is active right now)'
         .format(ActiveWindow))
@@ -2355,7 +2418,7 @@ def MainCursesFunction(stdscr):
                 LogWrite.debug('Handle Enter key in ConnBox ...')
                 if (int(ConnBox.Text) >= 0
                     and int(ConnBox.Text) <= (len(ConnectionsList.FullServersList) -1)):
-                        CommandLine = ConnectionsList.GetCommandLine(ConnBox.Text)
+                        CommandInfo = ConnectionsList.GetCommandLine(ConnBox.Text)
                         break
 
         # Enter key in FilterBox:
@@ -2373,7 +2436,7 @@ def MainCursesFunction(stdscr):
                 GlobalConfig.LoopYOffset = ConnectionsList.YOffset
                 GlobalConfig.LoopMarkerLine = ConnectionsList.MarkerLine
 
-                CommandLine = ConnectionsList.GetCommandLine(
+                CommandInfo = ConnectionsList.GetCommandLine(
                     ConnectionsList.SelectedEntryVal)
                 break
 
@@ -2406,7 +2469,7 @@ def MainCursesFunction(stdscr):
         ActiveWindow.ActivateWindow()
 
     RestoreTerminal(stdscr)
-    return CommandLine
+    return CommandInfo
 
 
 def InitialLogging():
@@ -2538,23 +2601,61 @@ def main(*args):
         #   started using 'nccm -d' .
 
     while True:
-        CommandLine = curses.wrapper(MainCursesFunction)
+        CommandInfo = curses.wrapper(MainCursesFunction)
 
-        if CommandLine:
-            print('\nnccm: About to ssh using:\n{}\n'.format(CommandLine))
-            PressEnterToCont('Press Enter to continue (before connecting) ...')
+        if CommandInfo:
+
+            LogWrite.debug( {
+                'unsafe':   'CommandInfo as dict == {}'
+                    .format(CommandInfo),
+                'safe':     'CommandInfo == {}'
+                    .format('CENSORED') } )
+                # ^ Note - even though we're logging the entire CommandInfo dict here,
+                #       we won't pass all of it to the script.
+
+            # PreconnectScript block:
+            if GlobalConfig.PreconnectScript:
+                print('\nnccm: About to run script:\n{}\n'.format(GlobalConfig.PreconnectScript))
+                PressEnterToCont('Press Enter to continue (before running script) ...')
+
+                LogWrite.info( {
+                    'unsafe':   'About to subprocess.run ExtCommand == {} {} ...'
+                        .format(GlobalConfig.PreconnectScript, CommandInfo['UserAddr']),
+                    'safe':     'About to subprocess.run ExtCommand == {} ...'
+                        .format('CENSORED') } )
+
+                try:
+                    subprocess.run( [ GlobalConfig.PreconnectScript, CommandInfo['UserAddr'] ], check=True, shell=False )
+                        # ^ Run the PreconnectScript only supplying the connection info.
+
+                except subprocess.CalledProcessError as CPE:
+                    print('\n***** PreconnectScript exit code == {} *****'
+                        .format(CPE.returncode))
+                    print('Further debug details: {}'.format(CPE))
+                    LogWrite.warning('PreconnectScript exit code == {}'.format(CPE.returncode))
+                    LogWrite.warning('Further debug details: {}'.format(CPE))
+
+            else:
+                LogWrite.debug('GlobalConfig.PreconnectScript code was not run')
+
+            # ssh connection block:
+            print('\nnccm: About to ssh using:\n{}\n'.format(CommandInfo['CommandLine']))
+
+            if not GlobalConfig.PreconnectScript:
+                PressEnterToCont('Press Enter to continue (before connecting) ...')
+
             print('Connecting...')
 
             LogWrite.info( {
                 'unsafe':   'About to subprocess.run ExtCommand == {} ...'
-                    .format(CommandLine),
+                    .format(CommandInfo['CommandLine']),
                 'safe':     'About to subprocess.run ExtCommand == {} ...'
                     .format('CENSORED') } )
 
             StartTime = time.time()
 
             try:
-                subprocess.run(CommandLine, check=True, shell=True)
+                subprocess.run(CommandInfo['CommandLine'], check=True, shell=True)
                     # ^ Connect to the ssh server
 
             except subprocess.CalledProcessError as CPE:
@@ -2569,14 +2670,38 @@ def main(*args):
                 SessionTime = round(EndTime - StartTime)
                 print('\nnccm: Completed ssh using:\n{}\nSession time was: '
                     '{} ({} seconds)\n'
-                        .format(CommandLine, datetime.timedelta(seconds=SessionTime),
+                        .format(CommandInfo['CommandLine'], datetime.timedelta(seconds=SessionTime),
                             SessionTime))
 
                 LogWrite.info( {
                     'unsafe':   'Completed ssh using: {} . SessionTime was: {} seconds'
-                        .format(CommandLine, SessionTime),
+                        .format(CommandInfo['CommandLine'], SessionTime),
                     'safe':     'Completed ssh using: {} . SessionTime was: {} seconds'
                         .format('CENSORED', SessionTime) } )
+
+            # PostconnectScript block:
+            if GlobalConfig.PostconnectScript:
+                print('\nnccm: About to run script:\n{}\n'.format(GlobalConfig.PostconnectScript))
+
+                LogWrite.info( {
+                    'unsafe':   'About to subprocess.run ExtCommand == {} {} ...'
+                        .format(GlobalConfig.PostconnectScript, CommandInfo['UserAddr']),
+                    'safe':     'About to subprocess.run ExtCommand == {} ...'
+                        .format('CENSORED') } )
+
+                try:
+                    subprocess.run( [ GlobalConfig.PostconnectScript, CommandInfo['UserAddr'] ], check=True, shell=False )
+                        # ^ Run the PostconnectScript only supplying the connection info.
+
+                except subprocess.CalledProcessError as CPE:
+                    print('\n***** PostconnectScript exit code == {} *****'
+                        .format(CPE.returncode))
+                    print('Further debug details: {}'.format(CPE))
+                    LogWrite.warning('PostconnectScript exit code == {}'.format(CPE.returncode))
+                    LogWrite.warning('Further debug details: {}'.format(CPE))
+
+            else:
+                LogWrite.debug('GlobalConfig.PostconnectScript code was not run')
 
         if GlobalConfig.LoopNccm:
             PressEnterToCont('Press Enter to continue (before returning to nccm) ...')

@@ -148,6 +148,18 @@ nccm_loop_nccm: false
 #   from your ssh session.
 #   Supported values: true, false
 
+nccm_config_preconnect_script: false
+# ^ Path to a script that nccm will run prior to making a connection.
+#   Supported values: false or any valid path
+#   Be careful with this option - nccm has no control over what your
+#   script can do.
+
+nccm_config_postconnect_script: false
+# ^ Path to a script that nccm will run after disconnecting from a connection.
+#   Supported values: false or any valid path
+#   Be careful with this option - nccm has no control over what your
+#   script can do.
+
 nccm_keybindings:
   # ^ nccm is configured for US keyboard mapping. If your regional settings
   #   or your terminal itself present different key mappings

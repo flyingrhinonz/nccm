@@ -253,6 +253,15 @@ nccm menu will reappear. You are allowed to resize your
 window outside nccm and the new window size will apply when
 nccm menu reappears after you exit from your ssh session.
 
+`nccm_config_preconnect_script`
+Path to an executable that nccm will run prior to making a
+connection.
+Supported values: false (default) or any valid path to
+an executable script/program.
+
+`nccm_config_postconnect_script`
+Same as above but run after the connection exits.
+
 `nccm_keybindings`
 nccm is configured for US keyboard mapping as entered into
 a standard linux xterm. If you have something else and
