@@ -670,8 +670,8 @@ SecureLogging = True
 
 
 # Program identification strings:
-__version__     = '1.6.24'
-VersionDate     = '2022-06-15'
+__version__     = '1.6.25'
+VersionDate     = '2022-07-02'
 ProgramName     = 'NCurses ssh Connection Manager'
 AuthorName      = 'Kenneth Aaron'
 AuthorEmail     = 'flyingrhino AT orcon DOT net DOT nz'
@@ -1107,12 +1107,27 @@ class Connections:
                 break
         LogWrite.debug('Found config file: FileLooper == {}'.format(FileLooper))
 
-        with open (FileLooper, 'r') as ConfigFileToRead:
-            self.LoadedServersDict = yaml.safe_load(ConfigFileToRead)
-                # ^ yaml.load is not safe
-            # ^ Now we have the nccm.yml file loaded into self.LoadedServersDict.
-            #   This is both the ssh connections details as well as the
-            #   nccm_config_* items - all in the same dict.
+        try:
+            with open (FileLooper, 'r') as ConfigFileToRead:
+                self.LoadedServersDict = yaml.safe_load(ConfigFileToRead)
+                    # ^ yaml.load is not safe
+                # ^ Now we have the nccm.yml file loaded into self.LoadedServersDict.
+                #   This is both the ssh connections details as well as the
+                #   nccm_config_* items - all in the same dict.
+
+        except OSError as Exc:
+            # ^ This exception should be matched for all failures. The more generic one is backup.
+            curses.endwin()     # De-initialize and return terminal to normal status
+            print('\nError loading:  nccm.yml  from any of the following paths:\n{}\n\n'
+                'Tip: check if file exists in one of these locations, permissions, selinux context, etc.\n\n'
+                'Reraising exception for further debugging info and to initiate screen restore...\n\n'
+                .format(GlobalConfig.ConfigFilePath))
+            raise Exc
+
+        except:
+            curses.endwin()     # De-initialize and return terminal to normal status
+            print('Error loading nccm.yml\n\n')
+            raise Exc
 
         LogWrite.debug( {
             'unsafe':   'self.LoadedServersDict (contains prog settings + conn details) == {}'
