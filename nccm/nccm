@@ -14,7 +14,7 @@ flyingrhino AT orcon DOT net DOT nz
 
 Freedom makes a better world: released under GNU GPLv3.
 
-https://www.gnu.org/licenses/gpl-3.0.en.html
+[(https://www.gnu.org/licenses/gpl-3.0.en.html](https://www.gnu.org/licenses/gpl-3.0.en.html)
 
 This software can be used by anyone at no cost, however,
 if you like using my software and can support - please
@@ -89,11 +89,13 @@ loaded from the first location found in the following order:
 
 Tips on nccm.yml location - if you're a single user then
 placement of nccm.yml doesn't matter and it's probably
-easiest to place it in one of the home dir locations.
+easiest to place it in one of the home dir locations
+( which also saves you the effort of using sudo to edit
+files in  /etc/ ).
 In a multiuser system, placing nccm.yml in each user's
 home dir will allow each user to use their personalized
 settings if nccm.yml is present, and if not present then
-fallback to default settings from /etc/nccm.yml.
+fallback to default settings from /etc/nccm.yml .
 It is also possible to put your real nccm.yml anywhere
 you wish and make a symlink to it from one of the paths
 mentioned above.
@@ -130,10 +132,17 @@ name at the beginning of a line and sub config items
 indented by two spaces. Every subsequent nesting level
 gets a further indent of two spaces. Don't forget the
 colons - these are part of the YAML language.
+Avoid using tabs because on the screen they expand and
+look like 8 spaces but are actually one character from a
+yaml perspective and will break your config.
 
 Don't worry about ordering your SSH session blocks in any
-specific way because nccm gives you "sort by" options
+specific way (unless you're keeping the file tidy for
+editing purposes) because nccm gives you "sort by" options
 within the program as well as filtering.
+Actually nccm is designed around filtering and this is the
+most efficient way to find your connection - I never
+bother sorting - I just use the filter.
 
 Once you've finished editing, check your work with yamllint:
 * `yamllint nccm.yml`
@@ -146,7 +155,9 @@ typing nccm is all that's required to launch the TUI
 (terminal user interface).
 If you see Python 3 exceptions, check whether you have
 satisfied the dependencies. Any exceptions should mention
-any package that's missing.
+any package that's missing. Tip - normally the most useful
+information in a python exception is at the end of the
+output.
 
 
 nccm.yml settings
@@ -154,6 +165,8 @@ nccm.yml settings
 
 This file is mostly used for ssh connection details, but
 also supports program settings as follows.
+All defaults are set to values that protect your privacy
+and security, and you can change them as you see fit.
 
 These are global settings, affecting all sessions.
 
@@ -213,6 +226,9 @@ to the selected server. Set this value to `true`
 if you want nccm to prompt the user to press Enter before
 a connection is made and once again before returning to
 nccm.
+If using pre/post connection scripts (disabled by default)
+the prompt is shown before the preconnection script is run
+and once again after the post connection script is run.
 
 `nccm_config_importnccmd:`
 This setting defines whether nccm should try to import any
@@ -243,11 +259,17 @@ the connection - they might have changed later on during
 your session.
 When tee logging is enabled you will see:  `LogTee`  in
 red in the help line at the bottom of the screen.
+Note - EVERYTHING displayed on the screen is logged (unless
+the terminal hides stuff like password entry - because it
+is not echoed to the screen). This includes text you edit
+and delete - the edits are logged too, cursor movement,
+etc - it is all logged. Great for auditing and
+troubleshooting, not great for privacy.
 
 To view the resulting file I recommend using `catstep`
 which can replay the file slowly and also let you step
 through it at your own pace - it is available on my
-github page: https://github.com/flyingrhinonz/catstep .
+github page: [https://github.com/flyingrhinonz/catstep](https://github.com/flyingrhinonz/catstep).
 You can also use the regular Linux `cat` program but the
 output will fly by really fast.
 
@@ -259,12 +281,14 @@ nccm menu reappears after you exit from your ssh session.
 
 `nccm_config_preconnect_script`
 Path to an executable that nccm will run prior to making a
-connection.
+connection. Useful if you want to do anything immediately
+before making a connection.
 Supported values: false (default) or any valid path to
 an executable script/program.
 
 `nccm_config_postconnect_script`
 Same as above but run after the connection exits.
+Useful for stuff like tidyups, etc.
 
 `nccm_keybindings`
 nccm is configured for US keyboard mapping as entered into
@@ -467,7 +491,8 @@ errors - you may see a message about the connection item
 line that fails or at least the last line that succeeded.
 
 The most common problem for new installations is
-missing Python3 dependencies.
+missing Python3 dependencies or if you didn't copy nccm.yml
+into one of the designated locations.
 Run nccm and read the exception message - it will tell
 you what's missing.
 
@@ -670,8 +695,8 @@ SecureLogging = True
 
 
 # Program identification strings:
-__version__     = '1.6.25'
-VersionDate     = '2022-07-02'
+__version__     = '1.6.26'
+VersionDate     = '2022-07-03'
 ProgramName     = 'NCurses ssh Connection Manager'
 AuthorName      = 'Kenneth Aaron'
 AuthorEmail     = 'flyingrhino AT orcon DOT net DOT nz'
