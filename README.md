@@ -10,7 +10,7 @@ flyingrhino AT orcon DOT net DOT nz
 
 Freedom makes a better world: released under GNU GPLv3.
 
-[(https://www.gnu.org/licenses/gpl-3.0.en.html](https://www.gnu.org/licenses/gpl-3.0.en.html)
+[https://www.gnu.org/licenses/gpl-3.0.en.html](https://www.gnu.org/licenses/gpl-3.0.en.html)
 
 This software can be used by anyone at no cost, however,
 if you like using my software and can support - please
@@ -160,9 +160,11 @@ nccm.yml settings
 -----------------
 
 This file is mostly used for ssh connection details, but
-also supports program settings as follows.
-All defaults are set to values that protect your privacy
-and security, and you can change them as you see fit.
+also supports program settings described in this chapter.
+nccm fully respects your privacy and security - and all
+defaults are set to values that protect your privacy
+and security. It is your choice to change them as you
+see fit.
 
 These are global settings, affecting all sessions.
 
