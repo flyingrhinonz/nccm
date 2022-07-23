@@ -697,8 +697,8 @@ SecureLogging = True
 
 
 # Program identification strings:
-__version__     = '1.6.26'
-VersionDate     = '2022-07-03'
+__version__     = '1.6.27'
+VersionDate     = '2022-07-23'
 ProgramName     = 'NCurses ssh Connection Manager'
 AuthorName      = 'Kenneth Aaron'
 AuthorEmail     = 'flyingrhino AT orcon DOT net DOT nz'
@@ -928,6 +928,9 @@ class GlobalConfig:
         # ^ Prompt user to press Enter before connecting
     LoopNccm = False
         # ^ Run nccm in a loop after exiting from ssh?
+    DefaultSshPort = '22'
+        # Default port used for ssh. At present this is not configurable
+        #   in nccm.yml .
     FilterTextArg = ''
         # ^ Filter text supplied at the command line
     AutoConnect = True
@@ -1461,13 +1464,6 @@ class Connections:
                 # Get FSL.Address:
                 FSL.Address = self.LoadedServersDict[FriendlyName].get('address', False)
 
-                # Get server port if needed
-                FSL.Port = self.LoadedServersDict[FriendlyName].get('port', False)
-
-                if not FSL.Port:
-                    LogWrite.debug("No specific port supplied, using default.")
-                    FSL.Port = 22
-
                 LogWrite.debug( {
                     'unsafe':   'FSL.Address == {}'.format(FSL.Address),
                     'safe':     'FSL.Address == {}'.format('CENSORED') } )
@@ -1484,6 +1480,19 @@ class Connections:
                     LogWrite.debug( {
                         'unsafe':   'FSL.Address == {}'.format(FSL.Address),
                         'safe':     'FSL.Address == {}'.format('CENSORED') } )
+
+                # Get server port if supplied:
+                FSL.Port = self.LoadedServersDict[FriendlyName].get('port', False)
+                LogWrite.debug( {
+                    'unsafe':   'FSL.Port == {}'.format(FSL.Port),
+                    'safe':     'FSL.Port == {}'.format('CENSORED') } )
+
+                if not FSL.Port:
+                    FSL.Port = GlobalConfig.DefaultSshPort
+                    LogWrite.debug( {
+                        'unsafe':   'No specific port supplied, forcing default port {}'
+                            .format(GlobalConfig.DefaultSshPort),
+                        'safe':     'CENSORED, not logging port info' } )
 
                 FSL.UserAddr = '{}@{}'.format(FSL.UserName, FSL.Address) # for convenience
 
@@ -1618,7 +1627,7 @@ class Connections:
 
         CommandLine += (self.SshProgram, )
         CommandLine += (SelectedEntry.UserAddr, )
-	
+
         if SelectedEntry.Port:
             CommandLine += ('-p', '{}'.format(SelectedEntry.Port))
 
@@ -1936,6 +1945,7 @@ def LogGlobalConfig():
             'GlobalConfig.PostconnectScript == {}\n'
             'GlobalConfig.PromptToContinue == {}\n'
             'GlobalConfig.LoopNccm == {}\n'
+            'GlobalConfig.DefaultSshPort == {}\n'
             'GlobalConfig.FilterTextArg == {}\n'
             'GlobalConfig.AutoConnect == {}\n'
             'GlobalConfig.ForceDebugLogging == {}\n'
@@ -1952,6 +1962,7 @@ def LogGlobalConfig():
                     GlobalConfig.PostconnectScript,
                     GlobalConfig.PromptToContinue,
                     GlobalConfig.LoopNccm,
+                    GlobalConfig.DefaultSshPort,
                     GlobalConfig.FilterTextArg,
                     GlobalConfig.AutoConnect,
                     GlobalConfig.ForceDebugLogging,
@@ -1968,6 +1979,7 @@ def LogGlobalConfig():
             'GlobalConfig.PostconnectScript == {}\n'
             'GlobalConfig.PromptToContinue == {}\n'
             'GlobalConfig.LoopNccm == {}\n'
+            'GlobalConfig.DefaultSshPort == {}\n'
             'GlobalConfig.FilterTextArg == {}\n'
             'GlobalConfig.AutoConnect == {}\n'
             'GlobalConfig.ForceDebugLogging == {}\n'
@@ -1984,6 +1996,7 @@ def LogGlobalConfig():
                     GlobalConfig.PostconnectScript,
                     GlobalConfig.PromptToContinue,
                     GlobalConfig.LoopNccm,
+                    'CENSORED',
                     'CENSORED',
                     GlobalConfig.AutoConnect,
                     GlobalConfig.ForceDebugLogging,

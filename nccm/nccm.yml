@@ -13,6 +13,7 @@
 #   FRIENDLY_NAME:
 #     user: USER_NAME
 #     address: SERVER_ADDRESS
+#     port: SERVER_PORT
 #     comment: FREETEXT_COMMENT
 #     keepalive: KEEPALIVE_TIME
 #     identity: IDENTITY_FILE
@@ -25,6 +26,8 @@
 #         server:
 #       USER_NAME - Your login name (optional field).
 #       SERVER_ADDRESS - Hostname or IP address (optional field).
+#       SERVER_PORT - Override the default ssh port 22 with a port number
+#         you supply here (optional field). Defaults to 22 if not supplied.
 #       FREETEXT_COMMENT - Any freetext you like to store as a comment on
 #         this connection (optional field).
 #       KEEPALIVE_TIME - Override the default nccm_config_keepalive with
@@ -244,6 +247,7 @@ nccm_keybindings:
 
 Another server:
   address: 10.2.2.2
+  port: 11222         # Example of non-default port
   comment: this is another comment
   user: foo
 
@@ -264,7 +268,8 @@ border router:                # Comments are allowed here
   # ^ Your own custom args to ssh. Takes any legal argument to
   #   the ssh command so you can pretty much customize a connection
   #   in any way you desire. You can even use customargs instead of
-  #   the nccm.yaml keys/values such as keepalive or identity
+  #   the nccm.yaml keys/values such as keepalive or identity.
+  #   You can also supply a non-default port this way.
 
 test server:
   address: test.example.com
