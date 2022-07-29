@@ -292,6 +292,17 @@ an executable script/program.
 Same as above but run after the connection exits.
 Useful for stuff like tidyups, etc.
 
+`nccm_config_prompt_on_unknown_user`
+If there is no user specified for a connection, instead of
+inferring the user from the currently logged in user,
+provide a prompt right before connecting to ask for the
+user name you would like to log in with.
+This can be useful for testing various logins for a
+connection or if you do not want to provide usernames in
+the server list.
+By default set to false and takes the username from the
+currently logged in user.
+
 `nccm_keybindings`
 nccm is configured for US keyboard mapping as entered into
 a standard linux xterm. If you have something else and
@@ -697,7 +708,7 @@ SecureLogging = True
 
 
 # Program identification strings:
-__version__     = '1.6.27'
+__version__     = '1.6.28'
 VersionDate     = '2022-07-23'
 ProgramName     = 'NCurses ssh Connection Manager'
 AuthorName      = 'Kenneth Aaron'
@@ -947,6 +958,11 @@ class GlobalConfig:
         #   the screen (no user input)
     TextboxObjects = []
         # ^ A list of editable textbox windows (user input)
+
+    PromptOnUnknownUser = False
+        # ^ If a connection does not have a specific user set, do not infer
+        #       user from the currently logged in user and instead
+        #       request a username before prompting to continue.
 
     # Setup the supported directories/pathnames for the connections file.
     # If you want to store nccm.yml in a directory that's not already supported
@@ -1268,6 +1284,12 @@ class Connections:
         LogWrite.debug('Loaded {} config item:  GlobalConfig.LoopNccm == {}'
             .format(GlobalConfig.ConfigFile, GlobalConfig.LoopNccm))
 
+        # Handle loading of GlobalConfig.PromptOnUnknownUser
+        GlobalConfig.PromptOnUnknownUser = self.LoadedServersDict.pop(
+            'nccm_config_prompt_on_unknown_user', False)
+        LogWrite.debug('Loaded {} config item:  GlobalConfig.PromptOnUnknownUser == {}'
+            .format(GlobalConfig.ConfigFile, GlobalConfig.PromptOnUnknownUser))
+
         # Handle loading of the LogPath value from nccm_config_logpath:
         self.LogPath = self.LoadedServersDict.pop(
             'nccm_config_logpath', False)
@@ -1406,7 +1428,7 @@ class Connections:
                 # assume that it'll be the ServerXSNum beyond this point. Always
                 # use FSL.ServerXSNum if you want it.
 
-                SshUserFromLogin = False
+                ModifyUsernameDisplay = False
                     # ^ Did we recover UserName from login user?
                 FSL = self.FullServersList[ServerXSNum] # too much typing. :)
                 FSL.ServerXSNum = ServerXSNum
@@ -1439,18 +1461,32 @@ class Connections:
                     #FSL.UserName = FriendlyName.split(sep='@', maxsplit=1)[0]
                         # ^ Old code, prior to adding support for no username
                     TempSplit = FriendlyName.split(sep='@', maxsplit=1)
+                    LogWrite.debug( {
+                        'unsafe':   'TempSplit == {}'.format(TempSplit),
+                        'safe':     'TempSplit == {}'.format('CENSORED') } )
 
                     if len(TempSplit) == 2:
                         FSL.UserName = TempSplit[0]
-                        LogWrite.debug('FSL.UserName successfully decoded '
-                            'from FriendlyName)')
+                        LogWrite.debug('FSL.UserName successfully decoded from FriendlyName)')
 
                     elif len(TempSplit) == 1:
-                        FSL.UserName = getpass.getuser()
-                        LogWrite.debug('FriendlyName contains only one field - assuming '
-                            'this is server Address. '
-                            'FSL.UserName taken from currently logged in user name')
-                        SshUserFromLogin = True
+
+                        if GlobalConfig.PromptOnUnknownUser:
+                            # ^ We had to fallback to taking the username from the shell login name.
+                            #       At the same time the admin wants to prompt for login name if a
+                            #       login name was not explicitly configured in nccm.yml .
+                            #       Therefore setup the:  FSL.UserName  as:  <user>  so that at connection
+                            #       time we can prompt for the real login username.
+                            FSL.UserName = '<user>'
+
+                        else:
+                            # ^ Just take the username from the shell login name.
+                            FSL.UserName = getpass.getuser()
+                            LogWrite.debug('FriendlyName contains only one field - assuming '
+                                'this is server Address. '
+                                'FSL.UserName taken from currently logged in user name')
+
+                        ModifyUsernameDisplay = True
 
                     else:
                         LogWrite.warning('Something wrong with config: '
@@ -1489,24 +1525,28 @@ class Connections:
 
                 if not FSL.Port:
                     FSL.Port = GlobalConfig.DefaultSshPort
+                        # ^ No port supplied, fallback to using default port per var
                     LogWrite.debug( {
                         'unsafe':   'No specific port supplied, forcing default port {}'
                             .format(GlobalConfig.DefaultSshPort),
                         'safe':     'CENSORED, not logging port info' } )
 
                 FSL.UserAddr = '{}@{}'.format(FSL.UserName, FSL.Address) # for convenience
-
                 FSL.Comment = self.LoadedServersDict[FriendlyName].get('comment', '')
                     # ^ .get because item my be empty
 
                 # If we recovered the ssh login user name from the currently logged in
                 # username - add this text to the comment so the user will know where
                 # their user name is coming from:
-                if SshUserFromLogin:
+                if ModifyUsernameDisplay:
                     if FSL.Comment:
                         FSL.Comment += ' '
                             # ^ Pretty formtting, nothing else...
-                    FSL.Comment += '[{}@ taken from login user]'.format(FSL.UserName)
+
+                    if GlobalConfig.PromptOnUnknownUser:
+                        FSL.Comment += '[prompt for <user> at login time]'
+                    else:
+                        FSL.Comment += '[{}@ taken from login user]'.format(FSL.UserName)
 
                 FSL.KeepAlive = self.LoadedServersDict[FriendlyName].get(
                     'keepalive', self.DefaultKeepAlive)
@@ -1604,6 +1644,7 @@ class Connections:
         ''' Get link to connect to '''
 
         ServerXSNum = int(ServerXSNum)
+        PromptedUser = ''
 
         # Get the item line of the connection we want from the full connections list.
         # (This is the unmodified original list as it was loaded):
@@ -1626,7 +1667,14 @@ class Connections:
             #   information we can pass on to scripts.
 
         CommandLine += (self.SshProgram, )
-        CommandLine += (SelectedEntry.UserAddr, )
+
+        if '<user>@' in SelectedEntry.UserAddr:
+            RestoreTerminal(self.stdscr)
+            PromptedUser = PromptForUserLogin("Enter username to use for <username>@server : ")
+            #CommandLine += ('{}@{}'.format(PromptedUser, SelectedEntry.Address), )
+            CommandLine += (SelectedEntry.UserAddr.replace('<user>', PromptedUser), )
+        else:
+            CommandLine += (SelectedEntry.UserAddr, )
 
         if SelectedEntry.Port:
             CommandLine += ('-p', '{}'.format(SelectedEntry.Port))
@@ -1644,7 +1692,7 @@ class Connections:
         if self.LogPath:    # Log file path is set:
             self.LogFileName = pathlib.PurePath(self.LogPath).joinpath('{}_{}_{}x{}{}'
                 .format(datetime.datetime.now().strftime('%Y-%m-%d_%H%M%S'),
-                    SelectedEntry.UserAddr.replace('@', '_AT_'),
+                    SelectedEntry.UserAddr.replace('@', '_AT_').replace('<user>', PromptedUser),
                     GlobalConfig.ScreenWidth,
                     GlobalConfig.ScreenHeight,
                     '.nccm.log'))
@@ -1944,6 +1992,7 @@ def LogGlobalConfig():
             'GlobalConfig.PreconnectScript == {}\n'
             'GlobalConfig.PostconnectScript == {}\n'
             'GlobalConfig.PromptToContinue == {}\n'
+            'GlobalConfig.PromptOnUnknownUser == {}\n'
             'GlobalConfig.LoopNccm == {}\n'
             'GlobalConfig.DefaultSshPort == {}\n'
             'GlobalConfig.FilterTextArg == {}\n'
@@ -1961,6 +2010,7 @@ def LogGlobalConfig():
                     GlobalConfig.PreconnectScript,
                     GlobalConfig.PostconnectScript,
                     GlobalConfig.PromptToContinue,
+                    GlobalConfig.PromptOnUnknownUser,
                     GlobalConfig.LoopNccm,
                     GlobalConfig.DefaultSshPort,
                     GlobalConfig.FilterTextArg,
@@ -1978,6 +2028,7 @@ def LogGlobalConfig():
             'GlobalConfig.PreconnectScript == {}\n'
             'GlobalConfig.PostconnectScript == {}\n'
             'GlobalConfig.PromptToContinue == {}\n'
+            'GlobalConfig.PromptOnUnknownUser == {}\n'
             'GlobalConfig.LoopNccm == {}\n'
             'GlobalConfig.DefaultSshPort == {}\n'
             'GlobalConfig.FilterTextArg == {}\n'
@@ -1995,6 +2046,7 @@ def LogGlobalConfig():
                     GlobalConfig.PreconnectScript,
                     GlobalConfig.PostconnectScript,
                     GlobalConfig.PromptToContinue,
+                    GlobalConfig.PromptOnUnknownUser,
                     GlobalConfig.LoopNccm,
                     'CENSORED',
                     'CENSORED',
@@ -2035,6 +2087,26 @@ def PressEnterToCont(PromptText):
         LogWrite.debug('Not waiting for user to press Enter. Returning processing to program now')
 
     return
+
+
+def PromptForUserLogin(PromptText):
+    ''' A simple prompt asking for login information from the user. '''
+
+    if GlobalConfig.PromptOnUnknownUser:
+        LogWrite.debug('Waiting for user to enter login information and press Enter...')
+
+    Ans = None
+    while True:
+        try:
+            Ans = input(PromptText)
+            if Ans != '':
+                break
+            else:
+                print("No username was detected, please retry...")
+        except EOFError as Exception:
+            LogWrite.debug('CTRL-D ignored')
+            print('\n')
+    return Ans.rstrip()
 
 
 def RestoreTerminal(stdscr):
@@ -2266,7 +2338,8 @@ def MainCursesFunction(stdscr):
         LogWrite.debug('Clearing:  GlobalConfig.FilterTextArg')
         CommandInfo = ConnectionsList.GetCommandLine(
             ConnectionsList.SelectedEntryVal)
-        RestoreTerminal(stdscr)
+        #RestoreTerminal(stdscr)
+            # ^ Moved into:  GetCommandLine  due to prompt admin for username.
         return CommandInfo
 
     LogWrite.debug('Active window is now: ActiveWindow == {}  (the user input textbox that is active right now)'

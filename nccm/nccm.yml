@@ -144,6 +144,14 @@ nccm_config_logpath: false
 #   Supported values: false or any valid path.
 #   When activated you will see:  LogTee  in the ncmm status line.
 
+nccm_config_prompt_on_unknown_user: false
+# ^  If there is no user specified for a connection, instead of inferring
+#    the user from the currently logged in user, provide a prompt right
+#    before connecting to ask for the user name you would like to log
+#    in with. This can be useful for testing various logins for a connection
+#    or if you do not want to provide usernames in the server list
+#    Supported values: true, false
+
 nccm_loop_nccm: false
 # ^ Run nccm in a loop - when you exit out of your ssh session nccm menu
 #   will reappear. You are allowed to resize your window outside nccm and
@@ -243,9 +251,9 @@ nccm_keybindings:
     - 269
 
 
-# connections configs:
+# Connections configs:
 
-Another server:
+Lab server:
   address: 10.2.2.2
   port: 11222         # Example of non-default port
   comment: this is another comment
@@ -257,7 +265,7 @@ border router:                # Comments are allowed here
   comment: My border router   # And here
   address: 192.168.1.1        # And everywhere else
   user: admin                 # Settings order is not important
-  # This comment is indented like the code
+  # This comment is indented at the same level as the code
   keepalive: 40
   # ^ Override the default nccm_config_keepalive with this
   #   on a per-connection basis.
@@ -276,17 +284,24 @@ test server:
   user: root
 
 root@10.10.1.1:
+
 root@10.10.2.2:   # Note how nothing else is supplied...
 
 user@example2.com:
   comment: Comment supplied, user/server extracted from FriendlyName
 
 192.168.20.1:
-  comment: Only server supplied. Currenly logged in username will be used
+  comment: Only server supplied. Read comment about where username comes from
+  # If:  nccm_config_prompt_on_unknown_user: false  then currenly logged in
+  #   username will be used
+  # If:  nccm_config_prompt_on_unknown_user: true  then nccm will prompt the
+  #   admin for the login username.
 
 server.example.com:
 # ^ Here nothing else is supplied, just the server name.
-#   Again, the currently logged in username will be used
+#   Again, the username is decided per:  nccm_config_prompt_on_unknown_user .
 
-# The final line of yaml must have content. yamllint will complain if you
-#   leave empty lines at the bottom.
+
+# The final line of yaml must have content if you want yamllint to pass clean.
+# yamllint will complain if you leave empty lines at the bottom.
+# nccm itself doesn't care if there are empty lines at the bottom.
