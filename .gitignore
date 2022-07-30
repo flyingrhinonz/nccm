@@ -1,2 +1,7 @@
 **/.sw[a-z]
 **/.*.sw[a-z]
+/build/
+/dist/
+/nccm.egg-info/
+setup.py
+.gitignore

@@ -288,6 +288,17 @@ an executable script/program.
 Same as above but run after the connection exits.
 Useful for stuff like tidyups, etc.
 
+`nccm_config_prompt_on_unknown_user`
+If there is no user specified for a connection, instead of
+inferring the user from the currently logged in user,
+provide a prompt right before connecting to ask for the
+user name you would like to log in with.
+This can be useful for testing various logins for a
+connection or if you do not want to provide usernames in
+the server list.
+By default set to false and takes the username from the
+currently logged in user.
+
 `nccm_keybindings`
 nccm is configured for US keyboard mapping as entered into
 a standard linux xterm. If you have something else and
