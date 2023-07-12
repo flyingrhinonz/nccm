@@ -708,8 +708,8 @@ SecureLogging = True
 
 
 # Program identification strings:
-__version__     = '1.6.28'
-VersionDate     = '2022-07-23'
+__version__     = '1.6.29'
+VersionDate     = '2023-07-12'
 ProgramName     = 'NCurses ssh Connection Manager'
 AuthorName      = 'Kenneth Aaron'
 AuthorEmail     = 'flyingrhino AT orcon DOT net DOT nz'
@@ -939,9 +939,6 @@ class GlobalConfig:
         # ^ Prompt user to press Enter before connecting
     LoopNccm = False
         # ^ Run nccm in a loop after exiting from ssh?
-    DefaultSshPort = '22'
-        # Default port used for ssh. At present this is not configurable
-        #   in nccm.yml .
     FilterTextArg = ''
         # ^ Filter text supplied at the command line
     AutoConnect = True
@@ -1221,6 +1218,21 @@ class Connections:
                 # ^ Controls the keep alive message frequency
         LogWrite.debug('Loaded {} config item:  self.DefaultKeepAlive == {}'
             .format(GlobalConfig.ConfigFile, self.DefaultKeepAlive))
+
+        # Handle loading of the default port value from nccm_default_ssh_port:
+        self.DefaultSshPort = int(self.LoadedServersDict.pop(
+            'nccm_default_ssh_port', '22'))
+                # ^ Forces the default port if none is supplied in the per-connection
+                #       setting, and if the ForceDefaultSshPort  directive allows it.
+        LogWrite.debug('Loaded {} config item:  self.DefaultSshPort == {}'
+            .format(GlobalConfig.ConfigFile, self.DefaultSshPort))
+
+        # Handle loading of the ForceDefaultSshPort value from nccm_force_default_ssh_port.
+        #   Works together with the setting:  DefaultSshPort :
+        self.ForceDefaultSshPort = self.LoadedServersDict.pop(
+            'nccm_force_default_ssh_port', True)
+        LogWrite.debug('Loaded {} config item:  self.ForceDefaultSshPort == {}'
+            .format(GlobalConfig.ConfigFile, self.ForceDefaultSshPort))
 
         # Handle loading of the default identity value from nccm_config_identity:
         self.Identity = self.LoadedServersDict.pop(
@@ -1523,12 +1535,13 @@ class Connections:
                     'unsafe':   'FSL.Port == {}'.format(FSL.Port),
                     'safe':     'FSL.Port == {}'.format('CENSORED') } )
 
-                if not FSL.Port:
-                    FSL.Port = GlobalConfig.DefaultSshPort
-                        # ^ No port supplied, fallback to using default port per var
+                if not FSL.Port and self.ForceDefaultSshPort:
+                    FSL.Port = self.DefaultSshPort
+                        # ^ No port supplied, fallback to using default port per var.
+                        #   Only do this if the:  nccm.yaml  var:  nccm_force_default_ssh_port == true .
                     LogWrite.debug( {
                         'unsafe':   'No specific port supplied, forcing default port {}'
-                            .format(GlobalConfig.DefaultSshPort),
+                            .format(self.DefaultSshPort),
                         'safe':     'CENSORED, not logging port info' } )
 
                 FSL.UserAddr = '{}@{}'.format(FSL.UserName, FSL.Address) # for convenience
@@ -1677,6 +1690,7 @@ class Connections:
             CommandLine += (SelectedEntry.UserAddr, )
 
         if SelectedEntry.Port:
+            # ^ This works regardless of the value of:  nccm.yaml  -->  nccm_force_default_ssh_port
             CommandLine += ('-p', '{}'.format(SelectedEntry.Port))
 
         if SelectedEntry.KeepAlive:
@@ -1994,7 +2008,6 @@ def LogGlobalConfig():
             'GlobalConfig.PromptToContinue == {}\n'
             'GlobalConfig.PromptOnUnknownUser == {}\n'
             'GlobalConfig.LoopNccm == {}\n'
-            'GlobalConfig.DefaultSshPort == {}\n'
             'GlobalConfig.FilterTextArg == {}\n'
             'GlobalConfig.AutoConnect == {}\n'
             'GlobalConfig.ForceDebugLogging == {}\n'
@@ -2012,7 +2025,6 @@ def LogGlobalConfig():
                     GlobalConfig.PromptToContinue,
                     GlobalConfig.PromptOnUnknownUser,
                     GlobalConfig.LoopNccm,
-                    GlobalConfig.DefaultSshPort,
                     GlobalConfig.FilterTextArg,
                     GlobalConfig.AutoConnect,
                     GlobalConfig.ForceDebugLogging,
@@ -2030,7 +2042,6 @@ def LogGlobalConfig():
             'GlobalConfig.PromptToContinue == {}\n'
             'GlobalConfig.PromptOnUnknownUser == {}\n'
             'GlobalConfig.LoopNccm == {}\n'
-            'GlobalConfig.DefaultSshPort == {}\n'
             'GlobalConfig.FilterTextArg == {}\n'
             'GlobalConfig.AutoConnect == {}\n'
             'GlobalConfig.ForceDebugLogging == {}\n'

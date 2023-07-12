@@ -99,6 +99,19 @@ nccm_config_keepalive: 30
 # ^ Send keepalive every n seconds (0 to disable) to prevent disconnection.
 #   Supported values: 0 to any integer
 
+nccm_default_ssh_port: 22
+# ^ If the setting:  nccm_force_default_ssh_port == true  , this port
+#   number will be forced unless a per-connection port value is supplied.
+#   Supported values: any valid port number. Default 22.
+
+nccm_force_default_ssh_port: false
+# ^ If true, the port value specified in:  nccm_default_ssh_port  will
+#   be forced on your connection unless a per-connection port is supplied
+#   in the connection config  (port: SERVER_PORT) .
+#   If false, your ssh system defaults will apply and nccm will not force
+#   a change in any way.
+#   Supported values: true, false
+
 nccm_config_identity: false
 # ^ For public key authentication, normally ssh will load your private key
 #   from the default locations. You can force ssh to use your own file by
