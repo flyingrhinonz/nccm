@@ -204,7 +204,20 @@ being disconnected.
 You can customize this on a per-connection basis by using
 the setting `keepalive: n` (optional).
 
-`nccm_config_identity`
+`nccm_default_ssh_port`:
+Works alongside the setting:  `nccm_force_default_ssh_port`
+and if:  `nccm_force_default_ssh_port == true`  , then the
+value of:  `nccm_default_ssh_port`  will be forced upon
+connections that don't have their own:  `port: SERVER_PORT`
+setting (which is always respected).
+If:  `nccm_force_default_ssh_port == false`  , then the
+value of:  `nccm_default_ssh_port`  will have no effect.
+
+`nccm_force_default_ssh_port`:
+Works alongside:  `nccm_default_ssh_port` and explained
+above.
+
+`nccm_config_identity`:
 For public key authentication, normally ssh will load your
 private key from the default locations. You can force ssh
 to use your own file by putting it's path here. Or set to
@@ -212,13 +225,13 @@ to use your own file by putting it's path here. Or set to
 You can customize this on a per-connection basis by using
 the setting `identity: path` (optional).
 
-`nccm_config_sshprogram`
+`nccm_config_sshprogram`:
 By default nccm will use the ssh program as found in your
 path. If you want to explicitly set the path to ssh, or
 you want to use a different program - set it here.
 This is a global setting that affects all your connections.
 
-`nccm_config_promptuser`
+`nccm_config_promptuser`:
 By default set to `false` and nccm will connect immediately
 to the selected server. Set this value to `true`
 if you want nccm to prompt the user to press Enter before
@@ -228,7 +241,7 @@ If using pre/post connection scripts (disabled by default)
 the prompt is shown before the preconnection script is run
 and once again after the post connection script is run.
 
-`nccm_config_importnccmd:`
+`nccm_config_importnccmd`:
 This setting defines whether nccm should try to import any
 yml files it finds in /etc/nccm.d/ . Useful in a multiuser
 env where each user can have their own nccm.yml as well as
@@ -238,9 +251,9 @@ program settings.
 As files are imported - older data will be updated with
 newer data/values.
 Note - nccm.yml from one of the supported directories is
-loaded first, then /etc/nccm.d/*.yml are imported.
+loaded first, then `/etc/nccm.d/*.yml` are imported.
 
-`nccm_config_logpath`
+`nccm_config_logpath`:
 If you want nccm to save a copy of ssh terminal output
 using `tee` - set this to the logfile path.
 By default this is set to:  `false`  meaning no logging.
@@ -251,7 +264,7 @@ or audit, etc) and it's better to know that logging is not
 working now rather than doing your work and later finding
 out that you don't have a log file.
 The log filename format is:
-{DATE}_{TIME}_{USER}_AT_{SERVER}_{SCREENWIDTH}x{SCREENHEIGHT}.nccm.log .
+`{DATE}_{TIME}_{USER}_AT_{SERVER}_{SCREENWIDTH}x{SCREENHEIGHT}.nccm.log` .
 Note - the screen dimensions are those when nccm started
 the connection - they might have changed later on during
 your session.
@@ -271,24 +284,7 @@ github page: [https://github.com/flyingrhinonz/catstep](https://github.com/flyin
 You can also use the regular Linux `cat` program but the
 output will fly by really fast.
 
-`nccm_loop_nccm`
-Run nccm in a loop - when you exit out of your ssh session
-nccm menu will reappear. You are allowed to resize your
-window outside nccm and the new window size will apply when
-nccm menu reappears after you exit from your ssh session.
-
-`nccm_config_preconnect_script`
-Path to an executable that nccm will run prior to making a
-connection. Useful if you want to do anything immediately
-before making a connection.
-Supported values: false (default) or any valid path to
-an executable script/program.
-
-`nccm_config_postconnect_script`
-Same as above but run after the connection exits.
-Useful for stuff like tidyups, etc.
-
-`nccm_config_prompt_on_unknown_user`
+`nccm_config_prompt_on_unknown_user`:
 If there is no user specified for a connection, instead of
 inferring the user from the currently logged in user,
 provide a prompt right before connecting to ask for the
@@ -299,7 +295,24 @@ the server list.
 By default set to false and takes the username from the
 currently logged in user.
 
-`nccm_keybindings`
+`nccm_loop_nccm`:
+Run nccm in a loop - when you exit out of your ssh session
+nccm menu will reappear. You are allowed to resize your
+window outside nccm and the new window size will apply when
+nccm menu reappears after you exit from your ssh session.
+
+`nccm_config_preconnect_script`:
+Path to an executable that nccm will run prior to making a
+connection. Useful if you want to do anything immediately
+before making a connection.
+Supported values: false (default) or any valid path to
+an executable script/program.
+
+`nccm_config_postconnect_script`:
+Same as above but run after the connection exits.
+Useful for stuff like tidyups, etc.
+
+`nccm_keybindings`:
 nccm is configured for US keyboard mapping as entered into
 a standard linux xterm. If you have something else and
 certain keys don't behave as you'd expect - change their
