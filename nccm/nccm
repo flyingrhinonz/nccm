@@ -658,6 +658,7 @@ import os
 import pathlib
 import pydoc
 import shlex
+import socket
 import string
 import subprocess
 import sys
@@ -721,8 +722,8 @@ SecureLogging = True
 
 
 # Program identification strings:
-__version__     = '1.6.30'
-VersionDate     = '2023-07-13'
+__version__     = '1.7.1'
+VersionDate     = '2023-08-03'
 ProgramName     = 'NCurses ssh Connection Manager'
 AuthorName      = 'Kenneth Aaron'
 AuthorEmail     = 'flyingrhino AT orcon DOT net DOT nz'
@@ -1759,12 +1760,32 @@ class Connections:
             the log file properly.
         '''
 
+        LogWrite.debug('class: Connections, method: WriteLogFileHeader started')
+
+        if SecureLogging:
+            RunningUsername = 'CENSORED'
+            RunningUID = 'CENSORED'
+            RunningHostname = 'CENSORED'
+        else:
+            RunningUsername = getpass.getuser()
+            RunningUID = os.getuid()
+            RunningHostname = socket.getfqdn()
+
         IntroText = ( '\n##### Info #####\n\n'
             'This log file was created by nccm:\n'
+            '  {} v{} , {}\n'
+            '  by: {} ( {} )\n'
             '  https://github.com/flyingrhinonz/nccm\n\n'
             'and can be viewed with catstep:\n'
             '  https://github.com/flyingrhinonz/catstep\n\n'
-            '##### Your log follows #####\n' )
+            'Operator identifiers (details of person using nccm):\n'
+            '  Name:    {}\n'
+            '  UID:     {}\n'
+            '  From:    {}\n'
+            '  At:      {}\n\n'
+            '##### Your connection log follows #####\n'
+                .format(ProgramName, __version__, VersionDate, AuthorName, AuthorEmail, RunningUsername,
+                    RunningUID, RunningHostname, datetime.datetime.now().strftime('%Y-%m-%d_%H%M%S')))
 
         LogFile = pathlib.Path(self.LogFileName)
         LogFile.write_text(IntroText)
