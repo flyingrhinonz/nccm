@@ -264,12 +264,17 @@ or audit, etc) and it's better to know that logging is not
 working now rather than doing your work and later finding
 out that you don't have a log file.
 The log filename format is:
-`{DATE}_{TIME}_{USER}_AT_{SERVER}_{SCREENWIDTH}x{SCREENHEIGHT}.nccm.log` .
+`{DATE}_{TIME}_{USER}_AT_{SERVER}_{SCREENWIDTH}x{SCREENHEIGHT}.xxxxxx.nccm.log` .
 Note - the screen dimensions are those when nccm started
 the connection - they might have changed later on during
 your session.
+The:  `xxxxxx`  are random chars to ensure a unique log
+filename (could be needed if nccm is deployed on a jump
+host with multiple people using it).
 When tee logging is enabled you will see:  `LogTee`  in
 red in the help line at the bottom of the screen.
+If permitted by:  `nccm_config_logprivateinfo` - the log
+file will also include operator info and hostname.
 Note - EVERYTHING displayed on the screen is logged (unless
 the terminal hides stuff like password entry - because it
 is not echoed to the screen). This includes text you edit

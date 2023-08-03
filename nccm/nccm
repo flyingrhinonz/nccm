@@ -268,12 +268,17 @@ or audit, etc) and it's better to know that logging is not
 working now rather than doing your work and later finding
 out that you don't have a log file.
 The log filename format is:
-`{DATE}_{TIME}_{USER}_AT_{SERVER}_{SCREENWIDTH}x{SCREENHEIGHT}.nccm.log` .
+`{DATE}_{TIME}_{USER}_AT_{SERVER}_{SCREENWIDTH}x{SCREENHEIGHT}.xxxxxx.nccm.log` .
 Note - the screen dimensions are those when nccm started
 the connection - they might have changed later on during
 your session.
+The:  `xxxxxx`  are random chars to ensure a unique log
+filename (could be needed if nccm is deployed on a jump
+host with multiple people using it).
 When tee logging is enabled you will see:  `LogTee`  in
 red in the help line at the bottom of the screen.
+If permitted by:  `nccm_config_logprivateinfo` - the log
+file will also include operator info and hostname.
 Note - EVERYTHING displayed on the screen is logged (unless
 the terminal hides stuff like password entry - because it
 is not echoed to the screen). This includes text you edit
@@ -657,6 +662,7 @@ import operator
 import os
 import pathlib
 import pydoc
+import random
 import shlex
 import socket
 import string
@@ -722,7 +728,7 @@ SecureLogging = True
 
 
 # Program identification strings:
-__version__     = '1.7.1'
+__version__     = '1.7.2'
 VersionDate     = '2023-08-03'
 ProgramName     = 'NCurses ssh Connection Manager'
 AuthorName      = 'Kenneth Aaron'
@@ -1718,11 +1724,12 @@ class Connections:
             CommandLine += SelectedEntry.CustomArgs
 
         if self.LogPath:    # Log file path is set:
-            self.LogFileName = pathlib.PurePath(self.LogPath).joinpath('{}_{}_{}x{}{}'
+            self.LogFileName = pathlib.PurePath(self.LogPath).joinpath('{}_{}_{}x{}.{}{}'
                 .format(datetime.datetime.now().strftime('%Y-%m-%d_%H%M%S'),
                     SelectedEntry.UserAddr.replace('@', '_AT_').replace('<user>', PromptedUser),
                     GlobalConfig.ScreenWidth,
                     GlobalConfig.ScreenHeight,
+                    ''.join(random.choice(string.ascii_lowercase) for i in range(6)),
                     '.nccm.log'))
 
             LogWrite.debug( {
@@ -1776,7 +1783,7 @@ class Connections:
             '  {} v{} , {}\n'
             '  by: {} ( {} )\n'
             '  https://github.com/flyingrhinonz/nccm\n\n'
-            'and can be viewed with catstep:\n'
+            'This log file is best viewed using catstep:\n'
             '  https://github.com/flyingrhinonz/catstep\n\n'
             'Operator identifiers (details of person using nccm):\n'
             '  Name:    {}\n'
