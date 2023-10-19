@@ -295,6 +295,9 @@ border router:                # Comments are allowed here
 test server:
   address: test.example.com
   user: root
+  sshprogram: /src/bin/ssh
+  #   Can specify a custom ssh program
+  #   Overrides the default ssh program setting on this connection only
 
 root@10.10.1.1:
 

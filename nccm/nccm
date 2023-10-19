@@ -1096,6 +1096,7 @@ class ServerXS:
         self.KeepAlive = ""
         self.Identity = ""
         self.CustomArgs = []
+        self.SshProgram = ""
 
 
 class Connections:
@@ -1592,6 +1593,11 @@ class Connections:
                     # ^ Note that per-connection "identity" may not be supplied
                     #   and also the default nccm_config_identity may be False.
 
+                FSL.SshProgram = self.LoadedServersDict[FriendlyName].get(
+                    'sshprogram', self.SshProgram)
+                      # Use custom ssh program if defined
+                      # else use default
+
                 FSL.CustomArgs = self.LoadedServersDict[FriendlyName].get(
                     'customargs', '')
                 if isinstance(FSL.CustomArgs, str):
@@ -1600,18 +1606,18 @@ class Connections:
                 LogWrite.debug( {
                     'unsafe':   'ServerXSNum == {} , FriendlyName == {} , UserName == {} , '
                         'Address == {} , UserAddr == {} , Comment == {} , KeepAlive == {} , '
-                        'Identity == {} , CustomArgs == {}'
+                        'Identity == {} , SshProgram == {} , CustomArgs == {}'
                             .format(FSL.ServerXSNum, FSL.FriendlyName,
                                 FSL.UserName, FSL.Address, FSL.UserAddr,
                                 FSL.Comment,
-                                FSL.KeepAlive, FSL.Identity, ' '.join(FSL.CustomArgs)),
+                                FSL.KeepAlive, FSL.Identity, FSL.SshProgram, ' '.join(FSL.CustomArgs)),
                     'safe':     'ServerXSNum == {} , FriendlyName == {} , UserName == {} , '
                         'Address == {} , UserAddr == {} , Comment == {} , KeepAlive == {} , '
-                        'Identity == {} , CustomArgs == {}'
+                        'Identity == {} , SshProgram == {} , CustomArgs == {}'
                             .format(FSL.ServerXSNum, 'CENSORED',
                                 'CENSORED', 'CENSORED', 'CENSORED',
                                 'CENSORED',
-                                FSL.KeepAlive, 'CENSORED', ' '.join(FSL.CustomArgs)) } )
+                                FSL.KeepAlive, 'CENSORED', FSL.SshProgram, ' '.join(FSL.CustomArgs)) } )
 
                 GlobalConfig.HitCount = ServerXSNum + 1
                     # ^ Enumerate starts at 0, so our hit count in human terms will be +1
@@ -1692,7 +1698,7 @@ class Connections:
             # This dict contains the above CommandLine list as well as other useful
             #   information we can pass on to scripts.
 
-        CommandLine += (self.SshProgram, )
+        CommandLine += (SelectedEntry.SshProgram, )
 
         if '<user>@' in SelectedEntry.UserAddr:
             RestoreTerminal(self.stdscr)
