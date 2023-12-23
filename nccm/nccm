@@ -728,8 +728,8 @@ SecureLogging = True
 
 
 # Program identification strings:
-__version__     = '1.7.2'
-VersionDate     = '2023-08-03'
+__version__     = '1.7.3'
+VersionDate     = '2023-12-23'
 ProgramName     = 'NCurses ssh Connection Manager'
 AuthorName      = 'Kenneth Aaron'
 AuthorEmail     = 'flyingrhino AT orcon DOT net DOT nz'
