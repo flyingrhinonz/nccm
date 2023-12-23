@@ -1702,7 +1702,6 @@ class Connections:
         CommandLine += (self.SshProgram, )
 
         if '<user>@' in SelectedEntry.UserAddr:
-            RestoreTerminal(self.stdscr)
             PromptedUser = PromptForUserLogin("Enter username to use for <username>@server : ")
             #CommandLine += ('{}@{}'.format(PromptedUser, SelectedEntry.Address), )
             CommandLine += (SelectedEntry.UserAddr.replace('<user>', PromptedUser), )
@@ -1809,7 +1808,6 @@ class Connections:
                 .format(NewScreenHeight, NewScreenWidth))
 
         if NewScreenHeight != GlobalConfig.ScreenHeight or NewScreenWidth != GlobalConfig.ScreenWidth:
-            RestoreTerminal(self.stdscr)
             LogWrite.warning( { 'tee': '\nnccm: Resizing the window during menu display is not supported.\nYou may resize the window during or after connection initiation.\nIf nccm returns after you disconnect - it will use the new window size.\n' } )
             sys.exit(1)
 
@@ -2161,16 +2159,6 @@ def PromptForUserLogin(PromptText):
     return Ans.rstrip()
 
 
-def RestoreTerminal(stdscr):
-    ''' Restore the terminal to a sane status '''
-
-    curses.curs_set(1)          # Restore blinking cursor
-    curses.echo()               # Restore terminal echo
-    stdscr.keypad(False)        # Return special keys to normal
-    curses.noraw()              # Return raw mode to normal
-    curses.endwin()             # End curses session
-
-
 def UpdateDisplay():
     ''' The window objects were added to GlobalConfig.DisplayObjects list,
         so here we need to use the Display method of those objects. '''
@@ -2227,7 +2215,6 @@ def SetupCurses(stdscr):
         # ^ Used for setting alerts such as 'LogTee'
 
     if not curses.has_colors(): # Color not supported
-        RestoreTerminal(stdscr)
         LogWrite.warning( { 'tee': '\nnccm: This program requires color support\n' } )
         return False
 
@@ -2236,13 +2223,11 @@ def SetupCurses(stdscr):
         .format(GlobalConfig.ScreenHeight, GlobalConfig.ScreenWidth))
 
     if GlobalConfig.ScreenWidth < 60 or GlobalConfig.ScreenHeight < 15:
-        RestoreTerminal(stdscr)
         LogWrite.warning( { 'tee': '\nnccm: Window must be at least 60x15. GlobalConfig.ScreenHeight == {} , GlobalConfig.ScreenWidth == {}\n'
             .format(GlobalConfig.ScreenHeight, GlobalConfig.ScreenWidth) } )
         return False
 
     if len(GlobalConfig.FilterTextArg) > GlobalConfig.ScreenWidth-32:
-        RestoreTerminal(stdscr)
         LogWrite.warning( { 'tee': '\nnccm: Filter text too long ({} chars). For your window size enter no more than {} chars\n'
             .format(len(GlobalConfig.FilterTextArg), GlobalConfig.ScreenWidth-32) } )
         return False
@@ -2390,8 +2375,6 @@ def MainCursesFunction(stdscr):
         LogWrite.debug('Clearing:  GlobalConfig.FilterTextArg')
         CommandInfo = ConnectionsList.GetCommandLine(
             ConnectionsList.SelectedEntryVal)
-        #RestoreTerminal(stdscr)
-            # ^ Moved into:  GetCommandLine  due to prompt admin for username.
         return CommandInfo
 
     LogWrite.debug('Active window is now: ActiveWindow == {}  (the user input textbox that is active right now)'
@@ -2659,7 +2642,6 @@ def MainCursesFunction(stdscr):
         UpdateDisplay()
         ActiveWindow.ActivateWindow()
 
-    RestoreTerminal(stdscr)
     return CommandInfo
 
 
