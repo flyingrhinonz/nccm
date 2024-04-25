@@ -3,6 +3,7 @@
 
 
 '''
+
 NCurses ssh Connection Manager (nccm)
 =====================================
 
@@ -328,8 +329,11 @@ and then create the target script similar to:
 #!/bin/bash
 
 scp /usr/local/lib/kenmode.sh $1:/tmp/
+
 ssh $1 chmod 664 /tmp/kenmode.sh
+
 #rsync --perms --chmod=u+rw,g+rw,o+r /usr/local/lib/kenmode.sh $1:/tmp/
+
     # ^ Works better than the two-command scp/ssh above, but fails when
     #       rsync not found on the target machine.
     #   Therefore the first option is more reliable.
@@ -667,6 +671,7 @@ Credits
 
 Big thanks to everyone who reported bugs, submitted feature
 requests and improvements that made nccm what it is today.
+
 '''
 
 # Standard library imports:
@@ -748,7 +753,7 @@ SecureLogging = True
 
 
 # Program identification strings:
-__version__     = '1.7.4'
+__version__     = '1.7.5'
 VersionDate     = '2024-04-26'
 ProgramName     = 'NCurses ssh Connection Manager'
 AuthorName      = 'Kenneth Aaron'

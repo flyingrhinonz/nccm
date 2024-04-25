@@ -324,8 +324,11 @@ and then create the target script similar to:
 #!/bin/bash
 
 scp /usr/local/lib/kenmode.sh $1:/tmp/
+
 ssh $1 chmod 664 /tmp/kenmode.sh
+
 #rsync --perms --chmod=u+rw,g+rw,o+r /usr/local/lib/kenmode.sh $1:/tmp/
+
     # ^ Works better than the two-command scp/ssh above, but fails when
     #       rsync not found on the target machine.
     #   Therefore the first option is more reliable.
