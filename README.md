@@ -306,12 +306,33 @@ nccm menu will reappear. You are allowed to resize your
 window outside nccm and the new window size will apply when
 nccm menu reappears after you exit from your ssh session.
 
+
 `nccm_config_preconnect_script`:
 Path to an executable that nccm will run prior to making a
 connection. Useful if you want to do anything immediately
 before making a connection.
+It passes the connection string (eg:  `user@host`) as `$1`
+arg to the script.
 Supported values: false (default) or any valid path to
 an executable script/program.
+
+Example using this to copy:  `kenmode.sh`  to the managed
+box - set this value similar to:
+`nccm_config_preconnect_script: /usr/local/bin/nccm_copy_kenmode.sh`
+and then create the target script similar to:
+
+#!/bin/bash
+
+scp /usr/local/lib/kenmode.sh $1:/tmp/
+ssh $1 chmod 664 /tmp/kenmode.sh
+#rsync --perms --chmod=u+rw,g+rw,o+r /usr/local/lib/kenmode.sh $1:/tmp/
+    # ^ Works better than the two-command scp/ssh above, but fails when
+    #       rsync not found on the target machine.
+    #   Therefore the first option is more reliable.
+
+Once connected to the target box you can activate kenmode
+by sourcing it:  `. /tmp/kenmode.sh`
+
 
 `nccm_config_postconnect_script`:
 Same as above but run after the connection exits.
