@@ -29,8 +29,9 @@ PURPOSE.
 See the GNU General Public License for more details.
 
 
+
 About nccm
-----------
+==========
 
 * Simple yet powerful ncurses ssh connection manager.
 * No unnecessary features or bloatware - do one thing and
@@ -42,8 +43,9 @@ About nccm
     read the majority of the logs.
 
 
+
 Who is nccm for?
-----------------
+================
 
 * You have dozens or thousands of boxes to manage via ssh.
 * Too hard to remember server hostnames or IP addresses
@@ -62,8 +64,9 @@ Who is nccm for?
     nccm is for YOU!
 
 
+
 Manual install instructions
----------------------------
+===========================
 
 This is the easiest way to install nccm, you can of course
 install and use nccm in any way you wish.
@@ -156,8 +159,9 @@ information in a python exception is at the end of the
 output.
 
 
+
 nccm.yml settings
------------------
+=================
 
 This file is mostly used for ssh connection details, but
 also supports program settings described in this chapter.
@@ -168,14 +172,20 @@ see fit.
 
 These are global settings, affecting all sessions.
 
+
 `nccm_config_controlmode`:
+--------------------------
+
 Controls the cursor movement mode. Two modes are supported:
 - std:    Cursor keys move the marker as expected.
 - focus:  Marker and list move independently.
           The list is designed to move while the marker
           remains fixed unless it is moved manually.
 
+
 `nccm_config_loglevel`:
+-----------------------
+
 Controls log level of messages sent by nccm to syslog.
 If you are using systemd it usually captures syslog
 messages which you can read in `journalctl`. I will use
@@ -183,7 +193,10 @@ the word syslog in this documentation as referral to both.
 Use this for debugging. Default level is info.
 Supported levels: debug, info, warning, error, critical .
 
+
 `nccm_config_logprivateinfo`:
+-----------------------------
+
 Controls whether you want syslog/journal to include private
 information such as usernames & hostnames. By default this
 is set to `false` which results in the data being replaced
@@ -197,14 +210,20 @@ before the `nccm_config_logprivateinfo` setting is loaded.
 When this is enabled you will see:  `LogPrv` in red in the
 help line at the bottom of the screen.
 
+
 `nccm_config_keepalive`:
+------------------------
+
 Sends a message through the encrypted channel every
 n seconds (0 to disable) to prevent idle sessions from
 being disconnected.
 You can customize this on a per-connection basis by using
 the setting `keepalive: n` (optional).
 
+
 `nccm_default_ssh_port`:
+------------------------
+
 Works alongside the setting:  `nccm_force_default_ssh_port`
 and if:  `nccm_force_default_ssh_port == true`  , then the
 value of:  `nccm_default_ssh_port`  will be forced upon
@@ -213,11 +232,17 @@ setting (which is always respected).
 If:  `nccm_force_default_ssh_port == false`  , then the
 value of:  `nccm_default_ssh_port`  will have no effect.
 
+
 `nccm_force_default_ssh_port`:
+------------------------------
+
 Works alongside:  `nccm_default_ssh_port` and explained
 above.
 
+
 `nccm_config_identity`:
+-----------------------
+
 For public key authentication, normally ssh will load your
 private key from the default locations. You can force ssh
 to use your own file by putting it's path here. Or set to
@@ -225,13 +250,19 @@ to use your own file by putting it's path here. Or set to
 You can customize this on a per-connection basis by using
 the setting `identity: path` (optional).
 
+
 `nccm_config_sshprogram`:
+-------------------------
+
 By default nccm will use the ssh program as found in your
 path. If you want to explicitly set the path to ssh, or
 you want to use a different program - set it here.
 This is a global setting that affects all your connections.
 
+
 `nccm_config_promptuser`:
+-------------------------
+
 By default set to `false` and nccm will connect immediately
 to the selected server. Set this value to `true`
 if you want nccm to prompt the user to press Enter before
@@ -241,7 +272,10 @@ If using pre/post connection scripts (disabled by default)
 the prompt is shown before the preconnection script is run
 and once again after the post connection script is run.
 
+
 `nccm_config_importnccmd`:
+--------------------------
+
 This setting defines whether nccm should try to import any
 yml files it finds in /etc/nccm.d/ . Useful in a multiuser
 env where each user can have their own nccm.yml as well as
@@ -253,7 +287,9 @@ newer data/values.
 Note - nccm.yml from one of the supported directories is
 loaded first, then `/etc/nccm.d/*.yml` are imported.
 
+
 `nccm_config_logpath`:
+-----------------------
 If you want nccm to save a copy of ssh terminal output
 using `tee` - set this to the logfile path.
 By default this is set to:  `false`  meaning no logging.
@@ -289,7 +325,10 @@ github page: [https://github.com/flyingrhinonz/catstep](https://github.com/flyin
 You can also use the regular Linux `cat` program but the
 output will fly by really fast.
 
+
 `nccm_config_prompt_on_unknown_user`:
+-------------------------------------
+
 If there is no user specified for a connection, instead of
 inferring the user from the currently logged in user,
 provide a prompt right before connecting to ask for the
@@ -300,7 +339,10 @@ the server list.
 By default set to false and takes the username from the
 currently logged in user.
 
+
 `nccm_loop_nccm`:
+-----------------
+
 Run nccm in a loop - when you exit out of your ssh session
 nccm menu will reappear. You are allowed to resize your
 window outside nccm and the new window size will apply when
@@ -308,6 +350,8 @@ nccm menu reappears after you exit from your ssh session.
 
 
 `nccm_config_preconnect_script`:
+--------------------------------
+
 Path to an executable that nccm will run prior to making a
 connection. Useful if you want to do anything immediately
 before making a connection.
@@ -321,27 +365,32 @@ box - set this value similar to:
 `nccm_config_preconnect_script: /usr/local/bin/nccm_copy_kenmode.sh`
 and then create the target script similar to:
 
+```
 #!/bin/bash
 
 scp /usr/local/lib/kenmode.sh $1:/tmp/
-
 ssh $1 chmod 664 /tmp/kenmode.sh
 
 #rsync --perms --chmod=u+rw,g+rw,o+r /usr/local/lib/kenmode.sh $1:/tmp/
-
     # ^ Works better than the two-command scp/ssh above, but fails when
     #       rsync not found on the target machine.
     #   Therefore the first option is more reliable.
+```
 
 Once connected to the target box you can activate kenmode
 by sourcing it:  `. /tmp/kenmode.sh`
 
 
 `nccm_config_postconnect_script`:
+---------------------------------
+
 Same as above but run after the connection exits.
 Useful for stuff like tidyups, etc.
 
+
 `nccm_keybindings`:
+-------------------
+
 nccm is configured for US keyboard mapping as entered into
 a standard linux xterm. If you have something else and
 certain keys don't behave as you'd expect - change their
@@ -363,8 +412,9 @@ instead of F1 you want to use F12 - just put the code for
 F12 in the F1 key position.
 
 
+
 Controls
---------
+========
 
 In nccm_config_controlmode == std mode:
 
@@ -394,10 +444,13 @@ In both modes:
 - F1-F5 or !@#$% :    Sort by respective column (1-5)
 
 
+
 Usage
------
+=====
 
 `Conn` textbox:
+---------------
+
 Accepts integer values only (and:  `!@#$%`  for sorting).
 Pressing Enter here will connect to this connection ID,
 as corresponding to a valid value in the full
@@ -408,7 +461,10 @@ line) - even if they don't match.
 If this textbox is empty, it will connect to the
 connection marked by the highlighted line.
 
+
 `Filter` textbox:
+-----------------
+
 Type any filter text here.
 Filtering occurs by searching text present in all visible
 columns (does not search in any of the non-visble
@@ -434,8 +490,9 @@ A count of filtered lines will appear as:  `Hits=n`  in the
 help line at the bottom of the screen.
 
 
+
 Command line arguments
-----------------------
+======================
 
 * Supply initial filtering text. These are considered part
     of the Filter field and are AND'ed. Examples:
@@ -464,8 +521,9 @@ Command line arguments
     Display nccm version.
 
 
+
 Sorting
--------
+=======
 
 `F1-F5` keys sort by the respective fields 1-5.
 The display shows 4 visible columms but we treat
@@ -491,16 +549,18 @@ Column #  Column name       Sort    Alternate sort
 ```
 
 
+
 Help text
----------
+=========
 
 From within nccm: use `Ctrl-h` to display the help text.
 From the command line: use `nccm -h` or `nccm --help`.
 There isn't a man page yet so `man nccm` won't work.
 
 
+
 Limitations
------------
+===========
 
 Will not store passwords. Please don't request this
 feature because it won't be added.
@@ -529,10 +589,12 @@ which in turn are dictated by the width of your window.
 This should be enough for most use cases though.
 
 
+
 Troubleshooting
----------------
+===============
 
 Starting nccm:
+--------------
 
 The most common problem for existing installations is
 user errors in the nccm.yml file.
@@ -560,7 +622,9 @@ download both nccm and nccm.yml, verify that nccm now
 works properly, then update the newly downloaded nccm.yml
 from your backup copy.
 
+
 Logging:
+--------
 
 Look at your syslog file for nccm entries. Depending upon
 the verbosity level set in the config file you may not see
@@ -639,8 +703,9 @@ If you encounter and fix any issues - please post your
 problem and solution for all to benefit from.
 
 
+
 Hacking nccm
-------------
+============
 
 Take something good and make it better!
 The code is heavily commented, with the hope that it will
@@ -652,8 +717,9 @@ writing a script to convert and append fields to nccm.yml
 is easy.
 
 
+
 Misc
-----
+====
 
 This program aims to do one thing well - lets you make SSH
 connections from an ncurses based manager with minimum
@@ -661,8 +727,9 @@ distraction. Feature requests that keep nccm on focus will
 be considered.
 
 
+
 Credits
--------
+=======
 
 Big thanks to everyone who reported bugs, submitted feature
 requests and improvements that made nccm what it is today.
