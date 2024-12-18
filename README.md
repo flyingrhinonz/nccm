@@ -4,7 +4,7 @@ NCurses ssh Connection Manager (nccm)
 
 ![](images/program_screenshot.png)
 
-Copyright (C) 2020-2022 Kenneth Aaron.
+Copyright (C) 2021+ Kenneth Aaron.
 
 flyingrhino AT orcon DOT net DOT nz
 
@@ -41,6 +41,9 @@ About nccm
 * Secure.
 * Logs are in English - you don't need to be a developer to
     read the majority of the logs.
+* nccm has reached a stable state with no known bugs.
+    I will continue to fix bugs and only add features that
+    are in the spirit of nccm.
 
 
 
@@ -60,6 +63,8 @@ Who is nccm for?
     or simply prefer to work more efficiently?
 * Need a simple tool to do its job reliably and securely
     without unnecessary features to slow you down?
+* Need an optional log that is replayable identically to
+    what you saw on your terminal?
 * If you answered 'yes' to any of the above -
     nccm is for YOU!
 
