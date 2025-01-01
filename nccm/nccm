@@ -504,6 +504,8 @@ help line at the bottom of the screen.
 Command line arguments
 ======================
 
+All command line arguments are optional.
+
 * Supply initial filtering text. These are considered part
     of the Filter field and are AND'ed. Examples:
       `nccm abc xyz`
@@ -513,10 +515,10 @@ Command line arguments
     In cycle mode  `( nccm_loop_nccm == true )` - these args
     are stored in the  `Filter`  textbox for the next cycle.
 
-* -h  or --help :
+* -h  or  --help :
     Display the help message.
 
-* -d  or --debug :
+* -d  or  --debug :
     Force debug verbosity logging, ignoring any other
     logging settings everywhere else.
 
@@ -524,10 +526,16 @@ Command line arguments
     Force nccm to expose private information in syslog
     (secure by default - logs `CENSORED` instead).
 
-* -m  or --man :
+* -m  or  --man :
     Display the man page.
 
-* -v or --version :
+* -r <ROLE>  or  --role <ROLE> :
+    When this arg is supplied, a matching tag in the `roles`
+    list (a configuration item of each connection) must be
+    found for those entries to make it to the displayed
+    connections list.
+
+* -v or  --version :
     Display nccm version.
 
 
@@ -697,6 +705,18 @@ display the error code. Remember - nccm doesn't cause ssh
 to exit non-zero, all it does is expose this fact to the
 user.
 
+
+Filtered results
+----------------
+
+If you are receiving less results than in your `nccm.yml`
+file - check if you are filtering by role (or if your admin
+is enforcing this role based access for you).
+
+
+General tips
+------------
+
 If you find bugs please update to the latest version of
 nccm first (this may include updating your yaml file in
 case the format changed). If the bug persists please report
@@ -825,8 +845,8 @@ SecureLogging = True
 
 
 # Program identification strings:
-__version__     = '1.7.7'
-VersionDate     = '2024-12-19'
+__version__     = '1.8.0'
+VersionDate     = '2025-01-01'
 ProgramName     = 'NCurses ssh Connection Manager'
 AuthorName      = 'Kenneth Aaron'
 AuthorEmail     = 'flyingrhino AT orcon DOT net DOT nz'
@@ -1065,6 +1085,8 @@ class GlobalConfig:
         #       that item rather than giving the GUI back to the user.
     ForceDebugLogging = False
         # ^ Force debug logging - will be set properly shortly
+    Role = False
+        # ^ Limit results to specified role
     ScreenHeight = ScreenWidth = 0
         # ^ The terminal window dimensions
     DisplayObjects = []
@@ -1296,7 +1318,7 @@ class Connections:
             'safe':     'self.LoadedServersDict (contains prog settings + conn details) == {}'
                 .format('CENSORED') } )
             # ^ This dump will have program config + connection config details.
-            #   Soon we will pop out the program config items.
+            #   Soon we will pop out the program config items to remove them from the dict.
 
         # First we extract config items from self.LoadedServersDict
         # to prevent them from being read as conns later on.
@@ -1539,14 +1561,74 @@ class Connections:
                 self.LoadedServersDict[Looper] = {}
 
         LogWrite.debug( {
-            'unsafe':   'self.LoadedServersDict (by now it contains only conn details) == {}'
+            'unsafe':   'self.LoadedServersDict (by now it contains only connection details) == {}'
                 .format(self.LoadedServersDict),
-            'safe':     'self.LoadedServersDict (by now it contains only conn details) == {}'
+            'safe':     'self.LoadedServersDict (by now it contains only connection details) == {}'
                 .format('CENSORED') } )
             # ^ Now we have all the imported connection details too, and the
             #   program configs are gone because we pop'ed them out earlier.
 
-        LogWrite.debug('Next we load the connections details ...')
+        # If nccm was started with the roles argument - loop over the full list of connections
+        #   and remove all items that dont match the role name supplied.
+        # This code ensures that there will not be any leaks of connection items that the
+        #   role is not allowed to access:
+        LogWrite.debug('Remove connection items if role arg was supplied...')
+
+        if GlobalConfig.Role:
+            LogWrite.debug('Role arg was supplied - process the connections list to ensure role matches...')
+
+            ConnectionsToRemove = []
+                # ^ List of connections to remove that dont match the role. Will be populated first
+                #       and removed after.
+
+            for Looper in self.LoadedServersDict.keys():
+                LogWrite.debug( {
+                    'unsafe':   'Processing Looper == {} , with connection config == {}'
+                        .format(Looper, self.LoadedServersDict[Looper]),
+                    'safe':     'Processing Looper == CENSORED' } )
+
+                if 'roles' in self.LoadedServersDict[Looper]:
+                    LogWrite.debug('This connection has a role, checking role match next...')
+
+                    if not self.LoadedServersDict[Looper]['roles']:
+                        LogWrite.debug('Empty roles list found - removing from connections list...')
+                        ConnectionsToRemove.append(Looper)
+                        continue
+
+                    if len(self.LoadedServersDict[Looper]['roles']) < 1:
+                        # ^ Probably identical to the check above and should never match
+                        #       but added here to cover all options.
+                        LogWrite.debug('Empty roles list found - removing from connections list...')
+                        ConnectionsToRemove.append(Looper)
+                        continue
+
+                    if GlobalConfig.Role not in self.LoadedServersDict[Looper]['roles']:
+                        LogWrite.debug('Role not in approved roles list - removing from connections list...')
+                        ConnectionsToRemove.append(Looper)
+                        continue
+
+                    LogWrite.debug('Role arg matches - connection will be allowed in connections list')
+
+                else:
+                    LogWrite.debug('This connection does not have a role. '
+                        'No further checks required and connection will be removed from connections list...')
+                    ConnectionsToRemove.append(Looper)
+
+            LogWrite.debug('Connection role check loop completed')
+            LogWrite.debug( {
+                'unsafe':       'ConnectionsToRemove == {}'
+                    .format(ConnectionsToRemove),
+                'safe':         'ConnectionsToRemove == CENSORED' } )
+
+            # Now remove all the entries without a matching role so that they dont appear as connections in the list:
+            for Looper in ConnectionsToRemove:
+                self.LoadedServersDict.pop(Looper)
+            LogWrite.debug('Connections not allowed by role removed')
+
+        else:
+            LogWrite.debug('Role arg not supplied, we did not filter the connections list.')
+
+        LogWrite.debug('Next we load the connections details...')
 
         # Populate the FullServersList (list of config items as lists,
         # even unconfigured items):
@@ -2147,6 +2229,7 @@ def LogGlobalConfig():
             'GlobalConfig.FilterTextArg == {}\n'
             'GlobalConfig.AutoConnect == {}\n'
             'GlobalConfig.ForceDebugLogging == {}\n'
+            'GlobalConfig.Role == {}\n'
             'GlobalConfig.ScreenHeight == {}\n'
             'GlobalConfig.ScreenWidth == {}\n'
             'GlobalConfig.DisplayObjects: total == {} , details == {}\n'
@@ -2164,6 +2247,7 @@ def LogGlobalConfig():
                     GlobalConfig.FilterTextArg,
                     GlobalConfig.AutoConnect,
                     GlobalConfig.ForceDebugLogging,
+                    GlobalConfig.Role,
                     GlobalConfig.ScreenHeight,
                     GlobalConfig.ScreenWidth,
                     len(GlobalConfig.DisplayObjects), GlobalConfig.DisplayObjects,
@@ -2181,6 +2265,7 @@ def LogGlobalConfig():
             'GlobalConfig.FilterTextArg == {}\n'
             'GlobalConfig.AutoConnect == {}\n'
             'GlobalConfig.ForceDebugLogging == {}\n'
+            'GlobalConfig.Role == {}\n'
             'GlobalConfig.ScreenHeight == {}\n'
             'GlobalConfig.ScreenWidth == {}\n'
             'GlobalConfig.DisplayObjects: total == {} , details == {}\n'
@@ -2196,9 +2281,9 @@ def LogGlobalConfig():
                     GlobalConfig.PromptOnUnknownUser,
                     GlobalConfig.LoopNccm,
                     'CENSORED',
-                    'CENSORED',
                     GlobalConfig.AutoConnect,
                     GlobalConfig.ForceDebugLogging,
+                    'CENSORED',
                     GlobalConfig.ScreenHeight,
                     GlobalConfig.ScreenWidth,
                     len(GlobalConfig.DisplayObjects), GlobalConfig.DisplayObjects,
@@ -2800,6 +2885,9 @@ def ParseArgs():
         help='display nccm man page and exit',
         action='store_true' )
 
+    parser.add_argument('-r', '--role',
+        help = 'limit displayed results to specified role')
+
     parser.add_argument('-v', '--version',
         help='show version and exit',
         action='store_true' )
@@ -2828,6 +2916,12 @@ def ParseArgs():
         GlobalConfig.ForceDebugLogging = True
         LogWrite.debug('Received command line arg --debug forcing nccm '
             'to run in debug mode')
+
+    if args.role:
+        LogWrite.debug( {
+            'unsafe':   'role == "{}"'.format(args.role),
+            'safe':     'role == CENSORED' } )
+        GlobalConfig.Role = args.role.rstrip()
 
     LogWrite.debug('parser object = {}'.format(parser))
     LogWrite.debug( {

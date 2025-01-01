@@ -18,6 +18,9 @@
 #     keepalive: KEEPALIVE_TIME
 #     identity: IDENTITY_FILE
 #     customargs: CUSTOM_ARGS
+#     roles:
+#       - ROLE_1
+#       - ROLE_2
 #
 #   Details:
 #       FRIENDLY_NAME (mandatory field). Can be any of:
@@ -39,6 +42,11 @@
 #       CUSTOM_ARGS - Any custom arguments you want to send to ssh that
 #         are not currently supported in nccm. These will be appended to
 #         the end of the ssh command at connection time (optional field).
+#       ROLE_n - A list of roles (one or more) that cause nccm to limit
+#         displaying connections matching the role specified at run time
+#         with:  `--role <ROLE_NAME>`.
+#         The:  `roles`  directive is optional and if not supplied - all
+#         connections will be displayed.
 #
 # You can supply FRIENDLY_NAME as:
 #   1.  Descriptive text - this is just a descriptive freetext name and
@@ -76,6 +84,7 @@
 
 
 # nccm internal configs:
+# ======================
 
 nccm_config_controlmode: std
 # ^ Supported values: std, focus
@@ -291,10 +300,18 @@ border router:                # Comments are allowed here
   #   in any way you desire. You can even use customargs instead of
   #   the nccm.yaml keys/values such as keepalive or identity.
   #   You can also supply a non-default port this way.
+  roles:
+    - admin
 
 test server:
   address: test.example.com
   user: root
+
+dev_server:
+  address: 192.168.1.5
+  roles:
+    - dev
+    - admin
 
 root@10.10.1.1:
 

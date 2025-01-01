@@ -499,6 +499,8 @@ help line at the bottom of the screen.
 Command line arguments
 ======================
 
+All command line arguments are optional.
+
 * Supply initial filtering text. These are considered part
     of the Filter field and are AND'ed. Examples:
       `nccm abc xyz`
@@ -508,10 +510,10 @@ Command line arguments
     In cycle mode  `( nccm_loop_nccm == true )` - these args
     are stored in the  `Filter`  textbox for the next cycle.
 
-* -h  or --help :
+* -h  or  --help :
     Display the help message.
 
-* -d  or --debug :
+* -d  or  --debug :
     Force debug verbosity logging, ignoring any other
     logging settings everywhere else.
 
@@ -519,10 +521,16 @@ Command line arguments
     Force nccm to expose private information in syslog
     (secure by default - logs `CENSORED` instead).
 
-* -m  or --man :
+* -m  or  --man :
     Display the man page.
 
-* -v or --version :
+* -r <ROLE>  or  --role <ROLE> :
+    When this arg is supplied, a matching tag in the `roles`
+    list (a configuration item of each connection) must be
+    found for those entries to make it to the displayed
+    connections list.
+
+* -v or  --version :
     Display nccm version.
 
 
@@ -691,6 +699,18 @@ immediately after it exits type `echo $?` - this will
 display the error code. Remember - nccm doesn't cause ssh
 to exit non-zero, all it does is expose this fact to the
 user.
+
+
+Filtered results
+----------------
+
+If you are receiving less results than in your `nccm.yml`
+file - check if you are filtering by role (or if your admin
+is enforcing this role based access for you).
+
+
+General tips
+------------
 
 If you find bugs please update to the latest version of
 nccm first (this may include updating your yaml file in
