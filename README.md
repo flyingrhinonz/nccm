@@ -41,9 +41,12 @@ About nccm
 * Secure.
 * Logs are in English - you don't need to be a developer to
     read the majority of the logs.
-* nccm has reached a stable state with no known bugs.
-    I will continue to fix bugs and only add features that
-    are in the spirit of nccm.
+* nccm has reached a stable state with no known bugs when
+    running on pure Linux (developed and tested the latest
+    stable version of Debian).
+    I will continue to fix bugs that I can recreate on
+    the latest clean-install stable version of Debian, and
+    only add features that are in the spirit of nccm.
 
 
 
@@ -715,12 +718,15 @@ General tips
 If you find bugs please update to the latest version of
 nccm first (this may include updating your yaml file in
 case the format changed). If the bug persists please report
-it through the `issues` tab in github.
-I use nccm on Linux Mint and RHEL. I use it infrequently
-on Fedora too. I can easily fix any bugs that I can
-recreate on platforms that I use, but I know that nccm is
-used on many other platforms too - not all of which are
-pure Linux. If you encounter bugs that I can't recreate -
+it through the `issues` tab in github - making sure that
+you supply as much info as possible - OS name and version,
+any environment details, etc.
+I use nccm primarily on Debian latest version, and also
+infrequently on Fedora, Linux Mint and RHEL too.
+I can easily fix any bugs that I can recreate on platforms
+that I use, but I know that nccm is used on many other
+platforms too - not all of which are pure Linux.
+If you encounter bugs that I can't recreate -
 try posting as much debugging information as possible and
 I'll try to help, or one of the users may have the same
 platform as you and may be of assistance.
@@ -750,6 +756,18 @@ This program aims to do one thing well - lets you make SSH
 connections from an ncurses based manager with minimum
 distraction. Feature requests that keep nccm on focus will
 be considered.
+
+
+
+Known issues
+============
+
+Users have found the following problems on non-linux
+platforms:
+- Issues with nccm crashing due to missing libraries or
+missing/incomplete syslog or systemd. Solution - bring your
+system into compliance with pure Linux; this is not a bug
+in nccm. Look at old issues for decriptions and solutions.
 
 
 
