@@ -863,8 +863,8 @@ SecureLogging = True
 
 
 # Program identification strings:
-__version__     = '1.8.1'
-VersionDate     = '2025-04-11'
+__version__     = '1.8.2'
+VersionDate     = '2025-05-17'
 ProgramName     = 'NCurses ssh Connection Manager'
 AuthorName      = 'Kenneth Aaron'
 AuthorEmail     = 'flyingrhino AT orcon DOT net DOT nz'
@@ -1468,9 +1468,11 @@ class Connections:
         if self.LogPath:        # If supplied, validate this is a legitimate dir:
             if not pathlib.Path(self.LogPath).is_dir():
                 LogWrite.error('nccm_config_logpath == {} not found. '
-                    'nccm will not run without logging. Either fix the '
-                    'log path or disable logging'.format(self.LogPath))
-                raise Exception('Log path configured but actual path not found on filesystem')
+                    'nccm will not run if the configured logpath does not exist. '
+                    ' Either fix the log path or disable logging'.format(self.LogPath))
+                raise Exception('nccm_config_logpath == {} not found. '
+                    'nccm will not run if the configured logpath does not exist. '
+                    ' Either fix the log path or disable logging'.format(self.LogPath))
                     # ^ If you configured logging - you meant for it to work, and rely
                     #   upon it for later checkups or audit. Therefore if
                     #   it doesn't work it should be fixed or disabled.

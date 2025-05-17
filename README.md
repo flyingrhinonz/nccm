@@ -42,8 +42,8 @@ About nccm
 * Logs are in English - you don't need to be a developer to
     read the majority of the logs.
 * nccm has reached a stable state with no known bugs when
-    running on pure Linux (developed and tested the latest
-    stable version of Debian).
+    running on pure Linux (developed and tested on the
+    latest stable version of Debian).
     I will continue to fix bugs that I can recreate on
     the latest clean-install stable version of Debian, and
     only add features that are in the spirit of nccm.
