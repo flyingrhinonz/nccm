@@ -797,7 +797,6 @@ import operator
 import os
 import pathlib
 import platform
-
 import pydoc
 import random
 import shlex
@@ -865,11 +864,11 @@ SecureLogging = True
 
 
 # Program identification strings:
-__version__     = '1.8.2'
-VersionDate     = '2025-05-17'
+__version__     = '1.8.3'
+VersionDate     = '2026-01-16'
 ProgramName     = 'NCurses ssh Connection Manager'
 AuthorName      = 'Kenneth Aaron'
-AuthorEmail     = 'flyingrhino AT orcon DOT net DOT nz'
+AuthorEmail     = 'Contact via github'
 License         = 'GPLv3'
 
 
@@ -878,15 +877,15 @@ class CustomHandler(logging.handlers.SysLogHandler):
     ''' Subclass for our custom log handler '''
 
     def __init__(self):
-        # Determine correct syslog address for the platform
+        # Determine correct syslog address for the platform:
         SysLogAddress = '/dev/log'
-        
+
         if platform.system() == 'Darwin':
             SysLogAddress = '/var/run/syslog'
 
-        # Fallback logic in case the socket doesn't exist (e.g. non-standard environments)
+        # Fallback logic in case the socket doesn't exist (e.g. non-standard environments):
         if not os.path.exists(SysLogAddress):
-            # Try to connect to localhost UDP port 514 as a last resort
+            # Try to connect to localhost UDP port 514 as a last resort:
             SysLogAddress = ('localhost', 514)
 
         try:
@@ -896,12 +895,11 @@ class CustomHandler(logging.handlers.SysLogHandler):
             # or just fail gracefully.
             try:
                 super(CustomHandler, self).__init__()
+                    # ^ Very important to send the address bit to SysLogHandler
+                    #   else you won't get logging in syslog!
             except Exception:
-                # If logging fails effectively disable it or print to stderr
+                # If logging fails effectively disable it or print to stderr:
                 print("Warning: Could not connect to syslog. Logging may be disabled.", file=sys.stderr)
-
-            # ^ Very important to send the address bit to SysLogHandler
-            #   else you won't get logging in syslog!
 
 
     def emit(self, record):
