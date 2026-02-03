@@ -799,6 +799,7 @@ import pathlib
 import platform
 import pydoc
 import random
+import re
 import shlex
 import socket
 import string
@@ -864,8 +865,8 @@ SecureLogging = True
 
 
 # Program identification strings:
-__version__     = '1.8.3'
-VersionDate     = '2026-01-16'
+__version__     = '1.8.4'
+VersionDate     = '2026-02-03'
 ProgramName     = 'NCurses ssh Connection Manager'
 AuthorName      = 'Kenneth Aaron'
 AuthorEmail     = 'Contact via github'
@@ -1138,6 +1139,11 @@ class GlobalConfig:
         # ^ If a connection does not have a specific user set, do not infer
         #       user from the currently logged in user and instead
         #       request a username before prompting to continue.
+    PromptedUser = 'NCCMUserNameRequired'
+        # ^ If GlobalConfig.PromptOnUnknownUser == True then temporarily use this username
+        #       within the scope of the ncurses code, then later at connection time prompt
+        #       the user for the real username.
+        #   Chances of this being a real username are probably zero.
 
     # Setup the supported directories/pathnames for the connections file.
     # If you want to store nccm.yml in a directory that's not already supported
@@ -1799,7 +1805,7 @@ class Connections:
                             # ^ Pretty formtting, nothing else...
 
                     if GlobalConfig.PromptOnUnknownUser:
-                        FSL.Comment += '[prompt for <user> at login time]'
+                        FSL.Comment += '[prompt for <username> at login time]'
                     else:
                         FSL.Comment += '[{}@ taken from login user]'.format(FSL.UserName)
 
@@ -1899,7 +1905,6 @@ class Connections:
         ''' Get link to connect to '''
 
         ServerXSNum = int(ServerXSNum)
-        PromptedUser = ''
 
         # Get the item line of the connection we want from the full connections list.
         # (This is the unmodified original list as it was loaded):
@@ -1918,16 +1923,24 @@ class Connections:
             # ^ This is the command line that we use to make the ssh connection.
 
         CommandInfo = {}
-            # This dict contains the above CommandLine list as well as other useful
+            # ^ This dict contains the above CommandLine list as well as other useful
             #   information we can pass on to scripts.
 
         CommandLine += (self.SshProgram, )
 
+        # This block handles populating the username - either from the yaml, default logged in, or prompt:
         if '<user>@' in SelectedEntry.UserAddr:
-            PromptedUser = PromptForUserLogin("Enter username to use for <username>@server : ")
+            LogWrite.debug('We need to prompt for username but since we are still inside an ncurses window we will do this at connection time ...')
+            LogWrite.debug('Meanwhile using:  GlobalConfig.PromptedUser == {}'.format(GlobalConfig.PromptedUser))
+            CommandLine += (SelectedEntry.UserAddr.replace('<user>', GlobalConfig.PromptedUser), )
+                # ^ This block fixes issue #30 which prompted for the username inside the ncurses window - causing a freeze.
+                #       The workaround to managing a new prompt textbox is to handle the prompt outside of nucrses at connection time
+                #       which is what we will do.
+            #PromptedUser = PromptForUserLogin("Enter username to use for <username>@server : ")
             #CommandLine += ('{}@{}'.format(PromptedUser, SelectedEntry.Address), )
-            CommandLine += (SelectedEntry.UserAddr.replace('<user>', PromptedUser), )
+                # ^ This is the buggy code from issue #30
         else:
+            LogWrite.debug('No need to prompt for username')
             CommandLine += (SelectedEntry.UserAddr, )
 
         if SelectedEntry.Port:
@@ -1947,7 +1960,7 @@ class Connections:
         if self.LogPath:    # Log file path is set:
             self.LogFileName = pathlib.PurePath(self.LogPath).joinpath('{}_{}_{}x{}.{}{}'
                 .format(datetime.datetime.now().strftime('%Y-%m-%d_%H%M%S'),
-                    SelectedEntry.UserAddr.replace('@', '_AT_').replace('<user>', PromptedUser),
+                    SelectedEntry.UserAddr.replace('@', '_AT_').replace('<user>', GlobalConfig.PromptedUser),
                     GlobalConfig.ScreenWidth,
                     GlobalConfig.ScreenHeight,
                     ''.join(random.choice(string.ascii_lowercase) for i in range(6)),
@@ -2365,23 +2378,45 @@ def PressEnterToCont(PromptText):
 
 
 def PromptForUserLogin(PromptText):
-    ''' A simple prompt asking for login information from the user. '''
+    ''' A simple prompt asking for login information from the user.
+        Also checks for valid username format:
+            Length: Usually between 1 and 32 characters.
+            Characters: Only letters (a-z, A-Z), digits (0-9), underscores (_), and hyphens (-) are allowed.
+            Start/End: Must not start or end with a hyphen or underscore. '''
+
+    LogWrite.debug('Function PromptForUserLogin started')
+
+    UsernamePattern = r'^[a-zA-Z][a-zA-Z0-9_-]*[a-zA-Z0-9]$'
 
     if GlobalConfig.PromptOnUnknownUser:
         LogWrite.debug('Waiting for user to enter login information and press Enter...')
 
-    Ans = None
-    while True:
-        try:
-            Ans = input(PromptText)
-            if Ans != '':
-                break
-            else:
-                print("No username was detected, please retry...")
-        except EOFError as Exception:
-            LogWrite.debug('CTRL-D ignored')
-            print('\n')
-    return Ans.rstrip()
+        Ans = None
+        while True:
+            LogWrite.debug('After:  "while True"')
+            try:
+                Ans = input(PromptText)
+                LogWrite.debug( {
+                    'unsafe':       'Ans == {}'
+                        .format(Ans),
+                    'safe':         'Ans == CENSORED' } )
+                if not isinstance(Ans, str) or not Ans:
+                    LogWrite.warning( { 'tee': 'Not a valid string, please retry...' } )
+                    continue
+                if len(Ans) < 1 or len(Ans) > 32:
+                    LogWrite.warning( { 'tee': 'Not a valid length, please retry...' } )
+                    continue
+                if (re.match(UsernamePattern, Ans)):
+                    break
+                else:
+                    LogWrite.warning( { 'tee': 'No valid username detected, please retry...' } )
+            except EOFError as Exception:
+                LogWrite.warning('CTRL-D ignored')
+                print('\n')
+        LogWrite.debug('Function PromptForUserLogin ending')
+        return Ans.rstrip()
+    else:
+        LogWrite.debug('Nothing happened')
 
 
 def UpdateDisplay():
@@ -3002,6 +3037,9 @@ def ParseArgs():
 
 def main(*args):
 
+    TempPromptedUser = ""
+        # ^ Get the login username from the user in this run cycle (in case nccm is reused for future connections)
+
     ParseArgs()     # Command line args processing happens here
     InitialLogging()
         # ^ Moved it after ParseArgs so that we have debugging info logged if
@@ -3019,6 +3057,23 @@ def main(*args):
                     .format('CENSORED') } )
                 # ^ Note - even though we're logging the entire CommandInfo dict here,
                 #       we won't pass all of it to the script.
+
+            # Prompt for username block:
+            #   This is required if:  GlobalConfig.PromptOnUnknownUser == True  AND  no username was supplied in nccm.yaml
+            #   We did not infer the username from the user who is running nccm.
+            if GlobalConfig.PromptedUser in CommandInfo['CommandLine']:
+                LogWrite.debug( {
+                    'unsafe':   'CHANGEME text:  "{}"  found in command line:  {} . Need to prompt user for real username to use ...'
+                        .format(GlobalConfig.PromptedUser, CommandInfo['CommandLine']),
+                    'safe':     'CHANGEME text:  "{}"  found in command line:  {} . Need to prompt user for real username to use ...'
+                        .format(GlobalConfig.PromptedUser, 'CENSORED') } )
+                TempPromptedUser = PromptForUserLogin("Enter username to use for <username>@server : ")
+                CommandInfo['CommandLine'] = CommandInfo['CommandLine'].replace(GlobalConfig.PromptedUser, TempPromptedUser)
+                LogWrite.debug( {
+                    'unsafe':   'After prompting for username the new command line is:  {}'
+                        .format(CommandInfo['CommandLine']),
+                    'safe':     'After prompting for username the new command line is:  {}'
+                        .format('CENSORED') } )
 
             # PreconnectScript block:
             if GlobalConfig.PreconnectScript:

@@ -6,8 +6,6 @@ NCurses ssh Connection Manager (nccm)
 
 Copyright (C) 2021+ Kenneth Aaron.
 
-flyingrhino AT orcon DOT net DOT nz
-
 Freedom makes a better world: released under GNU GPLv3.
 
 [https://www.gnu.org/licenses/gpl-3.0.en.html](https://www.gnu.org/licenses/gpl-3.0.en.html)
