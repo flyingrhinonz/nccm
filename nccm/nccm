@@ -11,8 +11,6 @@ NCurses ssh Connection Manager (nccm)
 
 Copyright (C) 2021+ Kenneth Aaron.
 
-flyingrhino AT orcon DOT net DOT nz
-
 Freedom makes a better world: released under GNU GPLv3.
 
 [https://www.gnu.org/licenses/gpl-3.0.en.html](https://www.gnu.org/licenses/gpl-3.0.en.html)
@@ -47,8 +45,8 @@ About nccm
 * Logs are in English - you don't need to be a developer to
     read the majority of the logs.
 * nccm has reached a stable state with no known bugs when
-    running on pure Linux (developed and tested the latest
-    stable version of Debian).
+    running on pure Linux (developed and tested on the
+    latest stable version of Debian).
     I will continue to fix bugs that I can recreate on
     the latest clean-install stable version of Debian, and
     only add features that are in the spirit of nccm.
@@ -96,6 +94,7 @@ loaded from the first location found in the following order:
 - `~/.config/nccm/nccm.yml`
 - `~/.nccm.yml`
 - `~/nccm.yml`
+- `/usr/local/etc/nccm.yml`
 - `/etc/nccm.yml`
 
 
@@ -342,15 +341,20 @@ output will fly by really fast.
 `nccm_config_prompt_on_unknown_user`:
 -------------------------------------
 
-If there is no user specified for a connection, instead of
-inferring the user from the currently logged in user,
-provide a prompt right before connecting to ask for the
-user name you would like to log in with.
+By default set to false and takes the username from the
+currently logged in user if no username explicitly set in
+`nccm.yml`.
+If set to true - and if there is no user specified for a
+connection, instead of inferring the user from the
+currently logged in user, provide a prompt right before
+connecting to ask for the user name you would like to
+log in with.
 This can be useful for testing various logins for a
 connection or if you do not want to provide usernames in
 the server list.
-By default set to false and takes the username from the
-currently logged in user.
+In the order of connection - this prompt comes first,
+followed by the preconnect script (if used), followed by
+the "Press enter to continue" prompt (if used).
 
 
 `nccm_loop_nccm`:
@@ -809,11 +813,11 @@ import textwrap
 import time
 
 # Pay attention to these imports:
-import yaml         # Requires: 'pip3 install --user PyYAML'
-                    #   On a Debian based system you can also do:
-                    #       sudo apt-get install python3-yaml
-                    #   On Fedora you can do:
-                    #       dnf install python3-pyyaml
+import yaml
+    # ^ Requires the yaml library supplied in one of the following ways:
+    #       On all systems:  `pip3 install --user PyYAML`
+    #       On a Debian based system you can alternatively do:  `sudo apt-get install python3-yaml`
+    #       On Fedora you can alternatively do:  `dnf install python3-pyyaml`
 
 
 # Beginning of logging setup section:
@@ -865,8 +869,8 @@ SecureLogging = True
 
 
 # Program identification strings:
-__version__     = '1.8.4'
-VersionDate     = '2026-02-03'
+__version__     = '1.8.5'
+VersionDate     = '2026-02-04'
 ProgramName     = 'NCurses ssh Connection Manager'
 AuthorName      = 'Kenneth Aaron'
 AuthorEmail     = 'Contact via github'

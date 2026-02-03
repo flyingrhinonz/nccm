@@ -89,6 +89,7 @@ loaded from the first location found in the following order:
 - `~/.config/nccm/nccm.yml`
 - `~/.nccm.yml`
 - `~/nccm.yml`
+- `/usr/local/etc/nccm.yml`
 - `/etc/nccm.yml`
 
 
@@ -335,15 +336,20 @@ output will fly by really fast.
 `nccm_config_prompt_on_unknown_user`:
 -------------------------------------
 
-If there is no user specified for a connection, instead of
-inferring the user from the currently logged in user,
-provide a prompt right before connecting to ask for the
-user name you would like to log in with.
+By default set to false and takes the username from the
+currently logged in user if no username explicitly set in
+`nccm.yml`.
+If set to true - and if there is no user specified for a
+connection, instead of inferring the user from the
+currently logged in user, provide a prompt right before
+connecting to ask for the user name you would like to
+log in with.
 This can be useful for testing various logins for a
 connection or if you do not want to provide usernames in
 the server list.
-By default set to false and takes the username from the
-currently logged in user.
+In the order of connection - this prompt comes first,
+followed by the preconnect script (if used), followed by
+the "Press enter to continue" prompt (if used).
 
 
 `nccm_loop_nccm`:
